@@ -1,7 +1,7 @@
 [project]
 name = "juvecom"
 version = "0.1.0"
-description = "Add your description here"
+description = "Sistema web para gestão de lojas Shopee, planos, contatos, contratos e cobranças."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
