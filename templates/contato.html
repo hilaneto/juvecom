@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contato | Juvaecom</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+</head>
+<body>
+    <main class="pagina-contato">
+        <div class="contato-container">
+            <a class="planos-voltar" href="{{ url_for('home') }}">← Voltar para a home</a>
+
+            <div class="contato-grade">
+                <div class="contato-apresentacao">
+                    <p class="home__categoria">Vamos conversar</p>
+                    <h1>Sua loja pode ir <span>mais longe.</span></h1>
+                    <p>
+                        Conte um pouco sobre sua operação. Entraremos em contato
+                        para entender seus objetivos na Shopee.
+                    </p>
+                </div>
+
+                <div class="contato-card">
+                    {% if enviado %}
+                        <div class="contato-aviso contato-aviso--sucesso" role="status">
+                            Recebemos seu contato. Em breve conversaremos com você.
+                        </div>
+                    {% else %}
+                        <h2>Fale com a Juvaecom</h2>
+
+                        {% if erro %}
+                            <div class="contato-aviso contato-aviso--erro" role="alert">
+                                {{ erro }}
+                            </div>
+                        {% endif %}
+
+                        <form method="post" action="{{ url_for('contato') }}">
+                            <label for="nm_contato">Nome *</label>
+                            <input id="nm_contato" name="nm_contato" type="text"
+                                   maxlength="150" required
+                                   value="{{ request.form.get('nm_contato', '') }}">
+
+                            <label for="celular">Celular *</label>
+                            <input id="celular" name="celular" type="tel"
+                                   maxlength="20" required
+                                   value="{{ request.form.get('celular', '') }}">
+
+                            <label for="email">E-mail</label>
+                            <input id="email" name="email" type="email"
+                                   maxlength="150"
+                                   value="{{ request.form.get('email', '') }}">
+
+                            <label for="mensagem">Mensagem</label>
+                            <textarea id="mensagem" name="mensagem" rows="5">{{ request.form.get('mensagem', '') }}</textarea>
+
+                            <button type="submit">Enviar contato</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

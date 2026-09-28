@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planos | Juvaecom</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+</head>
+
+<body>
+    <main class="pagina-planos">
+        <div class="planos-container">
+            <header class="planos-cabecalho">
+                <a class="planos-voltar" href="{{ url_for('home') }}">← Voltar para a home</a>
+                <p class="home__categoria">Planos Juvaecom</p>
+                <h1>Escolha o próximo passo da sua loja<span>.</span></h1>
+                <p>Encontre o período de acompanhamento ideal para o momento do seu negócio.</p>
+            </header>
+
+            <section class="planos-grade" aria-label="Planos disponíveis">
+                {% for plano in planos %}
+                    <article class="plano-card">
+                        <div>
+                            <p class="plano-card__categoria">Plano</p>
+                            <h2>{{ plano.nm_plano }}</h2>
+                            <p class="plano-card__descricao">{{ plano.ds_plano or '' }}</p>
+                        </div>
+                        <p class="plano-card__texto">{{ plano.texto_banner or '' }}</p>
+                        <div class="plano-card__rodape">
+                            <p class="plano-card__periodo"> {{ plano.periodicidade_dias }} dias de contrato </p>
+                            <p class="plano-card__valor"> R$ {{ "{:,.2f}".format(plano.valor).replace(",", "X").replace(".", ",").replace("X", ".") }} </p>
+                        </div>
+                    </article>
+                {% else %}
+                    <p>Os planos estarão disponíveis em breve.</p>
+                {% endfor %}
+            </section>
+            
+        </div>
+    </main>
+</body>
+</html>
