@@ -317,13 +317,15 @@ cd_nivel smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 nm_nivel varchar(30) NOT NULL UNIQUE);
 
 INSERT INTO tb_usuario_nivel (nm_nivel) VALUES
-('administrador'),
-('financeiro'),
-('atendimento');
+('master'),
+('superior'),
+('médio')
+('intermediário'),
+('limitado');
 
 
 -- ============================================================
--- tb_usuario
+-- tb_usuario - drop table tb_usuario cascade
 -- ============================================================
 CREATE TABLE tb_usuario (
 cd_usuario bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -332,7 +334,6 @@ cd_nivel smallint NOT NULL,
 login varchar(100) NOT NULL UNIQUE,
 senha_hash text NOT NULL,
 fl_ativo boolean NOT NULL DEFAULT true,
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT fk_usuario_pessoa FOREIGN KEY (cd_pessoa) REFERENCES tb_pessoa (cd_pessoa),
 CONSTRAINT fk_usuario_nivel FOREIGN KEY (cd_nivel) REFERENCES tb_usuario_nivel (cd_nivel),

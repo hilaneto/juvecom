@@ -15,6 +15,19 @@ select * from tb_usuario_nivel;
 select * from tb_evento_log;
 select * from tb_contrato_modelo;
 
+
+1 administrador
+2 financeiro
+3 atendimento
+
+
+1 master
+2 superior
+3 médio
+4 intermediário
+5 limitado
+
+
 -- -----------------------------------
 select * from tb_pessoa;
 select * from tb_loja;

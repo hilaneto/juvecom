@@ -6,14 +6,26 @@
     <title>Juvaecom | Gestão de lojas Shopee</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
 </head>
-
 <body>
+    <nav class="menu-principal" aria-label="Menu principal">
+        <a class="menu-principal__marca" href="{{ url_for('home') }}">
+            Juva<span>ecom</span>.
+        </a>
+
+        <div class="menu-principal__links">
+            <a href="{{ url_for('planos') }}">Planos</a>
+            <a href="{{ url_for('contato') }}">Contato</a>
+            <a href="{{ url_for('adm') }}">Área administrativa</a>
+        </div>
+    </nav>
+
     <main class="home">
         <div class="home__imagem" aria-hidden="true">
             <img src="{{ url_for('static', filename='img/juvaecom.jpg') }}" alt="">
         </div>
 
         <div class="home__conteudo">
+            <div class="home__marca">Juva<span>ecom</span>.</div>
             <div class="home__categoria">Gestão de lojas Shopee</div>
 
             <h1>O próximo nível da sua loja <span>começa agora.</span></h1>
@@ -24,18 +36,10 @@
                 para sua loja evoluir.
             </p>
 
-            <a class="home__botao" href="{{ url_for('planos') }}">Conheça nossos planos</a>
+            <a class="home__botao" href="{{ url_for('planos') }}">
+                Conheça nossos planos
+            </a>
         </div>
     </main>
 </body>
-
-<nav class="menu-principal" aria-label="Menu principal">
-    <a class="menu-principal__marca" href="{{ url_for('home') }}">Juva<span>ecom</span>.</a>
-
-    <div class="menu-principal__links">
-        <a href="{{ url_for('planos') }}">Planos</a>
-        <a href="{{ url_for('contato') }}">Contato</a>
-    </div>
-</nav>
-
 </html>

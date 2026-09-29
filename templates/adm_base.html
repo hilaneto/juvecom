@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Painel Juvaecom{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+</head>
+<body>
+    <div class="adm-layout">
+        <aside class="adm-lateral">
+            <a class="adm-lateral__marca" href="{{ url_for('adm') }}">
+                Juva<span>ecom</span>.
+            </a>
+
+            <nav class="adm-lateral__nav" aria-label="Menu administrativo">
+                <a href="{{ url_for('adm') }}"
+                   {% if request.endpoint == 'adm' %}
+                       class="ativo" aria-current="page"
+                   {% endif %}>
+                    Home
+                </a>
+
+                <a href="{{ url_for('adm_contatos') }}"
+                   {% if request.endpoint == 'adm_contatos' %}
+                       class="ativo" aria-current="page"
+                   {% endif %}>
+                    Contatos pendentes
+                </a>
+
+                <span>
+                    Pessoas e lojas
+                    <small>Em construção</small>
+                </span>
+
+                <span>
+                    Contratos
+                    <small>Em construção</small>
+                </span>
+
+                <span>
+                    Cobranças
+                    <small>Em construção</small>
+                </span>
+
+                <span>
+                    Usuários
+                    <small>Em construção</small>
+                </span>
+            </nav>
+
+            <div class="adm-lateral__rodape">
+                <form method="post" action="{{ url_for('logout') }}">
+                    <input type="hidden"
+                           name="csrf_token"
+                           value="{{ session['csrf_token'] }}">
+                    <button class="adm-sair" type="submit">Sair</button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="adm-principal">
+            {% block conteudo %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

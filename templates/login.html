@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso administrativo | Juvaecom</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+</head>
+<body>
+    <main class="pagina-contato">
+        <div class="contato-container">
+            <a class="planos-voltar" href="{{ url_for('home') }}">← Voltar para a home</a>
+
+            <div class="contato-card" style="max-width: 440px; margin: 0 auto;">
+                <h2>Acesso administrativo</h2>
+
+                {% if erro %}
+                    <div class="contato-aviso contato-aviso--erro" role="alert">{{ erro }}</div>
+                {% endif %}
+
+                <form method="post" action="{{ url_for('login') }}">
+                    <label for="login">Login</label>
+                    <input id="login" name="login" type="text" autocomplete="username" required>
+
+                    <label for="senha">Senha</label>
+                    <input id="senha" name="senha" type="password"
+                           autocomplete="current-password" required>
+                           
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
+                    <button type="submit">Entrar</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{% extends "adm_base.html" %}
+
+{% block title %}Atendimento de contatos | Juvaecom{% endblock %}
+
+{% block conteudo %}
+    <p class="home__categoria">Atendimento</p>
+    <h1>Contatos <span>pendentes.</span></h1>
+
+    <p class="home__descricao">
+        Contatos que ainda aguardam o primeiro atendimento.
+    </p>
+
+    <div class="atendimento-grupos">
+        {% set faixas = [
+            ('atrasados', 'vermelho', 'Sem atendimento há 3 dias ou mais'),
+            ('recentes', 'amarelo', 'Cadastrados há 1 ou 2 dias'),
+            ('hoje', 'verde', 'Cadastrados hoje')
+        ] %}
+
+        {% for chave, cor, titulo in faixas %}
+            <section class="atendimento-card atendimento-card--{{ cor }}">
+                <header class="atendimento-card__cabecalho">
+                    <h2>{{ titulo }}</h2>
+                    <span class="atendimento-card__quantidade">
+                        {{ grupos[chave] | length }}
+                    </span>
+                </header>
+
+                {% if grupos[chave] %}
+                    <div class="atendimento-tabela-container">
+                        <table class="atendimento-tabela">
+                            <caption class="atendimento-tabela__legenda">
+                                {{ titulo }}
+                            </caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Nome</th>
+                                    <th scope="col">Celular</th>
+                                    <th scope="col">E-mail</th>
+                                    <th scope="col">Mensagem</th>
+                                    <th scope="col">Cadastro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contato in grupos[chave] %}
+                                    <tr>
+                                        <td>{{ contato.nm_contato }}</td>
+                                        <td>
+                                            <a href="tel:{{ contato.celular }}">
+                                                {{ contato.celular }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {% if contato.email %}
+                                                <a href="mailto:{{ contato.email }}">
+                                                    {{ contato.email }}
+                                                </a>
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td class="atendimento-tabela__mensagem">
+                                            {{ contato.mensagem or '—' }}
+                                        </td>
+                                        <td class="atendimento-tabela__data">
+                                            {{ contato.dt_cadastro.strftime('%d/%m/%Y %H:%M') }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="atendimento-card__vazio">
+                        Nenhum contato nesta faixa.
+                    </p>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

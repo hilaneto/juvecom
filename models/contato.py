@@ -1,6 +1,7 @@
 from peewee import Model, BigAutoField, BigIntegerField, SmallIntegerField, CharField, TextField, DateTimeField, SQL
 from database.conexao import db, conectar
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class Contato(Model):
     cd_contato = BigAutoField()
@@ -85,6 +86,29 @@ class Contato(Model):
         if not alterados:
             return {"sucesso": False, "erro": "Contato não encontrado."}
         return {"sucesso": True, "cd_contato": cd_contato}
+
+
+    @staticmethod
+    def por_prazo():
+        fuso = ZoneInfo("America/Sao_Paulo")
+        hoje = datetime.now(fuso).date()
+        grupos = {"atrasados": [], "recentes": [], "hoje": []}
+
+        with conectar():
+            contatos = list(Contato.select().where(Contato.cd_status == 1).order_by(Contato.dt_cadastro))
+
+        for contato in contatos:
+            cadastro = contato.dt_cadastro.astimezone(fuso).date()
+            dias = (hoje - cadastro).days
+
+            if dias >= 3:
+                grupos["atrasados"].append(contato)
+            elif dias in (1, 2):
+                grupos["recentes"].append(contato)
+            elif dias == 0:
+                grupos["hoje"].append(contato)
+
+        return grupos
 
 
     @staticmethod
