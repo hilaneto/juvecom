@@ -36,6 +36,7 @@ select * from tb_contrato_loja;
 select * from tb_parcelas;
 
 select * from tb_contato;
+--TRUNCATE TABLE tb_usuario RESTART IDENTITY CASCADE;
 
 -- -----------------------------------
 select * from tb_usuario;

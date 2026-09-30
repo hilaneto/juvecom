@@ -9,9 +9,7 @@
 <body>
     <div class="adm-layout">
         <aside class="adm-lateral">
-            <a class="adm-lateral__marca" href="{{ url_for('adm') }}">
-                Juva<span>ecom</span>
-            </a>
+            <a class="adm-lateral__marca" href="{{ url_for('adm') }}"> Juva<span>ecom</span> </a>
 
             <nav class="adm-lateral__nav" aria-label="Menu administrativo">
                 <a href="{{ url_for('adm') }}"
@@ -27,36 +25,17 @@
                    {% endif %}>
                     Contatos pendentes
                 </a>
-
-                <span>
-                    Pessoas e lojas
-                    <small>Em construção</small>
-                </span>
-
-                <span>
-                    Contratos
-                    <small>Em construção</small>
-                </span>
-
-                <span>
-                    Cobranças
-                    <small>Em construção</small>
-                </span>
-
-                <span>
-                    Usuários
-                    <small>Em construção</small>
-                </span>
+                <span> Pessoas e lojas <small>Em construção</small> </span>
+                <span> Contratos <small>Em construção</small> </span>
+                <span> Cobranças <small>Em construção</small> </span>
+                <span> Usuários <small>Em construção</small> </span>
             </nav>
 
-            <div class="adm-lateral__rodape">
-                <form method="post" action="{{ url_for('logout') }}">
-                    <input type="hidden"
-                           name="csrf_token"
-                           value="{{ session['csrf_token'] }}">
-                    <button class="adm-sair" type="submit">Sair</button>
-                </form>
-            </div>
+            <form class="adm-menu-sair" method="post" action="{{ url_for('logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <button type="submit">Sair</button>
+            </form>
+
         </aside>
 
         <main class="adm-principal">
