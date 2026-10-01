@@ -30,7 +30,7 @@
                             <p class="plano-card__periodo"> {% if plano.nm_plano == 'Avulso' %} Diagnóstico da sua loja em uma call de 1 hora {% else %} {{ plano.periodicidade_dias }} dias de contrato {% endif %} </p>
                             <p class="plano-card__valor">
                                 R$ {{ "{:,.2f}".format(plano.valor).replace(",", "X").replace(".", ",").replace("X", ".") }}
-                                <span class="plano-card__mensal">{{ '/única' if plano.nm_plano == 'Avulso' else '/Mês' }}</span>
+                                <span class="plano-card__mensal">{{ '/Única' if plano.nm_plano == 'Avulso' else '/Mês' }}</span>
                                 <a class="home__botao" href="{{ url_for('contato', cd_plano=plano.cd_plano) }}"> Tenho interesse </a>
                             </p>
                         </div>
