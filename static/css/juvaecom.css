@@ -448,3 +448,15 @@ h1 {
     font-weight: 400;
     color: #fff;
 }
+
+.plano-card__valor {
+    font-size: 26px;
+}
+
+.plano-card .home__botao {
+    display: block;
+    width: fit-content;
+    font-size: 13px;
+    padding: 10px 16px;
+    margin: 16px auto 0;
+}
