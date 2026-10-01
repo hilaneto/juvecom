@@ -442,3 +442,9 @@ h1 {
     .planos-grade { grid-template-columns: 1fr; margin-top: 40px; }
     .plano-card { min-height: 300px; }
 }
+
+.plano-card__mensal {
+    font-size: 14px;
+    font-weight: 400;
+    color: #fff;
+}

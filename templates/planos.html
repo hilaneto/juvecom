@@ -28,7 +28,8 @@
                         <p class="plano-card__texto">{{ plano.texto_banner or '' }}</p>
                         <div class="plano-card__rodape">
                             <p class="plano-card__periodo"> {{ plano.periodicidade_dias }} dias de contrato </p>
-                            <p class="plano-card__valor"> R$ {{ "{:,.2f}".format(plano.valor).replace(",", "X").replace(".", ",").replace("X", ".") }} </p>
+                            <p class="plano-card__valor"> R$ {{ "{:,.2f}".format(plano.valor).replace(",", "X").replace(".", ",").replace("X", ".") }} <span class="plano-card__mensal">/Mês</span> </p>
+                            <a class="home__botao" href="{{ url_for('contato', cd_plano=plano.cd_plano) }}"> Tenho interesse </a>
                         </div>
                     </article>
                 {% else %}
