@@ -3,7 +3,8 @@
 -- SCHEMA: public
 -- 2026-09-2026
 -- rodar no terminal
--- psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom.sql
+-- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom.sql
+-- local/servidor: scp cria_juvecom.sql vps:/tmp/cria_juvecom.sql && ssh -t vps 'psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f /tmp/cria_juvecom.sql'
 -- ============================================================
 
 
@@ -15,10 +16,10 @@ CREATE DATABASE juvecom;
 \connect juvecom
 
 -- ============================================================
--- tb_pessoa
+-- tb_pessoa - drop table tb_pessoa cascade
 -- ============================================================
 CREATE TABLE tb_pessoa (
-cd_pessoa bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_pessoa bigint GENERATED ALWAYS AS IDENTITY (MINVALUE 0 START WITH 0) PRIMARY KEY,
 tp_pessoa char(1) NOT NULL,
 nm_pessoa varchar(150) NOT NULL,
 cpf_cnpj varchar(14) NOT NULL UNIQUE,
@@ -32,6 +33,13 @@ CONSTRAINT ck_pessoa_tipo CHECK (tp_pessoa IN ('F', 'J')),
 CONSTRAINT ck_pessoa_nome CHECK (btrim(nm_pessoa) <> ''),
 CONSTRAINT ck_pessoa_documento CHECK ((tp_pessoa = 'F' AND cpf_cnpj ~ '^[0-9]{11}$') OR (tp_pessoa = 'J' AND cpf_cnpj ~ '^[0-9]{14}$')),
 CONSTRAINT ck_pessoa_dados CHECK (jsonb_typeof(dados) = 'object'));
+
+-- --------------------------------------------------------------------------------------------------------------------------------------------------------
+INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados, fl_ativo, dt_cadastro, dt_atualizacao) values
+('F', 'José Hilário Alves Neto', '06478701859', '11 9 7666-0826', 'hilaneto@yahoo.com.br', '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('F', 'Juvenal Pereira de Souza', '12345678195', '11 98738-5695', 'variedadesjps@gmail.com'     , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('J', 'JPS - Juvaecom Promoções', '22144785142369', '11 98738-5695', 'variedadesjps@gmail.com'     , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
 
 
 -- ============================================================
@@ -95,13 +103,12 @@ CREATE UNIQUE INDEX uq_plano_nome_ativo
 ON tb_plano (nm_plano)
 WHERE fl_ativo;
 
-
 -- ---------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO tb_plano (nm_plano, ds_plano, periodicidade_dias, valor, texto_banner)
-VALUES ('Diamante' , 'Gestão completa da loja Shopee', 360, 1300, 'Mais tempo para desenvolver sua loja com uma gestão contínua.'),
+VALUES ('Diamante' , 'Gestão completa da loja Shopee', 360,   900, 'Mais tempo para desenvolver sua loja com uma gestão contínua.'),
        ('Safira'   , 'Gestão completa da loja Shopee', 180,  1100, 'Uma gestão completa para evoluir com consistência.'),
-       ('Esmeralda', 'Gestão completa da loja Shopee',  90,  900, 'Comece a organizar e fortalecer sua presença na Shopee.'),
-       ('Avulso'   , 'Diagnóstico inicial'           ,   7,  300, 'Descubra as prioridades da sua loja antes dos próximos passos.');
+       ('Esmeralda', 'Gestão completa da loja Shopee',  90,  1300, 'Comece a organizar e fortalecer sua presença na Shopee.'),
+       ('Avulso'   , 'Diagnóstico inicial'           ,   7,   150, 'Descubra as prioridades da sua loja antes dos próximos passos.');
 
 
 -- ============================================================
@@ -310,25 +317,24 @@ REFERENCES tb_loja (cd_pessoa, cd_loja));
 
 
 -- ============================================================
--- tb_usuario_nivel
+-- tb_usuario_nivel - drop table tb_usuario_nivel cascade
 -- ============================================================
 CREATE TABLE tb_usuario_nivel (
-cd_nivel smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_nivel smallint GENERATED ALWAYS AS IDENTITY (MINVALUE 0 START WITH 0) PRIMARY KEY,
 nm_nivel varchar(30) NOT NULL UNIQUE);
 
-INSERT INTO tb_usuario_nivel (nm_nivel) VALUES
-('master'),
-('superior'),
-('médio')
-('intermediário'),
-('limitado');
+INSERT INTO tb_usuario_nivel (nm_nivel) values ('master');
+INSERT INTO tb_usuario_nivel (nm_nivel) values ('superior');
+INSERT INTO tb_usuario_nivel (nm_nivel) values ('médio');
+INSERT INTO tb_usuario_nivel (nm_nivel) values ('intermediário');
+INSERT INTO tb_usuario_nivel (nm_nivel) values ('limitado');
 
 
 -- ============================================================
 -- tb_usuario - drop table tb_usuario cascade
 -- ============================================================
 CREATE TABLE tb_usuario (
-cd_usuario bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_usuario bigint GENERATED ALWAYS AS IDENTITY (MINVALUE 0 START WITH 0) PRIMARY KEY,
 cd_pessoa bigint NOT NULL UNIQUE,
 cd_nivel smallint NOT NULL,
 login varchar(100) NOT NULL UNIQUE,
@@ -339,6 +345,11 @@ CONSTRAINT fk_usuario_pessoa FOREIGN KEY (cd_pessoa) REFERENCES tb_pessoa (cd_pe
 CONSTRAINT fk_usuario_nivel FOREIGN KEY (cd_nivel) REFERENCES tb_usuario_nivel (cd_nivel),
 CONSTRAINT ck_usuario_login CHECK (btrim(login) <> ''),
 CONSTRAINT ck_usuario_senha CHECK (btrim(senha_hash) <> ''));
+
+-- --------------------------------------------------------------------------------------------------------------------------------
+INSERT INTO tb_usuario (cd_pessoa, cd_nivel, login, senha_hash, fl_ativo) values
+(0, 0, 'hilaneto', 'scrypt:32768:8:1$4mjPXrerf5DlpXpO$f8a99dcefa0f79ae3731df309f3e64eb24c34d2d252e79bf8ff4c22321e79b26d1238145047ef14d8fd23c381e249b17d2886e9e1256a9cf6bf57576480dcc8f', true),
+(1, 1, 'juvenal' , 'scrypt:32768:8:1$zebpNPKMDH6Ck8IR$97ec87e2c1f9f8a67192ef784f86dab8223eb8e5570764ae86cd2cafd557ae1278eb0a9ab8fbc4c0a16c1df6703ae50815d765989e0ca465ff7a35bc5d820ec0', true);
 
 
 
@@ -425,11 +436,22 @@ AND st.nm_status <> 'cancelado';
 -- vw_contatos_pendentes: Contatos pendentes
 -- ==========================================================================
 CREATE VIEW vw_contatos_pendentes AS
-SELECT c.cd_contato, c.nome, c.email, c.celular, c.mensagem, p.nm_plano, c.dt_contato, 
-CURRENT_DATE - c.dt_contato::date AS dias_aguardando
+SELECT c.cd_contato, c.nm_contato, c.email, c.celular, c.mensagem, p.nm_plano, c.dt_cadastro, 
+CURRENT_DATE - c.dt_cadastro::date AS dias_aguardando
 FROM tb_contato c
 LEFT JOIN tb_plano p ON p.cd_plano = c.cd_plano
 WHERE c.cd_status = 1;
+
+
+-- ==========================================================================
+-- vw_usuario: drop view vw_usuario - Usuarios
+-- ==========================================================================
+CREATE OR REPLACE VIEW vw_usuario as
+select a.cd_usuario, a.cd_pessoa, b.nm_pessoa, a.login, a.cd_nivel, c.nm_nivel, a.fl_ativo, a.dt_atualizacao
+from tb_usuario a inner join tb_pessoa b
+on a.cd_pessoa = b.cd_pessoa
+left join tb_usuario_nivel c
+on a.cd_nivel  = c.cd_nivel;
 
 
 -- ==========================================================================

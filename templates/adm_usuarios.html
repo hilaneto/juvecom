@@ -1,0 +1,132 @@
+{% extends "adm_base.html" %}
+
+{% block title %}Usuários | Juvaecom{% endblock %}
+
+{% block conteudo %}
+<header class="adm-topo">
+    <span>{{ session.get('login', '') }}</span>
+    <a class="adm-topo__botao" href="{{ url_for('trocar_senha') }}">
+        Alterar minha senha
+    </a>
+</header>
+
+<p class="home__categoria">Controle de acesso</p>
+<h1>Usuários do <span>sistema.</span></h1>
+
+{% if erro %}
+    <div class="contato-aviso contato-aviso--erro" role="alert">
+        {{ erro }}
+    </div>
+{% endif %}
+
+{% if sucesso %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status">
+        Usuário salvo com sucesso.
+    </div>
+{% endif %}
+
+{% if request.args.get('senha_resetada') == '1' %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status">
+        Senha resetada para jps123. A troca será obrigatória no próximo acesso.
+    </div>
+{% endif %}
+
+{% if session.get('cd_nivel') == 0 and selecionado is none %}
+<section class="usuario-inclusao">
+    <h2>Novo usuário</h2>
+
+    <form method="post" action="{{ url_for('adm_usuarios') }}"
+          class="usuario-inclusao__linha">
+        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+        <input type="hidden" name="cd_usuario" value="">
+
+        <div>
+            <label for="nova_pessoa">Pessoa</label>
+            <select id="nova_pessoa" name="cd_pessoa" required>
+                <option value="">Selecione a pessoa</option>
+                {% for pessoa in pessoas %}
+                    <option value="{{ pessoa.cd_pessoa }}"
+                            {% if dados.get('cd_pessoa')|string == pessoa.cd_pessoa|string %}selected{% endif %}>
+                        {{ pessoa.nm_pessoa }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="novo_login">Login</label>
+            <input id="novo_login" name="login" type="text"
+                   maxlength="100" required autocomplete="off"
+                   value="{{ dados.get('login', '') }}">
+        </div>
+
+        <div>
+            <label for="novo_nivel">Nível</label>
+            <select id="novo_nivel" name="cd_nivel" required>
+                <option value="">Selecione o nível</option>
+                {% for nivel in niveis %}
+                    <option value="{{ nivel.cd_nivel }}"
+                            {% if dados.get('cd_nivel')|string == nivel.cd_nivel|string %}selected{% endif %}>
+                        {{ nivel.nm_nivel }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit">Incluir</button>
+    </form>
+
+    <p class="usuario-inclusao__aviso">
+        Senha inicial: <strong>jps123</strong>.
+        O usuário deverá alterá-la no primeiro acesso.
+    </p>
+</section>
+{% endif %}
+
+<div class="atendimento-tabela-container">
+    <table class="atendimento-tabela">
+        <thead>
+            <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Pessoa</th>
+                <th scope="col">Login</th>
+                <th scope="col">Nível</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Atualização</th>
+                <th scope="col">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.cd_usuario }}</td>
+                    <td>{{ usuario.nm_pessoa }}</td>
+                    <td>{{ usuario.login }}</td>
+                    <td>{{ usuario.nm_nivel }}</td>
+                    <td>{{ 'Ativo' if usuario.fl_ativo else 'Inativo' }}</td>
+                    <td>{{ usuario.dt_atualizacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>
+                        {% if session.get('cd_nivel') == 0 %}
+                            <form method="post"
+                                  action="{{ url_for('resetar_senha_usuario', cd_usuario=usuario.cd_usuario) }}"
+                                  onsubmit="return confirm('Resetar a senha deste usuário para jps123?');">
+                                <input type="hidden" name="csrf_token"
+                                       value="{{ session['csrf_token'] }}">
+                                <button class="usuario-resetar" type="submit">
+                                    Resetar senha
+                                </button>
+                            </form>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7">Nenhum usuário cadastrado.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
 
 
 SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'public'
+WHERE table_schema = 'public';
 
 -- -----------------------------------
 select * from tb_servico;
@@ -13,33 +13,30 @@ select * from tb_encargo_atraso;
 select * from tb_contato_status;
 select * from tb_usuario_nivel;
 select * from tb_evento_log;
+
+select * from tb_pessoa;
+select * from tb_usuario;
+
 select * from tb_contrato_modelo;
 
-
-1 administrador
-2 financeiro
-3 atendimento
-
-
-1 master
-2 superior
-3 médio
-4 intermediário
-5 limitado
-
-
 -- -----------------------------------
-select * from tb_pessoa;
 select * from tb_loja;
 select * from tb_contrato;
 select * from tb_contrato_loja;
 select * from tb_parcelas;
 
 select * from tb_contato;
+
+INSERT into tb_contato
+(cd_status, nm_contato, celular, email, mensagem)
+VALUES(1, 'Juvenal Pereira de Souza', '11 98738-5695', 'variedadesjps@gmail.com', 'TESTE');
+
+
+-- --------------------------------------------------
 --TRUNCATE TABLE tb_usuario RESTART IDENTITY CASCADE;
 
--- -----------------------------------
-select * from tb_usuario;
+select * from vw_usuario;
+
 select * from tb_logusuario;
 select * from tb_contrato_documento;
 
@@ -49,6 +46,10 @@ select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
 SELECT * FROM vw_contatos_pendentes ORDER BY dt_contato;
 
+
+-- tb_pessoa ----------------------------------------------
+
+select * from tb_pessoa;
 
 -- tb_contrato_documento --------
 SELECT cd_modelo, octet_length(arquivo_pdf) AS tamanho_bytes, dt_atualizacao
@@ -103,11 +104,6 @@ select * from tb_plano;
 
 select * from tb_loja
 where cd_pessoa = 4
-
-
-INSERT INTO tb_pessoa (cd_pessoa, tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados)
-OVERRIDING SYSTEM VALUE VALUES (0, 'J', 'Juvaecom Promoções', '22144785142369', '11 552214-22369', 'juvaecom@gmail.com', '{"representante_legal": "Juvenal Pereira", "enderecos": ["av. santa inez, 200 - santana"]}'::jsonb);
-
 
 SELECT cd_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados->>'representante_legal' AS representante_legal
 FROM tb_pessoa

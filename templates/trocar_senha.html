@@ -1,0 +1,77 @@
+{% extends "adm_base.html" %}
+
+{% block title %}Alterar senha | Juvaecom{% endblock %}
+
+{% block conteudo %}
+<dialog id="troca-senha" class="contato-card troca-senha"
+        aria-labelledby="titulo-senha">
+
+    <h2 id="titulo-senha">
+        {{ 'Defina sua nova senha' if obrigatoria else 'Alterar minha senha' }}
+    </h2>
+
+    {% if obrigatoria %}
+        <p>Substitua a senha inicial para acessar o sistema.</p>
+    {% endif %}
+
+    {% if erro %}
+        <div class="contato-aviso contato-aviso--erro" role="alert">
+            {{ erro }}
+        </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('trocar_senha') }}">
+        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
+        {% if not obrigatoria %}
+            <label for="senha_atual">Senha atual</label>
+            <input id="senha_atual" name="senha_atual" type="password"
+                   autocomplete="current-password" required>
+        {% endif %}
+
+        <label for="senha">Nova senha</label>
+        <input id="senha" name="senha" type="password"
+               minlength="6" autocomplete="new-password" required>
+
+        <label for="confirmacao">Confirme a nova senha</label>
+        <input id="confirmacao" name="confirmacao" type="password"
+               minlength="6" autocomplete="new-password" required>
+
+        <button type="submit">Salvar nova senha</button>
+
+        {% if not obrigatoria %}
+            <a href="{{ url_for('adm') }}">Cancelar</a>
+        {% endif %}
+    </form>
+
+    {% if obrigatoria %}
+        <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <button type="submit">Sair</button>
+        </form>
+    {% endif %}
+</dialog>
+
+<script>
+    const janela = document.getElementById("troca-senha");
+
+    janela.addEventListener("cancel", (evento) => {
+        evento.preventDefault();
+        {% if not obrigatoria %}
+            window.location.href = {{ url_for('adm') | tojson }};
+        {% endif %}
+    });
+
+    janela.showModal();
+</script>
+
+<noscript>
+    <style>
+        #troca-senha {
+            display: block;
+            position: static;
+            margin: 40px auto;
+        }
+    </style>
+</noscript>
+{% endblock %}
