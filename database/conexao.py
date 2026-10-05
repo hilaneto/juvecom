@@ -1,5 +1,6 @@
 from peewee import PostgresqlDatabase, OperationalError
 from dotenv import load_dotenv
+from threading import RLock
 from database.tunnel import Tunnel
 import os
 
@@ -28,22 +29,47 @@ db = PostgresqlDatabase(
     host=os.getenv("PG_HOST"),
     port=int(os.getenv("PG_PORT")))
 
-# Context Manager ==================================================
+
+controle_tunel = RLock()
+
+# Context Manager ==========================
 class Conexao:
     def __enter__(self):
+        self.travou = False
+        self.abriu_tunel = False
+        self.abriu_banco = False
+
+        if use_tunnel:
+            controle_tunel.acquire()
+            self.travou = True
+
         try:
-            tunnel.open()
-            db.connect(reuse_if_open=True)
+            if use_tunnel and not tunnel.is_open:
+                tunnel.open()
+                self.abriu_tunel = True
+
+            if db.is_closed():
+                db.connect()
+                self.abriu_banco = True
+
             return db
-        except OperationalError as erro:
-            tunnel.close()
-            raise RuntimeError(
-                f"Erro ao conectar ao PostgreSQL:\n{erro}") from erro
+
+        except Exception:
+            self.__exit__(None, None, None)
+            raise
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if not db.is_closed():
-            db.close()
-        tunnel.close()
+        try:
+            if self.abriu_banco and not db.is_closed():
+                db.close()
+        finally:
+            try:
+                if self.abriu_tunel:
+                    tunnel.close()
+            finally:
+                if self.travou:
+                    controle_tunel.release()
+
 
 # Interface pública ==================================================
 def conectar():

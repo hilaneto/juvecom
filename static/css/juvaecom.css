@@ -570,7 +570,93 @@ h1 {
     background: transparent;
     color: #ff995f;
     font: inherit;
-    font-size: 12px;
+    font-size: 12px;.pessoa-card {
+    margin: 28px 0;
+    padding: 24px;
+    border: 1px solid #ffffff24;
+    border-radius: 12px;
+    background: #25211f;
+}
+
+.pessoa-card h2 {
+    margin: 0 0 22px;
+    font-size: 24px;
+}
+
+.pessoa-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.pessoa-form__amplo { grid-column: span 2; }
+
+.pessoa-form__titulo,
+.pessoa-form__acoes { grid-column: 1 / -1; }
+
+.pessoa-form__titulo {
+    margin: 8px 0 0;
+    font-size: 18px;
+    color: #ff995f;
+}
+
+.pessoa-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.pessoa-form input,
+.pessoa-form select {
+    width: 100%;
+    height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #ffffff35;
+    border-radius: 8px;
+    background: #171513;
+    color: #fff;
+    font: inherit;
+}
+
+.pessoa-form input:focus,
+.pessoa-form select:focus {
+    outline: 2px solid #ff7841;
+    outline-offset: 2px;
+}
+
+.pessoa-form__acoes,
+.pessoa-tabela__acoes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.pessoa-form__acoes > button {
+    padding: 12px 20px;
+    border: 0;
+    border-radius: 8px;
+    background: #ff7841;
+    color: #171513;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pessoa-form__acoes > button:hover { background: #ff995f; }
+
+.pessoa-form__acoes a,
+.pessoa-tabela__acoes a {
+    color: #ff995f;
+    text-decoration: none;
+}
+
+.pessoa-tabela__acoes form { margin: 0; }
+
+@media (max-width: 800px) {
+    .pessoa-form { grid-template-columns: 1fr; }
+    .pessoa-form__amplo { grid-column: auto; }
+}
     cursor: pointer;
 }
 
@@ -578,3 +664,220 @@ h1 {
     background: #ff7841;
     color: #171513;
 }
+
+
+
+.pessoa-card {
+    margin: 28px 0;
+    padding: 24px;
+    border: 1px solid #ffffff24;
+    border-radius: 12px;
+    background: #25211f;
+}
+
+.pessoa-card h2 {
+    margin: 0 0 22px;
+    font-size: 24px;
+}
+
+.pessoa-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.pessoa-form__amplo { grid-column: span 2; }
+
+.pessoa-form__titulo,
+.pessoa-form__acoes { grid-column: 1 / -1; }
+
+.pessoa-form__titulo {
+    margin: 8px 0 0;
+    font-size: 18px;
+    color: #ff995f;
+}
+
+.pessoa-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.pessoa-form input,
+.pessoa-form select {
+    width: 100%;
+    height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #ffffff35;
+    border-radius: 8px;
+    background: #171513;
+    color: #fff;
+    font: inherit;
+}
+
+.pessoa-form input:focus,
+.pessoa-form select:focus {
+    outline: 2px solid #ff7841;
+    outline-offset: 2px;
+}
+
+.pessoa-form__acoes,
+.pessoa-tabela__acoes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.pessoa-form__acoes > button {
+    padding: 12px 20px;
+    border: 0;
+    border-radius: 8px;
+    background: #ff7841;
+    color: #171513;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pessoa-form__acoes > button:hover { background: #ff995f; }
+
+.pessoa-form__acoes a,
+.pessoa-tabela__acoes a {
+    color: #ff995f;
+    text-decoration: none;
+}
+
+.pessoa-tabela__acoes form { margin: 0; }
+
+@media (max-width: 800px) {
+    .pessoa-form { grid-template-columns: 1fr; }
+    .pessoa-form__amplo { grid-column: auto; }
+}
+
+
+.pessoa-botoes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.pessoa-botoes form { margin: 0; }
+
+.pessoa-botao {
+    padding: 11px 20px;
+    border: 1px solid #ffffff35;
+    border-radius: 8px;
+    background: #171513;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pessoa-botao--salvar {
+    border-color: #ff7841;
+    background: #ff7841;
+    color: #171513;
+}
+
+.pessoa-botao--excluir {
+    border-color: #d96666;
+    color: #ff9999;
+}
+
+.pessoa-botao:hover:not(:disabled) { filter: brightness(1.15); }
+
+.pessoa-botao:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.pessoa-selecionar {
+    color: #ff995f;
+    text-decoration: none;
+}
+
+.pessoa-selecionar:hover { text-decoration: underline; }
+
+.atendimento-tabela tr.pessoa-selecionada {
+    background: #ff78411a;
+}
+
+
+.pessoa-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 24px;
+    align-items: start;
+    margin-top: 28px;
+}
+
+.pessoa-layout .pessoa-card { margin: 0; }
+
+.pessoa-lista {
+    padding: 20px;
+    border: 1px solid #ffffff24;
+    border-radius: 12px;
+    background: #25211f;
+}
+
+.pessoa-lista label {
+    display: block;
+    margin-bottom: 14px;
+    font-weight: 700;
+    color: #ff995f;
+}
+
+.pessoa-lista select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ffffff35;
+    border-radius: 8px;
+    background: #171513;
+    color: #fff;
+    font: inherit;
+}
+
+.pessoa-lista option { padding: 8px 10px; }
+
+.pessoa-lista select:focus {
+    outline: 2px solid #ff7841;
+    outline-offset: 2px;
+}
+
+@media (max-width: 1000px) {
+    .pessoa-layout { grid-template-columns: 1fr; }
+}
+
+
+.pessoa-form {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    column-gap: 10px;
+    row-gap: 16px;
+}
+
+.pessoa-campo--tipo { grid-column: span 3; }
+.pessoa-campo--nome { grid-column: span 8; }
+.pessoa-campo--documento { grid-column: span 5; }
+
+.pessoa-campo--telefone { grid-column: span 4; }
+.pessoa-campo--email { grid-column: span 5; }
+
+.pessoa-campo--endereco { grid-column: span 8; }
+.pessoa-campo--numero { grid-column: span 2; }
+.pessoa-campo--complemento { grid-column: span 5; }
+
+.pessoa-campo--bairro { grid-column: span 7; }
+.pessoa-campo--cidade { grid-column: span 7; }
+.pessoa-campo--uf { grid-column: span 2; }
+.pessoa-campo--cep { grid-column: span 3; }
+
+.pessoa-lista select {font-size: 13px;}
+
+
+
+

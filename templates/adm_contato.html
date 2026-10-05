@@ -46,15 +46,11 @@
                                     <tr>
                                         <td>{{ contato.nm_contato }}</td>
                                         <td>
-                                            <a href="tel:{{ contato.celular }}">
-                                                {{ contato.celular }}
-                                            </a>
+                                            <a href="tel:{{ contato.celular }}"> {{ contato.celular }} </a>
                                         </td>
                                         <td>
                                             {% if contato.email %}
-                                                <a href="mailto:{{ contato.email }}">
-                                                    {{ contato.email }}
-                                                </a>
+                                                <a href="mailto:{{ contato.email }}"> {{ contato.email }} </a>
                                             {% else %}
                                                 —
                                             {% endif %}

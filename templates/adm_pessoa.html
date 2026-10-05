@@ -1,0 +1,119 @@
+{% extends "adm_base.html" %}
+
+{% block title %}Pessoas | Juvaecom{% endblock %}
+
+{% block conteudo %}
+<p class="home__categoria">Cadastro</p>
+<h1>Pessoas do <span>sistema.</span></h1>
+
+{% if erro %}
+    <div class="contato-aviso contato-aviso--erro" role="alert"> {{ erro }} </div>
+{% endif %}
+
+{% if sucesso %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status"> Operação realizada com sucesso. </div>
+{% endif %}
+
+{% set endereco = dados.get('dados', {}) %}
+
+<div class="pessoa-layout">
+    <section class="pessoa-card">
+        <h2>{{ 'Editar pessoa' if selecionado is not none else 'Nova pessoa' }}</h2>
+
+        <form id="pessoa-formulario" method="post" action="{{ url_for('adm_pessoa') }}" class="pessoa-form">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <input type="hidden" name="cd_pessoa" value="{{ selecionado.cd_pessoa if selecionado is not none else '' }}">
+
+            <div class="pessoa-campo--tipo">
+                <label for="tp_pessoa">Tipo *</label>
+                <select id="tp_pessoa" name="tp_pessoa" required>
+                    <option value="">Selecione</option> 
+                    <option value="F" {% if dados.get('tp_pessoa') == 'F' %}selected{% endif %}> Física     </option>
+                    <option value="J" {% if dados.get('tp_pessoa') == 'J' %}selected{% endif %}> Jurídica </option>
+                </select>
+            </div>
+
+            <div class="pessoa-campo--nome">
+                <label for="nm_pessoa">Nome / Razão social *</label>
+                <input id="nm_pessoa" name="nm_pessoa" type="text" maxlength="150" required value="{{ dados.get('nm_pessoa') or '' }}"> </div>
+
+            <div class="pessoa-campo--documento">
+                <label for="cpf_cnpj">CPF/CNPJ *</label> <input id="cpf_cnpj" name="cpf_cnpj" type="text" maxlength="18" required value="{{ dados.get('cpf_cnpj') or '' }}"> </div>
+
+            <div class="pessoa-campo--telefone">
+                <label for="telefone">Telefone</label> <input id="telefone" name="telefone" type="tel" maxlength="20" value="{{ dados.get('telefone') or '' }}"> </div>
+
+            <div class="pessoa-campo--email">
+                <label for="email">E-mail</label>
+                <input id="email" name="email" type="email" maxlength="150" value="{{ dados.get('email') or '' }}"> </div>
+
+            <div class="pessoa-campo--endereco">
+                <label for="endereco">Endereço</label>
+                <input id="endereco" name="endereco" type="text" maxlength="60" value="{{ endereco.get('endereco') or '' }}"> </div>
+
+            <div class="pessoa-campo--numero">
+                <label for="numero">Número</label>
+                <input id="numero" name="numero" type="text" maxlength="10" value="{{ endereco.get('numero') or '' }}"> </div>
+
+            <div class="pessoa-campo--complemento">
+                <label for="complemento">Complemento</label>
+                <input id="complemento" name="complemento" type="text" maxlength="20" value="{{ endereco.get('complemento') or '' }}"> </div>
+
+            <div class="pessoa-campo--bairro">
+                <label for="bairro">Bairro</label>
+                <input id="bairro" name="bairro" type="text" maxlength="50" value="{{ endereco.get('bairro') or '' }}"> </div>
+
+            <div class="pessoa-campo--cidade">
+                <label for="cidade">Cidade</label>
+                <input id="cidade" name="cidade" type="text" maxlength="50" value="{{ endereco.get('cidade') or '' }}"> </div>
+
+            <div class="pessoa-campo--uf">
+                <label for="uf">UF</label>
+                <input id="uf" name="uf" type="text" maxlength="2" pattern="[A-Za-z]{2}" value="{{ endereco.get('uf') or '' }}"> </div>
+
+            <div class="pessoa-campo--cep">
+                <label for="cep">CEP</label>
+                <input id="cep" name="cep" type="text" maxlength="9" inputmode="numeric" value="{{ endereco.get('cep') or '' }}"> </div>
+        </form>
+
+        <div class="pessoa-botoes">
+            <button class="pessoa-botao pessoa-botao--salvar" type="submit" form="pessoa-formulario" name="acao" value="salvar"> Salvar </button>
+
+            <form method="get" action="{{ url_for('adm_pessoa') }}">
+                <button class="pessoa-botao" type="submit" {% if selecionado is none %}disabled{% endif %}> Novo </button>
+            </form>
+
+            <form method="post" action="{{ url_for('adm_pessoa') }}"
+                  onsubmit="return confirm('Excluir este cadastro? Ele será desativado e mantido no histórico.');">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <input type="hidden" name="acao" value="excluir">
+                <input type="hidden" name="cd_pessoa" value="{{ selecionado.cd_pessoa if selecionado is not none else '' }}">
+                <button class="pessoa-botao pessoa-botao--excluir" type="submit" {% if selecionado is none or not selecionado.fl_ativo %}disabled{% endif %}> Excluir </button>
+            </form>
+        </div>
+    </section>
+
+    <aside class="pessoa-lista">
+        <label for="pessoa-selecao">Pessoas cadastradas</label>
+
+        <form method="get" action="{{ url_for('adm_pessoa') }}">
+            <select id="pessoa-selecao" name="editar" size="18"
+                    onchange="this.form.submit()">
+                <option value="" disabled {% if selecionado is none %}selected{% endif %}> Selecione uma pessoa </option>
+
+                {% for pessoa in pessoas %}
+                    <option value="{{ pessoa.cd_pessoa }}" {% if selecionado is not none and selecionado.cd_pessoa == pessoa.cd_pessoa %}selected{% endif %}> {{ pessoa.nm_pessoa }} </option>
+                {% endfor %}
+            </select>
+
+            {% if not pessoas %}
+                <p>Nenhuma pessoa cadastrada.</p>
+            {% endif %}
+
+            <noscript>
+                <button type="submit">Selecionar</button>
+            </noscript>
+        </form>
+    </aside>
+</div>
+{% endblock %}

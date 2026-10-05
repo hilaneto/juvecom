@@ -19,17 +19,25 @@
                     Home
                 </a>
 
-                <a href="{{ url_for('adm_contatos') }}"
-                   {% if request.endpoint == 'adm_contatos' %}class="ativo" aria-current="page"{% endif %}>
+                <a href="{{ url_for('adm_contato') }}"
+                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}>
                     Contatos pendentes
                 </a>
 
-                <span>Pessoas e lojas <small>Em construção</small></span>
+                {% if session.get('cd_nivel') in (0, 1) %}
+                    <a href="{{ url_for('adm_pessoa') }}"
+                    {% if request.endpoint == 'adm_pessoa' %}class="ativo" aria-current="page"{% endif %}>
+                        Pessoas
+                    </a>
+                {% endif %}
+
+                <span>Lojas <small>Em construção</small></span>
+
                 <span>Contratos <small>Em construção</small></span>
                 <span>Cobranças <small>Em construção</small></span>
 
-                <a href="{{ url_for('adm_usuarios') }}"
-                   {% if request.endpoint == 'adm_usuarios' %}class="ativo" aria-current="page"{% endif %}>
+                <a href="{{ url_for('adm_contato') }}"
+                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}>
                     Usuários
                 </a>
 

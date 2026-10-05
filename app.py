@@ -5,8 +5,10 @@ from functools import wraps
 from models.contato import Contato
 from models.plano import Plano
 from models.usuario import Usuario
+from models.pessoa import Pessoa
 from dotenv import load_dotenv
 from flask import Flask, abort, redirect, render_template, request, session, url_for
+from peewee import OperationalError
 
 load_dotenv()
 
@@ -118,18 +120,18 @@ def login():
 @app.route("/adm")
 @login_obrigatorio
 def adm():
-    return redirect(url_for("adm_contatos"))
+    return redirect(url_for("adm_contato"))
 
 
 @app.route("/adm/contatos")
 @login_obrigatorio
-def adm_contatos():
-    return render_template("adm_contatos.html", grupos=Contato.por_prazo())
+def adm_contato():
+    return render_template("adm_contato.html", grupos=Contato.por_prazo())
 
 
 @app.route("/adm/usuarios", methods=["GET", "POST"])
 @login_obrigatorio
-def adm_usuarios():
+def adm_usuario():
     cd_operador = session["cd_usuario"]
     nivel = session["cd_nivel"]
 
@@ -173,7 +175,7 @@ def adm_usuarios():
         resultado = Usuario.salvar_autorizado(cd_operador, dados)
 
         if resultado["sucesso"]:
-            return redirect(url_for("adm_usuarios", sucesso=1))
+            return redirect(url_for("adm_usuario", sucesso=1))
 
         erro = resultado["erro"]
 
@@ -219,7 +221,7 @@ def adm_usuarios():
     dados.pop("senha", None)
 
     return render_template(
-        "adm_usuarios.html",
+        "adm_usuario.html",
         usuarios=usuarios,
         pessoas=pessoas,
         niveis=niveis,
@@ -267,7 +269,6 @@ def logout():
 
     return redirect(url_for("login"))
 
-
 @app.route("/adm/usuarios/<int:cd_usuario>/resetar-senha", methods=["POST"])
 @login_obrigatorio
 def resetar_senha_usuario(cd_usuario):
@@ -281,7 +282,96 @@ def resetar_senha_usuario(cd_usuario):
     if not resultado["sucesso"]:
         abort(404)
 
-    return redirect(url_for("adm_usuarios", senha_resetada=1))
+    return redirect(url_for("adm_usuario", senha_resetada=1))
+
+@app.route("/adm/pessoas", methods=["GET", "POST"])
+@login_obrigatorio
+def adm_pessoa():
+    if session["cd_nivel"] not in (0, 1):
+        abort(403)
+
+    erro = None
+    selecionado = None
+    dados = {}
+
+    if request.method == "POST":
+        validar_csrf()
+        formulario = request.form.to_dict()
+
+        try:
+            codigo = formulario.get("cd_pessoa", "")
+            cd_pessoa = int(codigo) if codigo != "" else None
+        except (ValueError, TypeError):
+            abort(400)
+
+        acao = formulario.get("acao", "salvar")
+
+        if acao == "excluir":
+            if cd_pessoa is None:
+                abort(400)
+
+            resultado = Pessoa.excluir(cd_pessoa)
+
+        elif acao == "salvar":
+            dados = {
+                campo: formulario.get(campo, "")
+                for campo in ("tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email")
+            }
+
+            dados["dados"] = {
+                campo: formulario.get(campo, "")
+                for campo in ("endereco", "numero", "complemento", "bairro", "cep", "cidade", "uf")
+            }
+
+            if cd_pessoa is None:
+                resultado = Pessoa.incluir(dados)
+            else:
+                dados["cd_pessoa"] = cd_pessoa
+                resultado = Pessoa.atualizar(dados)
+
+        else:
+            abort(400)
+
+        if resultado["sucesso"]:
+            return redirect(url_for("adm_pessoa", sucesso=1))
+
+        erro = resultado["erro"]
+        if cd_pessoa is not None:
+            encontrados = Pessoa.buscar(cd_pessoa)
+            selecionado = encontrados[0] if encontrados else None
+
+    else:
+        codigo = request.args.get("editar")
+        if codigo is not None:
+            try:
+                cd_pessoa = int(codigo)
+            except (ValueError, TypeError):
+                abort(400)
+
+            encontrados = Pessoa.buscar(cd_pessoa)
+
+            if not encontrados:
+                abort(404)
+
+            selecionado = encontrados[0]
+            dados = selecionado.__data__.copy()
+
+    return render_template(
+        "adm_pessoa.html",
+        pessoas=Pessoa.buscar(),
+        selecionado=selecionado,
+        dados=dados,
+        erro=erro,
+        sucesso=request.args.get("sucesso") == "1"
+    )
+
+@app.errorhandler(OperationalError)
+def erro_conexao_banco(erro):
+    app.logger.exception("Falha de conexão com o banco de dados.")
+
+    return ("Não foi possível concluir a operação devido a uma falha de conexão.<br>"
+            "Se estava salvando dados, confira se foram gravados antes de tentar novamente.<br>"
+            "Por favor, atualize/recarregue esta página.",503)
 
 if __name__ == "__main__":
     print(app.url_map)

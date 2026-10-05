@@ -26,6 +26,7 @@
                             <p class="plano-card__descricao">{{ plano.ds_plano or '' }}</p>
                         </div>
                         <p class="plano-card__texto">{{ plano.texto_banner or '' }}</p>
+                        
                         <div class="plano-card__rodape">
                             <p class="plano-card__periodo"> {% if plano.nm_plano == 'Avulso' %} Diagnóstico da sua loja em uma call de 1 hora {% else %} {{ plano.periodicidade_dias }} dias de contrato {% endif %} </p>
                             <p class="plano-card__valor">

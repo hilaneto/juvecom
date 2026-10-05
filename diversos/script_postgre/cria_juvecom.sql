@@ -31,8 +31,15 @@ dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT ck_pessoa_tipo CHECK (tp_pessoa IN ('F', 'J')),
 CONSTRAINT ck_pessoa_nome CHECK (btrim(nm_pessoa) <> ''),
-CONSTRAINT ck_pessoa_documento CHECK ((tp_pessoa = 'F' AND cpf_cnpj ~ '^[0-9]{11}$') OR (tp_pessoa = 'J' AND cpf_cnpj ~ '^[0-9]{14}$')),
-CONSTRAINT ck_pessoa_dados CHECK (jsonb_typeof(dados) = 'object'));
+CONSTRAINT ck_pessoa_cpf_cnpj CHECK ((tp_pessoa = 'F' AND cpf_cnpj ~ '^[0-9]{11}$') OR (tp_pessoa = 'J' AND cpf_cnpj ~ '^[0-9]{14}$')),
+CONSTRAINT ck_pessoa_dados CHECK (jsonb_typeof(dados) = 'object'),
+CONSTRAINT ck_pessoa_dados_endereco CHECK (NOT (dados ? 'endereco') OR (jsonb_typeof(dados -> 'endereco') = 'string' AND char_length(dados ->> 'endereco') <= 60)),
+CONSTRAINT ck_pessoa_dados_numero CHECK (NOT (dados ? 'numero') OR (jsonb_typeof(dados -> 'numero') = 'string' AND char_length(dados ->> 'numero') <= 10)),
+CONSTRAINT ck_pessoa_dados_complemento CHECK (NOT (dados ? 'complemento') OR (jsonb_typeof(dados -> 'complemento') = 'string' AND char_length(dados ->> 'complemento') <= 20)),
+CONSTRAINT ck_pessoa_dados_bairro CHECK (NOT (dados ? 'bairro') OR (jsonb_typeof(dados -> 'bairro') = 'string' AND char_length(dados ->> 'bairro') <= 50)),
+CONSTRAINT ck_pessoa_dados_cep CHECK (NOT (dados ? 'cep') OR (jsonb_typeof(dados -> 'cep') = 'string' AND ((dados ->> 'cep') = '' OR (dados ->> 'cep') ~ '^[0-9]{8}$'))),
+CONSTRAINT ck_pessoa_dados_cidade CHECK (NOT (dados ? 'cidade') OR (jsonb_typeof(dados -> 'cidade') = 'string' AND char_length(dados ->> 'cidade') <= 50)),
+CONSTRAINT ck_pessoa_dados_uf CHECK (NOT (dados ? 'uf') OR (jsonb_typeof(dados -> 'uf') = 'string' AND ((dados ->> 'uf') = '' OR (dados ->> 'uf') ~ '^[A-Z]{2}$'))));
 
 -- --------------------------------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados, fl_ativo, dt_cadastro, dt_atualizacao) values

@@ -37,6 +37,8 @@ VALUES(1, 'Juvenal Pereira de Souza', '11 98738-5695', 'variedadesjps@gmail.com'
 
 select * from vw_usuario;
 
+select * from tb_usuario;
+
 select * from tb_logusuario;
 select * from tb_contrato_documento;
 
