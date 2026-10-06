@@ -13,6 +13,8 @@ select * from tb_encargo_atraso;
 select * from tb_contato_status;
 select * from tb_usuario_nivel;
 select * from tb_evento_log;
+select * from tb_relacao;
+select * from tb_pessoa_relacao;
 
 select * from tb_pessoa;
 select * from tb_usuario;

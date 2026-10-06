@@ -1,11 +1,8 @@
-from peewee import (
-    Model, BigAutoField, BigIntegerField, SmallIntegerField,
-    CharField, TextField, BooleanField, DateTimeField,
-    SQL, IntegrityError
-)
+from peewee import Model, BigAutoField, BigIntegerField, SmallIntegerField, CharField, TextField, BooleanField, DateTimeField, SQL, IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.conexao import db, conectar
-
+from models.pessoa import Pessoa
+from suporte.validacao import somente_numeros
 
 SENHA_INICIAL = "jps123"
 
@@ -249,18 +246,37 @@ class Usuario(Model):
                     elif "login" in dados or "cd_nivel" in dados:
                         return {"sucesso": False, "erro": "Somente Master pode alterar login e nível."}
 
+
                     if novo:
-                        try:
-                            cd_pessoa = int(dados.get("cd_pessoa"))
-                        except (ValueError, TypeError):
-                            return {"sucesso": False, "erro": "Informe a pessoa."}
+                        documento = dados.get("documento_pessoa")
 
-                        if not PessoaOpcao.select().where(PessoaOpcao.cd_pessoa == cd_pessoa).exists():
-                            return {"sucesso": False, "erro": "Pessoa não encontrada."}
+                        if not isinstance(documento, str) or not documento.strip():
+                            return {"sucesso": False, "erro": "Informe o CPF/CNPJ da pessoa."}
 
-                        campos["cd_pessoa"] = cd_pessoa
+                        documento = somente_numeros(documento)
+
+                        if len(documento) not in (11, 14):
+                            return {"sucesso": False, "erro": "O CPF deve ter 11 dígitos e o CNPJ, 14."}
+
+                        pessoa = (
+                            Pessoa.select()
+                            .where(Pessoa.cpf_cnpj == documento)
+                            .for_update().first()
+                        )
+
+                        if pessoa is None:
+                            return {"sucesso": False, "erro": "Nenhuma pessoa cadastrada com esse CPF/CNPJ."}
+
+                        if not pessoa.fl_ativo:
+                            return {"sucesso": False, "erro": "Essa pessoa está inativa."}
+
+                        if Usuario.select().where(Usuario.cd_pessoa == pessoa.cd_pessoa).exists():
+                            return {"sucesso": False, "erro": "Essa pessoa já possui um usuário cadastrado."}
+
+                        campos["cd_pessoa"] = pessoa.cd_pessoa
                         campos["fl_ativo"] = True
                         campos["senha_hash"] = generate_password_hash(SENHA_INICIAL)
+
 
                     else:
                         if "fl_ativo" in dados:

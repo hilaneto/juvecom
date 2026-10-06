@@ -32,11 +32,10 @@
                 {% endif %}
 
                 <span>Lojas <small>Em construção</small></span>
-
                 <span>Contratos <small>Em construção</small></span>
                 <span>Cobranças <small>Em construção</small></span>
 
-                <a href="{{ url_for('adm_contato') }}"
+                <a href="{{ url_for('adm_usuario') }}"
                    {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}>
                     Usuários
                 </a>

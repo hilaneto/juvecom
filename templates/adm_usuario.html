@@ -35,23 +35,19 @@
 <section class="usuario-inclusao">
     <h2>Novo usuário</h2>
 
-    <form method="post" action="{{ url_for('adm_usuarios') }}"
+    <form method="post" action="{{ url_for('adm_usuario') }}"
           class="usuario-inclusao__linha">
         <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
         <input type="hidden" name="cd_usuario" value="">
 
         <div>
-            <label for="nova_pessoa">Pessoa</label>
-            <select id="nova_pessoa" name="cd_pessoa" required>
-                <option value="">Selecione a pessoa</option>
-                {% for pessoa in pessoas %}
-                    <option value="{{ pessoa.cd_pessoa }}"
-                            {% if dados.get('cd_pessoa')|string == pessoa.cd_pessoa|string %}selected{% endif %}>
-                        {{ pessoa.nm_pessoa }}
-                    </option>
-                {% endfor %}
-            </select>
+            <label for="documento_pessoa">CPF/CNPJ da pessoa</label>
+            <input id="documento_pessoa" name="documento_pessoa"
+                type="text" maxlength="18" required
+                placeholder="Digite o CPF ou CNPJ"
+                value="{{ dados.get('documento_pessoa', '') }}">
         </div>
+
 
         <div>
             <label for="novo_login">Login</label>

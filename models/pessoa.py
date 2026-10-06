@@ -2,6 +2,7 @@ from peewee import Model, BigAutoField, CharField, BooleanField, DateTimeField, 
 from playhouse.postgres_ext import BinaryJSONField
 from database.conexao import db, conectar
 from suporte.validacao import CpfCnpj, somente_numeros
+from models.relacao import Relacao, PessoaRelacao
 
 class Pessoa(Model):
     cd_pessoa = BigAutoField()
@@ -14,7 +15,7 @@ class Pessoa(Model):
     fl_ativo = BooleanField(default=True)
     dt_cadastro = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
     dt_atualizacao = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
-
+    
     class Meta:
         database = db
         table_name = "tb_pessoa"
@@ -135,7 +136,7 @@ class Pessoa(Model):
 
 
     @staticmethod
-    def incluir(dados: dict):
+    def incluir(dados: dict, relacoes=None):
         permitidos = {"tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email", "dados"}
         campos = {chave: valor for chave, valor in dados.items() if chave in permitidos}
 
@@ -149,14 +150,22 @@ class Pessoa(Model):
 
         try:
             with conectar():
-                pessoa = Pessoa.create(**campos)
+                with db.atomic():
+                    pessoa = Pessoa.create(**campos)
+
+                    if relacoes is not None:
+                        Pessoa.gravar_relacoes(pessoa.cd_pessoa, relacoes)
+
+        except ValueError as erro:
+            return {"sucesso": False, "erro": str(erro)}
         except IntegrityError:
             return {"sucesso": False, "erro": "Não foi possível incluir. Verifique se o CPF/CNPJ já está cadastrado."}
 
         return {"sucesso": True, "cd_pessoa": pessoa.cd_pessoa}
 
+
     @staticmethod
-    def atualizar(dados: dict):
+    def atualizar(dados: dict, relacoes=None):
         cd_pessoa = dados.get("cd_pessoa")
 
         if cd_pessoa in (None, ""):
@@ -165,7 +174,7 @@ class Pessoa(Model):
         permitidos = {"tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email", "dados", "fl_ativo"}
         campos = {chave: valor for chave, valor in dados.items() if chave in permitidos}
 
-        if not campos:
+        if not campos and relacoes is None:
             return {"sucesso": False, "erro": "Informe um campo para atualizar."}
 
         try:
@@ -191,11 +200,35 @@ class Pessoa(Model):
                     campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
                     Pessoa.update(**campos).where(Pessoa.cd_pessoa == cd_pessoa).execute()
 
+                    if relacoes is not None:
+                        Pessoa.gravar_relacoes(cd_pessoa, relacoes)
+
+        except ValueError as erro:
+            return {"sucesso": False, "erro": str(erro)}
         except IntegrityError:
             return {"sucesso": False, "erro": "Não foi possível atualizar. Verifique se o CPF/CNPJ já está cadastrado."}
 
         return {"sucesso": True, "cd_pessoa": cd_pessoa}
-    
+        
+
+    @staticmethod
+    def gravar_relacoes(cd_pessoa, relacoes):
+        codigos = set(relacoes)
+        existentes = {
+            relacao.cd_relacao
+            for relacao in Relacao.select().where(Relacao.cd_relacao.in_(codigos))}
+
+        if codigos != existentes:
+            raise ValueError("Uma das relações informadas não existe.")
+
+        PessoaRelacao.delete().where(PessoaRelacao.cd_pessoa == cd_pessoa).execute()
+
+        if codigos:
+            PessoaRelacao.insert_many([
+                {"cd_pessoa": cd_pessoa, "cd_relacao": codigo, "dt_atualizacao": SQL("CURRENT_TIMESTAMP")}
+                for codigo in codigos
+                ]).execute()
+
 
     @staticmethod
     def excluir(cd_pessoa):

@@ -48,6 +48,36 @@ INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados, f
 ('J', 'JPS - Juvaecom Promoções', '22144785142369', '11 98738-5695', 'variedadesjps@gmail.com'     , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 
+-- ============================================================
+-- tb_relacao - drop table tb_relacao cascade
+-- ============================================================
+CREATE TABLE tb_relacao (
+    cd_relacao smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nm_relacao varchar(50) NOT NULL UNIQUE,
+    dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_relacao_nome CHECK (btrim(nm_relacao) <> '')
+);
+
+-- ---------------------------------------------------------------
+INSERT INTO tb_relacao (nm_relacao)
+VALUES ('Cliente'), ('Colaborador'), ('Fornecedor');
+
+
+-- ============================================================
+-- tb_pessoa_relacao - drop table tb_pessoa_relacao cascade
+-- ============================================================
+CREATE TABLE tb_pessoa_relacao (
+    cd_pessoa bigint NOT NULL REFERENCES tb_pessoa (cd_pessoa),
+    cd_relacao smallint NOT NULL REFERENCES tb_relacao (cd_relacao),
+    dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (cd_pessoa, cd_relacao)
+);
+
+-- --------------------------------------------------
+INSERT INTO tb_pessoa_relacao (cd_pessoa, cd_relacao) values
+(0, 1), (0, 2),
+(1, 1), (1, 2);
+
 
 -- ============================================================
 -- tb_loja

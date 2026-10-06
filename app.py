@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+from flask import Flask, abort, redirect, render_template, request, session, url_for
+from peewee import OperationalError
 import secrets
 from datetime import timedelta
 from functools import wraps
@@ -6,9 +9,8 @@ from models.contato import Contato
 from models.plano import Plano
 from models.usuario import Usuario
 from models.pessoa import Pessoa
-from dotenv import load_dotenv
-from flask import Flask, abort, redirect, render_template, request, session, url_for
-from peewee import OperationalError
+from models.relacao import Relacao, PessoaRelacao
+
 
 load_dotenv()
 
@@ -63,9 +65,9 @@ def home():
     return render_template("home.html")
 
 
-@app.route("/planos")
-def planos():
-    return render_template("planos.html", planos=Plano.listar_ativos())
+@app.route("/plano")
+def plano():
+    return render_template("plano.html", planos=Plano.listar_ativos())
 
 
 @app.route("/contato", methods=["GET", "POST"])
@@ -283,7 +285,6 @@ def resetar_senha_usuario(cd_usuario):
         abort(404)
 
     return redirect(url_for("adm_usuario", senha_resetada=1))
-
 @app.route("/adm/pessoas", methods=["GET", "POST"])
 @login_obrigatorio
 def adm_pessoa():
@@ -293,6 +294,8 @@ def adm_pessoa():
     erro = None
     selecionado = None
     dados = {}
+    relacoes = Relacao.buscar()
+    relacoes_selecionadas = []
 
     if request.method == "POST":
         validar_csrf()
@@ -301,6 +304,9 @@ def adm_pessoa():
         try:
             codigo = formulario.get("cd_pessoa", "")
             cd_pessoa = int(codigo) if codigo != "" else None
+            relacoes_selecionadas = [
+                int(valor) for valor in request.form.getlist("cd_relacao")
+            ]
         except (ValueError, TypeError):
             abort(400)
 
@@ -324,10 +330,10 @@ def adm_pessoa():
             }
 
             if cd_pessoa is None:
-                resultado = Pessoa.incluir(dados)
+                resultado = Pessoa.incluir(dados, relacoes=relacoes_selecionadas)
             else:
                 dados["cd_pessoa"] = cd_pessoa
-                resultado = Pessoa.atualizar(dados)
+                resultado = Pessoa.atualizar(dados, relacoes=relacoes_selecionadas)                
 
         else:
             abort(400)
@@ -336,12 +342,18 @@ def adm_pessoa():
             return redirect(url_for("adm_pessoa", sucesso=1))
 
         erro = resultado["erro"]
+
         if cd_pessoa is not None:
             encontrados = Pessoa.buscar(cd_pessoa)
             selecionado = encontrados[0] if encontrados else None
 
+            if acao == "excluir" and selecionado is not None:
+                dados = selecionado.__data__.copy()
+                relacoes_selecionadas = PessoaRelacao.buscar(cd_pessoa)
+
     else:
         codigo = request.args.get("editar")
+
         if codigo is not None:
             try:
                 cd_pessoa = int(codigo)
@@ -355,14 +367,17 @@ def adm_pessoa():
 
             selecionado = encontrados[0]
             dados = selecionado.__data__.copy()
+            relacoes_selecionadas = PessoaRelacao.buscar(cd_pessoa)
 
     return render_template(
         "adm_pessoa.html",
-        pessoas=Pessoa.buscar(),
+        pessoas=Pessoa.buscar(fl_ativo=True),
         selecionado=selecionado,
         dados=dados,
         erro=erro,
-        sucesso=request.args.get("sucesso") == "1"
+        sucesso=request.args.get("sucesso") == "1",
+        relacoes=relacoes,
+        relacoes_selecionadas=relacoes_selecionadas
     )
 
 @app.errorhandler(OperationalError)
