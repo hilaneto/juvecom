@@ -890,6 +890,35 @@ h1 {
     padding: 0;
 }
 
+
+
+.usuario-nivel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.usuario-nivel select {
+    padding: 6px 8px;
+    border: 1px solid #ffffff35;
+    border-radius: 6px;
+    background: #171513;
+    color: white;
+    font: inherit;
+}
+
+.usuario-nivel button {
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: #ff7841;
+    color: #171513;
+    font: inherit;
+    cursor: pointer;
+}
+
+
 .pessoa-form__divisor {
     grid-column: 1 / -1;
     width: 100%;
