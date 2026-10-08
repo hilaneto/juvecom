@@ -1,77 +1,234 @@
 {% extends "adm_base.html" %}
 
-{% block title %}Atendimento de contatos | Juvaecom{% endblock %}
+{% block title %}Central de atendimento | Juvaecom{% endblock %}
 
 {% block conteudo %}
-    <p class="home__categoria">Atendimento</p>
-    <h1>Contatos <span>pendentes.</span></h1>
+<p class="home__categoria">Atendimento</p>
+<h1>Central de <span>contatos.</span></h1>
 
-    <p class="home__descricao">
-        Contatos que ainda aguardam o primeiro atendimento.
-    </p>
+{% if erro %}
+    <div class="contato-aviso contato-aviso--erro" role="alert">
+        {{ erro }}
+    </div>
+{% endif %}
 
-    <div class="atendimento-grupos">
-        {% set faixas = [
-            ('atrasados', 'vermelho', 'Sem atendimento há 3 dias ou mais'),
-            ('recentes', 'amarelo', 'Cadastrados há 1 ou 2 dias'),
-            ('hoje', 'verde', 'Cadastrados hoje')
-        ] %}
+{% if sucesso == 'salvar' %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status">
+        Contato atualizado com sucesso.
+    </div>
+{% elif sucesso == 'conversa' %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status">
+        Conversa registrada com sucesso.
+    </div>
+{% endif %}
 
-        {% for chave, cor, titulo in faixas %}
-            <section class="atendimento-card atendimento-card--{{ cor }}">
-                <header class="atendimento-card__cabecalho">
-                    <h2>{{ titulo }}</h2>
-                    <span class="atendimento-card__quantidade">
-                        {{ grupos[chave] | length }}
+<div class="central-contato">
+    <div class="central-contato__principal">
+        {% if selecionado is not none %}
+            <section class="central-contato__card">
+                <header class="central-contato__cabecalho">
+                    <h2>{{ selecionado.nm_contato }}</h2>
+                    <span>
+                        Contato {{ selecionado.cd_contato }} ·
+                        {{ selecionado.dt_cadastro.strftime('%d/%m/%Y %H:%M') }}
                     </span>
                 </header>
 
-                {% if grupos[chave] %}
-                    <div class="atendimento-tabela-container">
-                        <table class="atendimento-tabela">
-                            <caption class="atendimento-tabela__legenda">
-                                {{ titulo }}
-                            </caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Nome</th>
-                                    <th scope="col">Celular</th>
-                                    <th scope="col">E-mail</th>
-                                    <th scope="col">Mensagem</th>
-                                    <th scope="col">Cadastro</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for contato in grupos[chave] %}
-                                    <tr>
-                                        <td>{{ contato.nm_contato }}</td>
-                                        <td>
-                                            <a href="tel:{{ contato.celular }}"> {{ contato.celular }} </a>
-                                        </td>
-                                        <td>
-                                            {% if contato.email %}
-                                                <a href="mailto:{{ contato.email }}"> {{ contato.email }} </a>
-                                            {% else %}
-                                                —
-                                            {% endif %}
-                                        </td>
-                                        <td class="atendimento-tabela__mensagem">
-                                            {{ contato.mensagem or '—' }}
-                                        </td>
-                                        <td class="atendimento-tabela__data">
-                                            {{ contato.dt_cadastro.strftime('%d/%m/%Y %H:%M') }}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <form method="post" action="{{ url_for('adm_contato') }}"
+                      class="central-contato__form">
+                    <input type="hidden" name="csrf_token"
+                           value="{{ session['csrf_token'] }}">
+                    <input type="hidden" name="cd_contato"
+                           value="{{ selecionado.cd_contato }}">
+                    <input type="hidden" name="acao" value="salvar">
+
+                    <div class="central-contato__amplo">
+                        <label for="nm_contato">Nome *</label>
+                        <input id="nm_contato" name="nm_contato" maxlength="150"
+                               required value="{{ dados.get('nm_contato') or '' }}">
                     </div>
-                {% else %}
-                    <p class="atendimento-card__vazio">
-                        Nenhum contato nesta faixa.
-                    </p>
-                {% endif %}
+
+                    <div>
+                        <label for="celular">Celular *</label>
+                        <input id="celular" name="celular" type="tel"
+                               maxlength="20" required
+                               value="{{ dados.get('celular') or '' }}">
+                    </div>
+
+                    <div class="central-contato__amplo">
+                        <label for="email">E-mail</label>
+                        <input id="email" name="email" type="email" maxlength="150"
+                               value="{{ dados.get('email') or '' }}">
+                    </div>
+
+                    <label class="central-contato__check">
+                        <input type="checkbox" name="marketplace" value="1"
+                               {% if dados.get('marketplace') in (true, '1') %}checked{% endif %}>
+                        Já realiza vendas em marketplaces
+                    </label>
+
+                    <div class="central-contato__inteiro">
+                        <label for="mensagem">Mensagem do contato</label>
+                        <textarea id="mensagem" name="mensagem" rows="3">{{ dados.get('mensagem') or '' }}</textarea>
+                    </div>
+
+                    <div>
+                        <label for="cd_plano">Plano</label>
+                        <select id="cd_plano" name="cd_plano">
+                            <option value="">Sem plano</option>
+                            {% for plano in planos %}
+                                <option value="{{ plano.cd_plano }}"
+                                        {% if dados.get('cd_plano')|string == plano.cd_plano|string %}selected{% endif %}>
+                                    {{ plano.nm_plano }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="cd_contrato">Contrato</label>
+                        <select id="cd_contrato" name="cd_contrato">
+                            <option value="">Sem contrato</option>
+                            {% for contrato in contratos %}
+                                <option value="{{ contrato.cd_contrato }}"
+                                        {% if dados.get('cd_contrato')|string == contrato.cd_contrato|string %}selected{% endif %}>
+                                    Contrato {{ contrato.cd_contrato }} — {{ contrato.nm_plano }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="cd_status">Status *</label>
+                        <select id="cd_status" name="cd_status" required>
+                            {% for situacao in status %}
+                                <option value="{{ situacao.cd_status }}"
+                                        {% if dados.get('cd_status')|string == situacao.cd_status|string %}selected{% endif %}>
+                                    {{ situacao.nm_status }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="central-contato__inteiro">
+                        <button class="central-contato__botao" type="submit">
+                            Salvar contato
+                        </button>
+                    </div>
+                </form>
             </section>
-        {% endfor %}
+
+            <section class="central-contato__card">
+                <h2>Registrar conversa</h2>
+
+                <form method="post" action="{{ url_for('adm_contato') }}">
+                    <input type="hidden" name="csrf_token"
+                           value="{{ session['csrf_token'] }}">
+                    <input type="hidden" name="cd_contato"
+                           value="{{ selecionado.cd_contato }}">
+                    <input type="hidden" name="acao" value="conversa">
+
+                    <label for="texto">Conteúdo do atendimento</label>
+                    <textarea id="texto" name="texto" rows="4"
+                              required placeholder="Descreva a conversa e os próximos passos.">{{ texto_conversa }}</textarea>
+
+                    <button class="central-contato__botao" type="submit">
+                        Registrar conversa
+                    </button>
+                </form>
+            </section>
+
+            <section class="central-contato__card">
+                <h2>Histórico de conversas</h2>
+
+                {% for conversa in conversas %}
+                    <article class="central-contato__conversa">
+                        <header>
+                            <strong>{{ conversa.atendente }}</strong>
+                            <time datetime="{{ conversa.dt_conversa.isoformat() }}">
+                                {{ conversa.dt_conversa.strftime('%d/%m/%Y %H:%M') }}
+                            </time>
+                        </header>
+
+                        <p>{{ conversa.texto }}</p>
+                    </article>
+                {% else %}
+                    <p>Nenhuma conversa registrada para este contato.</p>
+                {% endfor %}
+            </section>
+        {% else %}
+            <section class="central-contato__card">
+                <p>Nenhum contato pendente para atendimento.</p>
+            </section>
+        {% endif %}
     </div>
+
+
+    <aside class="central-contato__fila">
+        <h2>Em atendimento <small>({{ fila|length }})</small></h2>
+        <p>Prioridade para quem já vende e para os contatos mais antigos.</p>
+
+        {% if fila %}
+            <form method="get" action="{{ url_for('adm_contato') }}">
+                <label for="contato_selecionado">Aguardando e pendentes</label>
+
+                <select id="contato_selecionado" name="editar" size="10"
+                        onchange="this.form.submit()">
+                    <option value="" disabled
+                            {% if selecionado is none or selecionado.cd_status == 3 %}selected{% endif %}>
+                        Selecione um contato
+                    </option>
+
+                    {% for contato in fila %}
+                        <option value="{{ contato.cd_contato }}"
+                                {% if selecionado is not none and selecionado.cd_contato == contato.cd_contato %}selected{% endif %}>
+                            {{ '★ ' if contato.marketplace else '' }}{{ contato.nm_contato }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <noscript>
+                    <button class="central-contato__botao" type="submit"> Selecionar </button>
+                </noscript>
+            </form>
+        {% else %}
+            <p>Nenhum contato em atendimento.</p>
+        {% endif %}
+
+        <small>★ Já realiza vendas em marketplaces</small>
+
+        <hr class="central-contato__divisor">
+
+        <h2>Finalizados <small>({{ finalizados|length }})</small></h2>
+
+        {% if finalizados %}
+            <form method="get" action="{{ url_for('adm_contato') }}">
+                <label for="contato_finalizado">Atendimentos encerrados</label>
+
+                <select id="contato_finalizado" name="editar" size="8"
+                        onchange="this.form.submit()">
+                    <option value="" disabled
+                            {% if selecionado is none or selecionado.cd_status != 3 %}selected{% endif %}>
+                        Selecione um contato
+                    </option>
+
+                    {% for contato in finalizados %}
+                        <option value="{{ contato.cd_contato }}"
+                                {% if selecionado is not none and selecionado.cd_contato == contato.cd_contato %}selected{% endif %}>
+                            {{ contato.nm_contato }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <noscript>
+                    <button class="central-contato__botao" type="submit"> Selecionar </button>
+                </noscript>
+            </form>
+        {% else %}
+            <p>Nenhum atendimento finalizado.</p>
+        {% endif %}
+    </aside>
+
+
+</div>
 {% endblock %}

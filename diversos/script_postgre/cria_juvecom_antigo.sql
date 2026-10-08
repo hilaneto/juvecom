@@ -67,10 +67,11 @@ VALUES ('Cliente'), ('Colaborador'), ('Fornecedor');
 -- tb_pessoa_relacao - drop table tb_pessoa_relacao cascade
 -- ============================================================
 CREATE TABLE tb_pessoa_relacao (
-cd_pessoa bigint NOT NULL REFERENCES tb_pessoa (cd_pessoa),
-cd_relacao smallint NOT NULL REFERENCES tb_relacao (cd_relacao),
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-PRIMARY KEY (cd_pessoa, cd_relacao));
+    cd_pessoa bigint NOT NULL REFERENCES tb_pessoa (cd_pessoa),
+    cd_relacao smallint NOT NULL REFERENCES tb_relacao (cd_relacao),
+    dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (cd_pessoa, cd_relacao)
+);
 
 -- --------------------------------------------------
 INSERT INTO tb_pessoa_relacao (cd_pessoa, cd_relacao) values
@@ -123,21 +124,22 @@ INSERT INTO tb_servico (nm_servico, ds_servico, vl_servico) values
 -- tb_plano: pacotes oferecidos ao cliente - drop table tb_plano cascade 
 -- =====================================================================
 CREATE TABLE tb_plano (
-cd_plano bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nm_plano varchar(100) NOT NULL,
-ds_plano varchar(500),
-periodicidade_dias integer NOT NULL,
-valor numeric(12,2) NOT NULL,
-texto_banner varchar(100),
-texto_periodo varchar(100),
-beneficios jsonb NOT NULL DEFAULT '[]'::jsonb,
-fl_ativo boolean NOT NULL DEFAULT true,
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT ck_plano_periodicidade CHECK (periodicidade_dias > 0),
-CONSTRAINT ck_plano_preco CHECK (valor >= 0),
-CONSTRAINT ck_plano_beneficios CHECK (jsonb_typeof(beneficios) = 'array'));
+    cd_plano bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nm_plano varchar(100) NOT NULL,
+    ds_plano varchar(500),
+    periodicidade_dias integer NOT NULL,
+    valor numeric(12,2) NOT NULL,
+    texto_banner varchar(100),
+    texto_periodo varchar(100),
+    beneficios jsonb NOT NULL DEFAULT '[]'::jsonb,
+    fl_ativo boolean NOT NULL DEFAULT true,
+    dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_plano_periodicidade CHECK (periodicidade_dias > 0),
+    CONSTRAINT ck_plano_preco CHECK (valor >= 0),
+    CONSTRAINT ck_plano_beneficios CHECK (jsonb_typeof(beneficios) = 'array')
+);
 
--- -----------------------------------------------------------------------------------------------------------------------------------------
+
 INSERT INTO tb_plano (nm_plano, ds_plano, periodicidade_dias, valor,texto_banner, texto_periodo, beneficios)
 VALUES
 ('Diamante',
@@ -295,6 +297,22 @@ CONSTRAINT ck_contato_nome CHECK (btrim(nm_contato) <> ''),
 CONSTRAINT uq_contato_contrato UNIQUE (cd_contrato));
 
 
+-- ==============================================================
+-- tb_contato_conversa  - drop table tb_contato_conversa cascade
+-- ==============================================================
+CREATE TABLE tb_contato_conversa (
+cd_conversa bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_contato bigint NOT NULL REFERENCES tb_contato (cd_contato),
+cd_usuario bigint NOT NULL REFERENCES tb_usuario (cd_usuario),
+dt_conversa timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+texto text NOT NULL,
+CONSTRAINT ck_contato_conversa_texto CHECK (btrim(texto) <> ''));
+
+CREATE INDEX ix_contato_conversa_historico
+ON tb_contato_conversa (cd_contato, dt_conversa, cd_conversa);
+
+
+
 -- ============================================================
 -- tb_parcelas: parcelas de contratos
 -- ============================================================
@@ -403,21 +421,6 @@ CONSTRAINT ck_usuario_senha CHECK (btrim(senha_hash) <> ''));
 INSERT INTO tb_usuario (cd_pessoa, cd_nivel, login, senha_hash, fl_ativo) values
 (0, 0, 'hilaneto', 'scrypt:32768:8:1$4mjPXrerf5DlpXpO$f8a99dcefa0f79ae3731df309f3e64eb24c34d2d252e79bf8ff4c22321e79b26d1238145047ef14d8fd23c381e249b17d2886e9e1256a9cf6bf57576480dcc8f', true),
 (1, 1, 'juvenal' , 'scrypt:32768:8:1$zebpNPKMDH6Ck8IR$97ec87e2c1f9f8a67192ef784f86dab8223eb8e5570764ae86cd2cafd557ae1278eb0a9ab8fbc4c0a16c1df6703ae50815d765989e0ca465ff7a35bc5d820ec0', true);
-
-
--- ==============================================================
--- tb_contato_conversa  - drop table tb_contato_conversa cascade
--- ==============================================================
-CREATE TABLE tb_contato_conversa (
-cd_conversa bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_contato bigint NOT NULL REFERENCES tb_contato (cd_contato),
-cd_usuario bigint NOT NULL REFERENCES tb_usuario (cd_usuario),
-dt_conversa timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-texto text NOT NULL,
-CONSTRAINT ck_contato_conversa_texto CHECK (btrim(texto) <> ''));
-
-CREATE INDEX ix_contato_conversa_historico
-ON tb_contato_conversa (cd_contato, dt_conversa, cd_conversa);
 
 
 

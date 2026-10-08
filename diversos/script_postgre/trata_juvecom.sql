@@ -3,35 +3,50 @@
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public';
 
--- -----------------------------------
-select * from tb_servico;
+
+-- -----------------------------------------------
 select * from tb_plano;
-select * from tb_plano_servico;
-select * from tb_desconto_loja;
+select * from tb_servico;
 select * from tb_contrato_status;
-select * from tb_encargo_atraso;
 select * from tb_contato_status;
+select * from tb_encargo_atraso;
+select * from tb_desconto_loja;
 select * from tb_usuario_nivel;
 select * from tb_evento_log;
 select * from tb_relacao;
-select * from tb_pessoa_relacao;
+select * from tb_plano_servico;
 
+-- -----------------------------------------------
 select * from tb_pessoa;
-select * from tb_usuario;
-
-select * from tb_contrato_modelo;
-
--- -----------------------------------
+select * from tb_pessoa_relacao;
 select * from tb_loja;
 select * from tb_contrato;
-select * from tb_contrato_loja;
-select * from tb_parcelas;
-
+select * from tb_contrato_documento;
+select * from tb_contrato_modelo;
 select * from tb_contato;
+select * from tb_parcelas;
+select * from tb_contrato_loja;
+select * from tb_usuario;
+select * from vw_cobranca_proximos;
+select * from tb_contato_conversa;
+select * from vw_cobranca_vencidos;
+select * from tb_logusuario;
+select * from vw_cobranca_inadimplentes;
+select * from vw_contatos_pendentes;
+select * from vw_usuario;
+
+
+
+
+-- CONTATOS -----------------------------------
+select * from tb_contato;
+select * from tb_contato_conversa;
+select * from tb_contato_status;
 
 INSERT into tb_contato
 (cd_status, nm_contato, celular, email, mensagem)
 VALUES(1, 'Juvenal Pereira de Souza', '11 98738-5695', 'variedadesjps@gmail.com', 'TESTE');
+
 
 
 -- --------------------------------------------------

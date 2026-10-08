@@ -10,6 +10,7 @@ from models.plano import Plano
 from models.usuario import Usuario
 from models.pessoa import Pessoa
 from models.relacao import Relacao, PessoaRelacao
+from models.contato_conversa import ContatoConversa
 
 
 load_dotenv()
@@ -125,10 +126,89 @@ def adm():
     return redirect(url_for("adm_contato"))
 
 
-@app.route("/adm/contatos")
+@app.route("/adm/contatos", methods=["GET", "POST"])
 @login_obrigatorio
 def adm_contato():
-    return render_template("adm_contato.html", grupos=Contato.por_prazo())
+    erro = None
+    dados = {}
+    texto_conversa = ""
+
+    if request.method == "POST":
+        validar_csrf()
+
+        try:
+            cd_contato = int(request.form.get("cd_contato"))
+        except (ValueError, TypeError):
+            abort(400)
+    else:
+        codigo = request.args.get("editar")
+
+        try:
+            cd_contato = int(codigo) if codigo is not None else None
+        except (ValueError, TypeError):
+            abort(400)
+
+    fila = Contato.pendentes()
+    finalizados = Contato.finalizados()
+
+    if cd_contato is None and fila:
+        cd_contato = fila[0].cd_contato
+
+    selecionado = None
+
+    if cd_contato is not None:
+        encontrados = Contato.buscar(cd_contato=cd_contato)
+
+        if not encontrados:
+            abort(404)
+
+        selecionado = encontrados[0]
+        dados = selecionado.__data__.copy()
+
+    if request.method == "POST":
+        acao = request.form.get("acao")
+
+        if acao == "salvar":
+            dados = request.form.to_dict()
+            dados["marketplace"] = request.form.get("marketplace", "0")
+            resultado = Contato.atualizar(dados)
+
+        elif acao == "conversa":
+            texto_conversa = request.form.get("texto", "")
+            resultado = ContatoConversa.incluir(
+                cd_contato, session["cd_usuario"], texto_conversa
+            )
+
+        else:
+            abort(400)
+
+        if resultado["sucesso"]:
+            return redirect(url_for(
+                "adm_contato", editar=cd_contato, sucesso=acao
+            ))
+
+        erro = resultado["erro"]
+
+    if selecionado is not None:
+        planos, contratos, status = Contato.opcoes(cd_contato)
+        conversas = ContatoConversa.buscar(cd_contato)
+    else:
+        planos, contratos, status, conversas = [], [], [], []
+
+    return render_template(
+        "adm_contato.html",
+        fila=fila,
+        selecionado=selecionado,
+        dados=dados,
+        planos=planos,
+        contratos=contratos,
+        status=status,
+        conversas=conversas,
+        texto_conversa=texto_conversa,
+        erro=erro,
+        sucesso=request.args.get("sucesso"),
+        finalizados=finalizados,
+    )
 
 
 @app.route("/adm/usuarios", methods=["GET", "POST"])
