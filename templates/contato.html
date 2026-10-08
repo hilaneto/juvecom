@@ -17,14 +17,14 @@
                     <h1>Sua loja pode ir <span>mais longe.</span></h1>
                     <p>
                         Conte um pouco sobre sua operação. Entraremos em contato
-                        para entender seus objetivos na Shopee.
+                        para entender o seu momento atual hoje.
                     </p>
                 </div>
 
                 <div class="contato-card">
                     {% if enviado %}
                         <div class="contato-aviso contato-aviso--sucesso" role="status">
-                            Recebemos seu contato. Em breve conversaremos com você.
+                            Recebemos sua mensagem. Em breve, um dos nossos consultores entrará em contato com você.
                         </div>
                     {% else %}
                         <h2>Fale com a Juvaecom</h2>
@@ -50,6 +50,11 @@
                             <input id="email" name="email" type="email"
                                    maxlength="150"
                                    value="{{ request.form.get('email', '') }}">
+
+                            <label class="contato-marketplace">
+                                <input type="checkbox" name="marketplace" value="1">
+                                <span>Já realizo vendas em marketplaces.</span>
+                            </label>                                   
 
                             <label for="mensagem">Mensagem</label>
                             <textarea id="mensagem" name="mensagem" rows="5">{{ request.form.get('mensagem', '') }}</textarea>

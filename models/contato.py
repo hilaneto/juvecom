@@ -1,17 +1,18 @@
-from peewee import Model, BigAutoField, BigIntegerField, SmallIntegerField, CharField, TextField, DateTimeField, SQL
+from peewee import Model, BigAutoField, BigIntegerField, SmallIntegerField, CharField, TextField, DateTimeField, BooleanField, SQL
 from database.conexao import db, conectar
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 class Contato(Model):
     cd_contato = BigAutoField()
-    cd_plano = BigIntegerField(null=True)
-    cd_contrato = BigIntegerField(null=True)
-    cd_status = SmallIntegerField(null=False)
     nm_contato = CharField(max_length=150)
     celular = CharField(max_length=20, null=False)
     email = CharField(max_length=150, null=True)
     mensagem = TextField(null=True)
+    marketplace = BooleanField(default=False)
+    cd_plano = BigIntegerField(null=True)
+    cd_contrato = BigIntegerField(null=True)
+    cd_status = SmallIntegerField(null=False)
     dt_cadastro = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
     dt_atualizacao = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
 
@@ -26,10 +27,11 @@ class Contato(Model):
         celular = (dados.get("celular") or "").strip()
         email = (dados.get("email") or "").strip() or None
         mensagem = (dados.get("mensagem") or "").strip() or None
+        marketplace = dados.get("marketplace") in (True, "1")
         if not (nm_contato and celular):
             return {"sucesso": False, "erro": "Nome e celular são campos obrigatórios"}
         with conectar():
-            Contato.create(nm_contato=nm_contato, celular=celular, email=email, mensagem=mensagem, cd_plano=dados.get("cd_plano"), cd_status=1)
+            Contato.create(nm_contato=nm_contato, celular=celular, email=email, mensagem=mensagem, cd_plano=dados.get("cd_plano"), cd_status=1, marketplace=marketplace)
             return {"sucesso": True, "Nome": nm_contato}
     
 

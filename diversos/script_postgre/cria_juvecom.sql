@@ -120,32 +120,50 @@ INSERT INTO tb_servico (nm_servico, ds_servico, vl_servico) values
 ('Suporte e alinhamento operacional', 'Orientações e alinhamentos sobre a operação da loja pelos canais oficiais de atendimento.',0);
 
 
--- ============================================================
--- tb_plano: pacotes oferecidos ao cliente
--- ============================================================
+-- =====================================================================
+-- tb_plano: pacotes oferecidos ao cliente - drop table tb_plano cascade 
+-- =====================================================================
 CREATE TABLE tb_plano (
-cd_plano bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nm_plano varchar(100) NOT NULL,
-ds_plano varchar(500),
-periodicidade_dias integer NOT NULL,
-valor numeric(12,2) NOT NULL,
-texto_banner varchar(100),
-fl_ativo boolean NOT NULL DEFAULT true,
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT ck_plano_periodicidade CHECK (periodicidade_dias > 0),
-CONSTRAINT ck_plano_preco CHECK (valor >= 0));
+    cd_plano bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nm_plano varchar(100) NOT NULL,
+    ds_plano varchar(500),
+    periodicidade_dias integer NOT NULL,
+    valor numeric(12,2) NOT NULL,
+    texto_banner varchar(100),
+    texto_periodo varchar(100),
+    beneficios jsonb NOT NULL DEFAULT '[]'::jsonb,
+    fl_ativo boolean NOT NULL DEFAULT true,
+    dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_plano_periodicidade CHECK (periodicidade_dias > 0),
+    CONSTRAINT ck_plano_preco CHECK (valor >= 0),
+    CONSTRAINT ck_plano_beneficios CHECK (jsonb_typeof(beneficios) = 'array')
+);
+
+
+INSERT INTO tb_plano (nm_plano, ds_plano, periodicidade_dias, valor,texto_banner, texto_periodo, beneficios)
+VALUES
+('Diamante',
+ 'Para quem busca crescimento sustentável e evolução contínua da sua loja Shopee, com acompanhamento estratégico ao longo de todo o ano.',
+ 360, 900,
+ 'Gestão completa da loja', '12 meses de acompanhamento',
+ '["Gestão completa da operação", "Anúncios e Shopee Ads", "Campanhas e promoções", "Análise de performance", "Relatórios e acompanhamento"]'::jsonb),
+('Safira', 'Ideal para quem quer estruturar e impulsionar a operação da loja com consistência, em um ciclo intermediário de evolução.',
+180, 1100,
+ 'Gestão completa da loja', '6 meses de acompanhamento',
+ '["Gestão completa da operação", "Anúncios e Shopee Ads", "Campanhas e promoções", "Análise de performance", "Relatórios e acompanhamento"]'::jsonb),
+('Esmeralda','Para quem deseja organizar, otimizar e ganhar tração na loja em um período inicial, com foco em resultados e direcionamento prioritário.',
+ 90, 1300,'Gestão completa da loja','3 meses de acompanhamento',
+ '["Gestão completa da operação", "Anúncios e Shopee Ads", "Campanhas e promoções", "Análise de performance", "Relatórios e acompanhamento"]'::jsonb),
+('Avulso','Uma análise completa da sua loja para identificar os principais problemas, oportunidades e prioridades de ação.',
+  7, 150,'Análise de Conta','Análise em reunião de 1 hora',
+ '["Diagnóstico da operação", "Análise de anúncios e campanhas", "Avaliação de Shopee Ads", "Recomendações personalizadas", "Entrega de relatório com plano de ação"]'::jsonb
+);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------
 CREATE UNIQUE INDEX uq_plano_nome_ativo
 ON tb_plano (nm_plano)
 WHERE fl_ativo;
 
--- ---------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO tb_plano (nm_plano, ds_plano, periodicidade_dias, valor, texto_banner)
-VALUES ('Diamante' , 'Gestão completa da loja Shopee', 360,   900, 'Mais tempo para desenvolver sua loja com uma gestão contínua.'),
-       ('Safira'   , 'Gestão completa da loja Shopee', 180,  1100, 'Uma gestão completa para evoluir com consistência.'),
-       ('Esmeralda', 'Gestão completa da loja Shopee',  90,  1300, 'Comece a organizar e fortalecer sua presença na Shopee.'),
-       ('Avulso'   , 'Diagnóstico inicial'           ,   7,   150, 'Descubra as prioridades da sua loja antes dos próximos passos.');
 
 
 -- ============================================================
@@ -262,13 +280,14 @@ INSERT INTO tb_contato_status (nm_status, ds_status) VALUES
 -- ============================================================
 CREATE TABLE tb_contato (
 cd_contato bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_plano bigint,
-cd_contrato bigint,
-cd_status smallint NOT NULL,
 nm_contato varchar(150) NOT NULL,
 celular varchar(20) NOT NULL,
 email varchar(150),
 mensagem text,
+marketplace boolean NOT NULL DEFAULT false,
+cd_plano bigint,
+cd_contrato bigint,
+cd_status smallint NOT NULL,
 dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT fk_contato_plano FOREIGN KEY (cd_plano) REFERENCES tb_plano (cd_plano),

@@ -4,44 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planos | Juvaecom</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/juvaecom.css') }}">
 </head>
 
 <body>
-    <main class="pagina-planos">
-        <div class="planos-container">
-            <header class="planos-cabecalho">
-                <a class="planos-voltar" href="{{ url_for('home') }}">← Voltar para a home</a>
+    <main class="planos-vitrine">
+        <div class="planos-vitrine__container">
+            <header class="planos-vitrine__cabecalho">
+                <a class="planos-voltar" href="{{ url_for('home') }}">
+                    ← Voltar para a home
+                </a>
+
                 <p class="home__categoria">Planos Juvaecom</p>
-                <h1>Escolha o próximo passo da sua loja<span>.</span></h1>
-                <p>Encontre o período de acompanhamento ideal para o momento do seu negócio.</p>
+                <h1>Planos sob medida para o <span>seu momento.</span></h1>
+
+                <p class="planos-vitrine__introducao">
+                    A mesma gestão especializada em Shopee, com o período
+                    de acompanhamento ideal para a sua loja.
+                </p>
             </header>
 
-            <section class="planos-grade" aria-label="Planos disponíveis">
+            <section class="planos-vitrine__grade"
+                     aria-label="Planos disponíveis">
                 {% for plano in planos %}
-                    <article class="plano-card">
-                        <div>
-                            <p class="plano-card__categoria">Plano</p>
+                    <article class="plano-oferta">
+                        <header class="plano-oferta__cabecalho">
+                            <p class="plano-oferta__categoria">Plano</p>
                             <h2>{{ plano.nm_plano }}</h2>
-                            <p class="plano-card__descricao">{{ plano.ds_plano or '' }}</p>
-                        </div>
-                        <p class="plano-card__texto">{{ plano.texto_banner or '' }}</p>
-                        
-                        <div class="plano-card__rodape">
-                            <p class="plano-card__periodo"> {% if plano.nm_plano == 'Avulso' %} Diagnóstico da sua loja em uma call de 1 hora {% else %} {{ plano.periodicidade_dias }} dias de contrato {% endif %} </p>
-                            <p class="plano-card__valor">
-                                R$ {{ "{:,.2f}".format(plano.valor).replace(",", "X").replace(".", ",").replace("X", ".") }}
-                                <span class="plano-card__mensal">{{ '/Única' if plano.nm_plano == 'Avulso' else '/Mês' }}</span>
-                                <a class="home__botao" href="{{ url_for('contato', cd_plano=plano.cd_plano) }}"> Tenho interesse </a>
-                            </p>
-                        </div>
 
+                            <p class="plano-oferta__subtitulo">
+                                {{ plano.texto_banner or '' }}
+                            </p>
+                        </header>
+
+                        {% if plano.texto_periodo %}
+                            <p class="plano-oferta__periodo">
+                                {{ plano.texto_periodo }}
+                            </p>
+                        {% endif %}
+
+                        <p class="plano-oferta__descricao">
+                            {{ plano.ds_plano or '' }}
+                        </p>
+
+                        <ul class="plano-oferta__beneficios">
+                            {% for beneficio in plano.beneficios %}
+                                <li>
+                                    <span aria-hidden="true">✓</span>
+                                    {{ beneficio }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                        <a class="plano-oferta__botao"
+                           href="{{ url_for('contato', cd_plano=plano.cd_plano) }}">
+                            Quero este plano →
+                        </a>
                     </article>
                 {% else %}
                     <p>Os planos estarão disponíveis em breve.</p>
                 {% endfor %}
             </section>
-            
+
+            <footer class="planos-vitrine__rodape">
+                <p>Vamos conversar sobre o próximo passo da sua loja?</p>
+
+                <a href="https://wa.me/5511960183455"
+                   target="_blank" rel="noopener noreferrer">
+                    Fale com a gente · (11) 96018-3455
+                </a>
+            </footer>
         </div>
     </main>
 </body>
