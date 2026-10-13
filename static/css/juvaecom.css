@@ -1474,3 +1474,30 @@ h1 {
     .central-contato__fila select,
     .central-contato__fila #contato_finalizado { height: 180px; }
 }
+
+/* Botão do Instagram na home */
+.home__botao--instagram {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #1877f2;
+    color: #fff;
+}
+
+.home__botao--instagram:hover {
+    background: #125dcc;
+    color: #fff;
+}
+
+.home__botao--instagram {
+    padding: 8px 12px;
+    font-size: 12px;
+    gap: 6px;
+    min-height: auto;
+}
+
+.home__botao--instagram svg {
+    width: 16px;
+    height: 16px;
+}
