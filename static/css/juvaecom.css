@@ -1475,31 +1475,39 @@ h1 {
     .central-contato__fila #contato_finalizado { height: 180px; }
 }
 
-/* Botão do Instagram na home */
-.home__botao--instagram {
+
+/* Link do Instagram */
+.home__instagram {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background: #1877f2;
+    gap: 3px;
+    margin-top: 24px;
     color: #fff;
+    font-size: 13px;
+    text-decoration: none;
 }
 
-.home__botao--instagram:hover {
-    background: #125dcc;
+.home__instagram img {
+    display: block;
+    width: 30px;
+    height: 30px;
+}
+
+/* Instagram na home: ícone e nome do perfil */
+.home__instagram {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 24px;
     color: #fff;
+    font-size: 13px;
+    text-decoration: none;
 }
 
-.home__botao--instagram {
-    padding: 8px 12px;
-    font-size: 12px;
-    gap: 6px;
-    min-height: auto;
-}
-
-.home__botao--instagram svg {
-    width: 16px;
-    height: 16px;
+.home__instagram img {
+    display: block;
+    width: 30px;
+    height: 30px;
 }
 
 /* Crédito do desenvolvedor */
