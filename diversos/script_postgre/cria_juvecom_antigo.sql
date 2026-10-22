@@ -15,6 +15,41 @@ CREATE DATABASE juvecom;
 -- Conectar ao banco juvecom antes de executar o restante.
 \connect juvecom
 
+
+
+
+-- ============================================================
+-- tb_contato_status: drop table tb_contato_status cascade - status de interessados em planos
+-- ============================================================
+CREATE TABLE tb_contato_status (
+cd_status smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+nm_status varchar(30) NOT NULL UNIQUE,
+ds_status varchar(150) NOT NULL);
+
+-- ---------------------------------------------------------
+INSERT INTO tb_contato_status (nm_status, ds_status) values
+('aguardando', 'aguardando primeiro atendimento'),
+('pendente', 'foi atendido e há algo a resolver'),
+('finalizado', 'Atendimento encerrado');
+
+-- ==============================================================
+-- tb_contato  - drop table tb_contato cascade: mensagens e interesse em planos
+-- ==============================================================
+CREATE TABLE tb_contato (
+cd_contato BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+nm_contato VARCHAR(150) NOT NULL,
+celular VARCHAR(20) NOT NULL,
+email VARCHAR(150),
+mensagem TEXT,
+marketplace BOOLEAN NOT NULL DEFAULT FALSE,
+cd_status SMALLINT NOT NULL REFERENCES tb_contato_status(cd_status),
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT ck_contato_celular CHECK (BTRIM(celular) <> ''),
+CONSTRAINT ck_contato_nome CHECK (BTRIM(nm_contato) <> ''));
+
+
+
 -- ============================================================
 -- tb_pessoa - drop table tb_pessoa cascade
 -- ============================================================
@@ -67,33 +102,41 @@ VALUES ('Cliente'), ('Colaborador'), ('Fornecedor');
 -- tb_pessoa_relacao - drop table tb_pessoa_relacao cascade
 -- ============================================================
 CREATE TABLE tb_pessoa_relacao (
-    cd_pessoa bigint NOT NULL REFERENCES tb_pessoa (cd_pessoa),
-    cd_relacao smallint NOT NULL REFERENCES tb_relacao (cd_relacao),
-    dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (cd_pessoa, cd_relacao)
-);
+cd_pessoa bigint NOT NULL REFERENCES tb_pessoa (cd_pessoa),
+cd_relacao smallint NOT NULL REFERENCES tb_relacao (cd_relacao),
+dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (cd_pessoa, cd_relacao));
 
 -- --------------------------------------------------
 INSERT INTO tb_pessoa_relacao (cd_pessoa, cd_relacao) values
 (0, 1), (0, 2),
 (1, 1), (1, 2);
 
+-- ============================================================
+-- tb_cliente - drop table tb_cliente cascade
+-- ============================================================
+CREATE TABLE tb_cliente (
+cd_cliente BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_pessoa BIGINT NOT NULL UNIQUE REFERENCES tb_pessoa(cd_pessoa),
+nm_responsavel VARCHAR(150),
+fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
+cd_contato BIGINT UNIQUE REFERENCES tb_contato(cd_contato),
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
+
 
 -- ============================================================
--- tb_loja
+-- tb_loja - drop table tb_loja cascade
 -- ============================================================
 CREATE TABLE tb_loja (
-cd_loja bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_pessoa bigint NOT NULL,
-nm_loja varchar(150) NOT NULL,
-shop_id bigint,
-url_loja varchar(500),
-fl_ativo boolean NOT NULL DEFAULT true,
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_loja_pessoa FOREIGN KEY (cd_pessoa) REFERENCES tb_pessoa (cd_pessoa),
-CONSTRAINT uq_loja_pessoa_loja UNIQUE (cd_pessoa, cd_loja),
-CONSTRAINT uq_loja_shop_id UNIQUE (shop_id));
+cd_loja BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_cliente BIGINT NOT NULL REFERENCES tb_cliente(cd_cliente),
+nm_loja VARCHAR(150) NOT NULL,
+shop_id BIGINT UNIQUE,
+url_loja VARCHAR(500),
+fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
 
 -- ============================================================
@@ -124,22 +167,21 @@ INSERT INTO tb_servico (nm_servico, ds_servico, vl_servico) values
 -- tb_plano: pacotes oferecidos ao cliente - drop table tb_plano cascade 
 -- =====================================================================
 CREATE TABLE tb_plano (
-    cd_plano bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nm_plano varchar(100) NOT NULL,
-    ds_plano varchar(500),
-    periodicidade_dias integer NOT NULL,
-    valor numeric(12,2) NOT NULL,
-    texto_banner varchar(100),
-    texto_periodo varchar(100),
-    beneficios jsonb NOT NULL DEFAULT '[]'::jsonb,
-    fl_ativo boolean NOT NULL DEFAULT true,
-    dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT ck_plano_periodicidade CHECK (periodicidade_dias > 0),
-    CONSTRAINT ck_plano_preco CHECK (valor >= 0),
-    CONSTRAINT ck_plano_beneficios CHECK (jsonb_typeof(beneficios) = 'array')
-);
+cd_plano bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+nm_plano varchar(100) NOT NULL,
+ds_plano varchar(500),
+periodicidade_dias integer NOT NULL,
+valor numeric(12,2) NOT NULL,
+texto_banner varchar(100),
+texto_periodo varchar(100),
+beneficios jsonb NOT NULL DEFAULT '[]'::jsonb,
+fl_ativo boolean NOT NULL DEFAULT true,
+dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT ck_plano_periodicidade CHECK (periodicidade_dias > 0),
+CONSTRAINT ck_plano_preco CHECK (valor >= 0),
+CONSTRAINT ck_plano_beneficios CHECK (jsonb_typeof(beneficios) = 'array'));
 
-
+-- -----------------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO tb_plano (nm_plano, ds_plano, periodicidade_dias, valor,texto_banner, texto_periodo, beneficios)
 VALUES
 ('Diamante',
@@ -204,33 +246,27 @@ INSERT INTO tb_contrato_status (nm_status, ds_status) VALUES
 
 
 -- ============================================================
--- tb_contrato
+-- tb_contrato - drop table tb_contrato cascade
 -- ============================================================
 CREATE TABLE tb_contrato (
-cd_contrato bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_pessoa bigint NOT NULL,
-cd_status smallint NOT NULL,
-nm_plano varchar(100) NOT NULL,
-ds_plano varchar(500),
-vigencia daterange NOT NULL,
-vl_bruto numeric(12,2) NOT NULL,
-vl_desconto_lojas numeric(12,2) NOT NULL DEFAULT 0,
-vl_desconto_manual numeric(12,2) NOT NULL DEFAULT 0,
-vl_acrescimo numeric(12,2) NOT NULL DEFAULT 0,
-vl_contrato numeric(12,2) NOT NULL,
-ds_contrato varchar(500),
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_contrato_pessoa FOREIGN KEY (cd_pessoa) REFERENCES tb_pessoa (cd_pessoa),
-CONSTRAINT fk_contrato_status FOREIGN KEY (cd_status) REFERENCES tb_contrato_status (cd_status),
-CONSTRAINT uq_contrato_pessoa_contrato UNIQUE (cd_pessoa, cd_contrato),
+cd_contrato BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_cliente BIGINT NOT NULL REFERENCES tb_cliente(cd_cliente),
+cd_plano BIGINT NOT NULL REFERENCES tb_plano(cd_plano),
+cd_status SMALLINT NOT NULL REFERENCES tb_contrato_status(cd_status),
+nm_plano VARCHAR(100) NOT NULL,
+ds_plano VARCHAR(500),
+vigencia DATERANGE NOT NULL,
+vl_bruto NUMERIC(12,2) NOT NULL,
+vl_desconto_lojas NUMERIC(12,2) NOT NULL DEFAULT 0,
+vl_desconto_manual NUMERIC(12,2) NOT NULL DEFAULT 0,
+vl_acrescimo NUMERIC(12,2) NOT NULL DEFAULT 0,
+vl_contrato NUMERIC(12,2) NOT NULL,
+ds_contrato VARCHAR(500),
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT ck_contrato_vigencia CHECK (NOT isempty(vigencia) AND NOT lower_inf(vigencia)),
-CONSTRAINT ck_contrato_valores CHECK (vl_bruto >= 0
-AND vl_desconto_lojas >= 0
-AND vl_desconto_manual >= 0
-AND vl_acrescimo >= 0
-AND vl_contrato = vl_bruto - vl_desconto_lojas - vl_desconto_manual + vl_acrescimo
-AND vl_contrato >= 0));
+CONSTRAINT ck_contrato_valores CHECK (vl_bruto >= 0 AND vl_desconto_lojas >= 0 AND vl_desconto_manual >= 0 AND vl_acrescimo >= 0
+AND vl_contrato = vl_bruto - vl_desconto_lojas - vl_desconto_manual + vl_acrescimo AND vl_contrato >= 0));
 
 -- --------------------------------------------------------------------
 CREATE INDEX ix_contrato_vigencia ON tb_contrato USING gist (vigencia);
@@ -257,59 +293,6 @@ cd_modelo bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 arquivo_pdf bytea NOT NULL,
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT ck_modelo_pdf CHECK (octet_length(arquivo_pdf) > 0));
-
-
--- ============================================================
--- tb_contato_status: drop table tb_contato_status cascade - status de interessados em planos
--- ============================================================
-CREATE TABLE tb_contato_status (
-cd_status smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nm_status varchar(30) NOT NULL UNIQUE,
-ds_status varchar(150) NOT NULL);
-
--- ---------------------------------------------------------
-INSERT INTO tb_contato_status (nm_status, ds_status) values
-('aguardando', 'aguardando primeiro atendimento'),
-('pendente', 'foi atendido e há algo a resolver'),
-('finalizado', 'Atendimento encerrado');
-
-
--- ==============================================================
--- tb_contato  - drop table tb_contato cascade: mensagens e interesse em planos
--- ==============================================================
-CREATE TABLE tb_contato (
-cd_contato bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nm_contato varchar(150) NOT NULL,
-celular varchar(20) NOT NULL,
-email varchar(150),
-mensagem text,
-marketplace boolean NOT NULL DEFAULT false,
-cd_plano bigint,
-cd_contrato bigint,
-cd_status smallint NOT NULL,
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_contato_plano FOREIGN KEY (cd_plano) REFERENCES tb_plano (cd_plano),
-CONSTRAINT fk_contato_contrato FOREIGN KEY (cd_contrato) REFERENCES tb_contrato (cd_contrato),
-CONSTRAINT fk_contato_status FOREIGN KEY (cd_status) REFERENCES tb_contato_status (cd_status),
-CONSTRAINT ck_contato_celular CHECK (btrim(celular) <> ''),
-CONSTRAINT ck_contato_nome CHECK (btrim(nm_contato) <> ''),
-CONSTRAINT uq_contato_contrato UNIQUE (cd_contrato));
-
-
--- ==============================================================
--- tb_contato_conversa  - drop table tb_contato_conversa cascade
--- ==============================================================
-CREATE TABLE tb_contato_conversa (
-cd_conversa bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_contato bigint NOT NULL REFERENCES tb_contato (cd_contato),
-cd_usuario bigint NOT NULL REFERENCES tb_usuario (cd_usuario),
-dt_conversa timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-texto text NOT NULL,
-CONSTRAINT ck_contato_conversa_texto CHECK (btrim(texto) <> ''));
-
-CREATE INDEX ix_contato_conversa_historico
-ON tb_contato_conversa (cd_contato, dt_conversa, cd_conversa);
 
 
 
@@ -421,6 +404,21 @@ CONSTRAINT ck_usuario_senha CHECK (btrim(senha_hash) <> ''));
 INSERT INTO tb_usuario (cd_pessoa, cd_nivel, login, senha_hash, fl_ativo) values
 (0, 0, 'hilaneto', 'scrypt:32768:8:1$4mjPXrerf5DlpXpO$f8a99dcefa0f79ae3731df309f3e64eb24c34d2d252e79bf8ff4c22321e79b26d1238145047ef14d8fd23c381e249b17d2886e9e1256a9cf6bf57576480dcc8f', true),
 (1, 1, 'juvenal' , 'scrypt:32768:8:1$zebpNPKMDH6Ck8IR$97ec87e2c1f9f8a67192ef784f86dab8223eb8e5570764ae86cd2cafd557ae1278eb0a9ab8fbc4c0a16c1df6703ae50815d765989e0ca465ff7a35bc5d820ec0', true);
+
+
+-- ==============================================================
+-- tb_contato_conversa  - drop table tb_contato_conversa cascade
+-- ==============================================================
+CREATE TABLE tb_contato_conversa (
+cd_conversa bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_contato bigint NOT NULL REFERENCES tb_contato (cd_contato),
+cd_usuario bigint NOT NULL REFERENCES tb_usuario (cd_usuario),
+dt_conversa timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+texto text NOT NULL,
+CONSTRAINT ck_contato_conversa_texto CHECK (btrim(texto) <> ''));
+
+CREATE INDEX ix_contato_conversa_historico
+ON tb_contato_conversa (cd_contato, dt_conversa, cd_conversa);
 
 
 

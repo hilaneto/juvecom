@@ -1,0 +1,119 @@
+{% extends "adm_base.html" %}
+
+{% block title %}{{ titulo }} | Juvecom{% endblock %}
+
+{% block conteudo %}
+
+<p class="home__categoria">Cadastros</p>
+<h1>{{ titulo }} do <span>sistema.</span></h1>
+
+{% if erro %}
+    <div class="contato-aviso contato-aviso--erro" role="alert">
+        {{ erro }}
+    </div>
+{% endif %}
+
+{% if sucesso %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status">
+        Cliente cadastrado com sucesso.
+    </div>
+{% endif %}
+
+{% if excluido %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status">
+        Cliente excluído com sucesso.
+    </div>
+{% endif %}
+
+<div class="pessoa-layout cadastro-compacto">
+
+    <!-- FORMULÁRIO -->
+    <section class="pessoa-card">
+
+        <form id="cadastro-formulario"
+              class="pessoa-form"
+              method="post"
+              action="{{ url_for('adm_cliente') }}">
+
+            <input type="hidden" name="cd_loja" value="{{ loja.get('cd_loja', '') }}">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <input type="hidden" name="cd_cliente" value="{{ selecionado or '' }}">
+
+            <!-- Dados da Pessoa e Endereço -->
+            <section class="cadastro-grupo">
+                {% include "cadastro/_pessoa.html" %}
+            </section>
+
+            {% if tipo_cadastro == "cliente" %}
+
+                <!-- Dados do Cliente -->
+                <section class="cadastro-grupo">
+                    {% include "cadastro/_cliente.html" %}
+                </section>
+
+                <!-- Dados da Loja -->
+                <section class="cadastro-grupo">
+                    {% include "cadastro/_loja.html" %}
+                </section>
+
+            {% endif %}
+
+        </form>
+
+        <!-- BOTÕES -->
+        <div class="pessoa-botoes">
+
+            <button class="pessoa-botao pessoa-botao--salvar"
+                    type="submit"
+                    form="cadastro-formulario">
+                Salvar
+            </button>
+
+            <form method="get" action="{{ url_for('adm_cliente') }}">
+                <button class="pessoa-botao" type="submit">
+                    Novo
+                </button>
+            </form>
+
+            <button class="pessoa-botao pessoa-botao--excluir"
+                    id="btn-excluir"
+                    type="submit"
+                    form="cadastro-formulario"
+                    name="acao"
+                    value="excluir"
+                    formnovalidate
+                    onclick="return confirm('Confirma a exclusão deste cliente?')"
+                    {% if not selecionado %}disabled{% endif %}>
+                Excluir
+            </button>
+
+        </div>
+
+    </section>
+
+    <!-- LISTA DE CLIENTES -->
+    <aside class="pessoa-lista cadastro-lista">
+
+        <h2 class="pessoa-form__titulo">
+            Clientes cadastrados ({{ registros|length }})
+        </h2>
+
+        {% if registros %}
+            <ul>
+                {% for registro in registros %}
+                    <li>
+                        <a href="{{ url_for('adm_cliente', cd_cliente=registro.cd_cliente) }}">
+                            {{ registro.nm_pessoa }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Nenhum cliente cadastrado.</p>
+        {% endif %}
+
+    </aside>
+
+</div>
+
+{% endblock %}

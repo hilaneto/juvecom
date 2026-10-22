@@ -1,19 +1,60 @@
 -- ============================================================
 -- BANCO: juvecom
 -- SCHEMA: public
--- 2026-09-2026
+-- Revisão estrutural: 2026-10-15 | revisão estática adicional
 -- rodar no terminal
--- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom.sql
--- local/servidor: scp cria_juvecom.sql vps:/tmp/cria_juvecom.sql && ssh -t vps 'psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f /tmp/cria_juvecom.sql'
--- ============================================================
+-- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom_validado.sql
+-- local/servidor: scp cria_juvecom.sql dev:/tmp/cria_juvecom.sql && ssh -t dev 'psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f /tmp/cria_juvecom.sql'
+ -- ============================================================
 
 
+-- ATENÇÃO: usar apenas em banco novo/vazio. Não é script de migração.
+-- Cadastros pessoais e credenciais iniciais foram removidos por segurança.
+-- Execução via psql (usa \gexec e \connect).
+-- Se o banco juvecom já existir com tabelas, a criação falhará sem apagá-las.
 -- Cria o banco juvecom
-DROP DATABASE IF EXISTS juvecom WITH (FORCE);
-CREATE DATABASE juvecom;
+-- Cria somente se ainda não existir; não apaga dados de uma instalação existente.
+SELECT 'CREATE DATABASE juvecom' WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'juvecom')\gexec
 
 -- Conectar ao banco juvecom antes de executar o restante.
 \connect juvecom
+
+BEGIN;
+
+
+
+
+-- ============================================================
+-- tb_contato_status: drop table tb_contato_status cascade - status de interessados em planos
+-- ============================================================
+CREATE TABLE tb_contato_status (
+cd_status smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+nm_status varchar(30) NOT NULL UNIQUE,
+ds_status varchar(150) NOT NULL);
+
+-- ---------------------------------------------------------
+INSERT INTO tb_contato_status (nm_status, ds_status) values
+('aguardando', 'aguardando primeiro atendimento'),
+('pendente', 'foi atendido e há algo a resolver'),
+('finalizado', 'Atendimento encerrado');
+
+-- ==============================================================
+-- tb_contato: captação de interessados (sem vínculo com plano ou contrato)
+-- ==============================================================
+CREATE TABLE tb_contato (
+cd_contato BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+nm_contato VARCHAR(150) NOT NULL,
+celular VARCHAR(20) NOT NULL,
+email VARCHAR(150),
+mensagem TEXT,
+marketplace BOOLEAN NOT NULL DEFAULT FALSE,
+cd_status SMALLINT NOT NULL REFERENCES tb_contato_status(cd_status),
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT ck_contato_celular CHECK (BTRIM(celular) <> ''),
+CONSTRAINT ck_contato_nome CHECK (BTRIM(nm_contato) <> ''));
+
+
 
 -- ============================================================
 -- tb_pessoa - drop table tb_pessoa cascade
@@ -41,11 +82,7 @@ CONSTRAINT ck_pessoa_dados_cep CHECK (NOT (dados ? 'cep') OR (jsonb_typeof(dados
 CONSTRAINT ck_pessoa_dados_cidade CHECK (NOT (dados ? 'cidade') OR (jsonb_typeof(dados -> 'cidade') = 'string' AND char_length(dados ->> 'cidade') <= 50)),
 CONSTRAINT ck_pessoa_dados_uf CHECK (NOT (dados ? 'uf') OR (jsonb_typeof(dados -> 'uf') = 'string' AND ((dados ->> 'uf') = '' OR (dados ->> 'uf') ~ '^[A-Z]{2}$'))));
 
--- --------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados, fl_ativo, dt_cadastro, dt_atualizacao) values
-('F', 'José Hilário Alves Neto', '06478701859', '11 9 7666-0826', 'hilaneto@yahoo.com.br', '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('F', 'Juvenal Pereira de Souza', '12345678195', '11 98738-5695', 'variedadesjps@gmail.com'     , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('J', 'JPS - Juvaecom Promoções', '22144785142369', '11 98738-5695', 'variedadesjps@gmail.com'     , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- Cadastre pessoas reais por procedimento seguro após a instalação.
 
 
 -- ============================================================
@@ -72,27 +109,36 @@ cd_relacao smallint NOT NULL REFERENCES tb_relacao (cd_relacao),
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY (cd_pessoa, cd_relacao));
 
--- --------------------------------------------------
-INSERT INTO tb_pessoa_relacao (cd_pessoa, cd_relacao) values
-(0, 1), (0, 2),
-(1, 1), (1, 2);
-
+-- As relações de pessoas devem ser cadastradas após criar as pessoas.
 
 -- ============================================================
--- tb_loja
+-- tb_cliente - drop table tb_cliente cascade
+-- ============================================================
+CREATE TABLE tb_cliente (
+cd_cliente BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_pessoa BIGINT NOT NULL UNIQUE REFERENCES tb_pessoa(cd_pessoa),
+nm_responsavel VARCHAR(150),
+fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
+cd_contato BIGINT UNIQUE REFERENCES tb_contato(cd_contato),
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
+
+--TRUNCATE TABLE tb_pessoa RESTART IDENTITY CASCADE;
+
+-- ============================================================
+-- tb_loja - drop table tb_loja cascade
 -- ============================================================
 CREATE TABLE tb_loja (
-cd_loja bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_pessoa bigint NOT NULL,
-nm_loja varchar(150) NOT NULL,
-shop_id bigint,
-url_loja varchar(500),
-fl_ativo boolean NOT NULL DEFAULT true,
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_loja_pessoa FOREIGN KEY (cd_pessoa) REFERENCES tb_pessoa (cd_pessoa),
-CONSTRAINT uq_loja_pessoa_loja UNIQUE (cd_pessoa, cd_loja),
-CONSTRAINT uq_loja_shop_id UNIQUE (shop_id));
+cd_loja BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_cliente BIGINT NOT NULL REFERENCES tb_cliente(cd_cliente),
+nm_loja VARCHAR(150) NOT NULL,
+shop_id BIGINT UNIQUE,
+url_loja VARCHAR(500),
+fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+UNIQUE (cd_cliente, cd_loja));
+CREATE INDEX ix_loja_cliente ON tb_loja (cd_cliente);
 
 
 -- ============================================================
@@ -168,11 +214,9 @@ WHERE fl_ativo;
 -- tb_plano_servico: serviços incluídos em cada plano
 -- ============================================================
 CREATE TABLE tb_plano_servico (
-cd_plano bigint NOT NULL,
-cd_servico bigint NOT NULL,
-CONSTRAINT pk_plano_servico PRIMARY KEY (cd_plano, cd_servico),
-CONSTRAINT fk_plano_servico_plano FOREIGN KEY (cd_plano) REFERENCES tb_plano (cd_plano),
-CONSTRAINT fk_plano_servico_servico FOREIGN KEY (cd_servico) REFERENCES tb_servico (cd_servico));
+cd_plano bigint NOT NULL REFERENCES tb_plano(cd_plano),
+cd_servico bigint NOT NULL REFERENCES tb_servico(cd_servico),
+CONSTRAINT pk_plano_servico PRIMARY KEY (cd_plano, cd_servico));
 
 -- -----------------------------------------------------------------------
 INSERT INTO tb_plano_servico (cd_plano, cd_servico)
@@ -202,36 +246,32 @@ INSERT INTO tb_contrato_status (nm_status, ds_status) VALUES
 
 
 -- ============================================================
--- tb_contrato
+-- tb_contrato - drop table tb_contrato cascade
 -- ============================================================
 CREATE TABLE tb_contrato (
-cd_contrato bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_pessoa bigint NOT NULL,
-cd_status smallint NOT NULL,
-nm_plano varchar(100) NOT NULL,
-ds_plano varchar(500),
-vigencia daterange NOT NULL,
-vl_bruto numeric(12,2) NOT NULL,
-vl_desconto_lojas numeric(12,2) NOT NULL DEFAULT 0,
-vl_desconto_manual numeric(12,2) NOT NULL DEFAULT 0,
-vl_acrescimo numeric(12,2) NOT NULL DEFAULT 0,
-vl_contrato numeric(12,2) NOT NULL,
-ds_contrato varchar(500),
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_contrato_pessoa FOREIGN KEY (cd_pessoa) REFERENCES tb_pessoa (cd_pessoa),
-CONSTRAINT fk_contrato_status FOREIGN KEY (cd_status) REFERENCES tb_contrato_status (cd_status),
-CONSTRAINT uq_contrato_pessoa_contrato UNIQUE (cd_pessoa, cd_contrato),
+cd_contrato BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_cliente BIGINT NOT NULL REFERENCES tb_cliente(cd_cliente),
+cd_plano BIGINT NOT NULL REFERENCES tb_plano(cd_plano),
+cd_status SMALLINT NOT NULL REFERENCES tb_contrato_status(cd_status),
+nm_plano VARCHAR(100) NOT NULL,
+ds_plano VARCHAR(500),
+vigencia DATERANGE NOT NULL,
+vl_bruto NUMERIC(12,2) NOT NULL,
+vl_desconto_lojas NUMERIC(12,2) NOT NULL DEFAULT 0,
+vl_desconto_manual NUMERIC(12,2) NOT NULL DEFAULT 0,
+vl_acrescimo NUMERIC(12,2) NOT NULL DEFAULT 0,
+vl_contrato NUMERIC(12,2) NOT NULL,
+ds_contrato VARCHAR(500),
+dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT uq_contrato_cliente_contrato UNIQUE (cd_cliente, cd_contrato),
 CONSTRAINT ck_contrato_vigencia CHECK (NOT isempty(vigencia) AND NOT lower_inf(vigencia)),
-CONSTRAINT ck_contrato_valores CHECK (vl_bruto >= 0
-AND vl_desconto_lojas >= 0
-AND vl_desconto_manual >= 0
-AND vl_acrescimo >= 0
-AND vl_contrato = vl_bruto - vl_desconto_lojas - vl_desconto_manual + vl_acrescimo
-AND vl_contrato >= 0));
+CONSTRAINT ck_contrato_valores CHECK (vl_bruto >= 0 AND vl_desconto_lojas >= 0 AND vl_desconto_manual >= 0 AND vl_acrescimo >= 0
+AND vl_contrato = vl_bruto - vl_desconto_lojas - vl_desconto_manual + vl_acrescimo AND vl_contrato >= 0));
 
 -- --------------------------------------------------------------------
 CREATE INDEX ix_contrato_vigencia ON tb_contrato USING gist (vigencia);
+CREATE INDEX ix_contrato_cliente ON tb_contrato (cd_cliente);
 
 
 -- ============================================================
@@ -239,11 +279,10 @@ CREATE INDEX ix_contrato_vigencia ON tb_contrato USING gist (vigencia);
 -- ============================================================
 CREATE TABLE tb_contrato_documento (
 cd_documento bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_contrato bigint NOT NULL UNIQUE,
+cd_contrato bigint NOT NULL UNIQUE REFERENCES tb_contrato(cd_contrato),
 arquivo_pdf bytea NOT NULL,
 dt_assinatura timestamptz NOT NULL,
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_documento_contrato FOREIGN KEY (cd_contrato) REFERENCES tb_contrato (cd_contrato),
 CONSTRAINT ck_documento_pdf CHECK (octet_length(arquivo_pdf) > 0));
 
 
@@ -257,57 +296,19 @@ dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT ck_modelo_pdf CHECK (octet_length(arquivo_pdf) > 0));
 
 
--- ============================================================
--- tb_contato_status: drop table tb_contato_status cascade - status de interessados em planos
--- ============================================================
-CREATE TABLE tb_contato_status (
-cd_status smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nm_status varchar(30) NOT NULL UNIQUE,
-ds_status varchar(150) NOT NULL);
-
--- ---------------------------------------------------------
-INSERT INTO tb_contato_status (nm_status, ds_status) values
-('aguardando', 'aguardando primeiro atendimento'),
-('pendente', 'foi atendido e há algo a resolver'),
-('finalizado', 'Atendimento encerrado');
-
-
--- ==============================================================
--- tb_contato  - drop table tb_contato cascade: mensagens e interesse em planos
--- ==============================================================
-CREATE TABLE tb_contato (
-cd_contato bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nm_contato varchar(150) NOT NULL,
-celular varchar(20) NOT NULL,
-email varchar(150),
-mensagem text,
-marketplace boolean NOT NULL DEFAULT false,
-cd_plano bigint,
-cd_contrato bigint,
-cd_status smallint NOT NULL,
-dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_contato_plano FOREIGN KEY (cd_plano) REFERENCES tb_plano (cd_plano),
-CONSTRAINT fk_contato_contrato FOREIGN KEY (cd_contrato) REFERENCES tb_contrato (cd_contrato),
-CONSTRAINT fk_contato_status FOREIGN KEY (cd_status) REFERENCES tb_contato_status (cd_status),
-CONSTRAINT ck_contato_celular CHECK (btrim(celular) <> ''),
-CONSTRAINT ck_contato_nome CHECK (btrim(nm_contato) <> ''),
-CONSTRAINT uq_contato_contrato UNIQUE (cd_contrato));
-
 
 -- ============================================================
 -- tb_parcelas: parcelas de contratos
 -- ============================================================
 CREATE TABLE tb_parcelas (
 cd_parcela bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_contrato bigint NOT NULL,
+cd_contrato bigint NOT NULL REFERENCES tb_contrato(cd_contrato),
 nr_parcela integer NOT NULL,
 dt_vencimento date NOT NULL,
 vl_parcela numeric(12,2) NOT NULL,
 vl_desconto numeric(12,2) NOT NULL DEFAULT 0,
 dt_pagamento date,
 vl_pago numeric(12,2),
-CONSTRAINT fk_parcelas_contrato FOREIGN KEY (cd_contrato) REFERENCES tb_contrato (cd_contrato),
 CONSTRAINT uq_parcelas_contrato_numero UNIQUE (cd_contrato, nr_parcela),
 CONSTRAINT ck_parcelas_numero CHECK (nr_parcela > 0),
 CONSTRAINT ck_parcelas_valores CHECK (vl_parcela >= 0 AND vl_desconto BETWEEN 0 AND vl_parcela AND (vl_pago IS NULL OR vl_pago >= 0)),
@@ -355,17 +356,17 @@ INSERT INTO tb_desconto_loja (qt_loja, vigencia, desconto) VALUES
 
 
 -- ============================================================
--- tb_contrato_loja: lojas cobertas por cada contrato
+-- tb_contrato_loja: lojas cobertas por contrato, com consistência de cliente
 -- ============================================================
+-- Redundância controlada de cd_cliente: FKs compostas impedem vínculo cruzado entre clientes.
 CREATE TABLE tb_contrato_loja (
-cd_contrato bigint NOT NULL,
-cd_loja bigint NOT NULL,
-cd_pessoa bigint NOT NULL,
-CONSTRAINT pk_contrato_loja PRIMARY KEY (cd_contrato, cd_loja),
-CONSTRAINT fk_contrato_loja_contrato FOREIGN KEY (cd_pessoa, cd_contrato)
-REFERENCES tb_contrato (cd_pessoa, cd_contrato),
-CONSTRAINT fk_contrato_loja_loja FOREIGN KEY (cd_pessoa, cd_loja)
-REFERENCES tb_loja (cd_pessoa, cd_loja));
+cd_contrato BIGINT NOT NULL,
+cd_loja BIGINT NOT NULL,
+cd_cliente BIGINT NOT NULL REFERENCES tb_cliente(cd_cliente),
+PRIMARY KEY (cd_contrato, cd_loja),
+CONSTRAINT fk_contrato_loja_contrato FOREIGN KEY (cd_cliente, cd_contrato) REFERENCES tb_contrato(cd_cliente, cd_contrato),
+CONSTRAINT fk_contrato_loja_loja FOREIGN KEY (cd_cliente, cd_loja) REFERENCES tb_loja(cd_cliente, cd_loja));
+CREATE INDEX ix_contrato_loja_loja ON tb_contrato_loja (cd_loja);
 
 
 
@@ -388,21 +389,16 @@ INSERT INTO tb_usuario_nivel (nm_nivel) values ('limitado');
 -- ============================================================
 CREATE TABLE tb_usuario (
 cd_usuario bigint GENERATED ALWAYS AS IDENTITY (MINVALUE 0 START WITH 0) PRIMARY KEY,
-cd_pessoa bigint NOT NULL UNIQUE,
-cd_nivel smallint NOT NULL,
+cd_pessoa bigint NOT NULL UNIQUE REFERENCES tb_pessoa(cd_pessoa),
+cd_nivel smallint NOT NULL REFERENCES tb_usuario_nivel(cd_nivel),
 login varchar(100) NOT NULL UNIQUE,
 senha_hash text NOT NULL,
 fl_ativo boolean NOT NULL DEFAULT true,
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_usuario_pessoa FOREIGN KEY (cd_pessoa) REFERENCES tb_pessoa (cd_pessoa),
-CONSTRAINT fk_usuario_nivel FOREIGN KEY (cd_nivel) REFERENCES tb_usuario_nivel (cd_nivel),
 CONSTRAINT ck_usuario_login CHECK (btrim(login) <> ''),
 CONSTRAINT ck_usuario_senha CHECK (btrim(senha_hash) <> ''));
 
--- --------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO tb_usuario (cd_pessoa, cd_nivel, login, senha_hash, fl_ativo) values
-(0, 0, 'hilaneto', 'scrypt:32768:8:1$4mjPXrerf5DlpXpO$f8a99dcefa0f79ae3731df309f3e64eb24c34d2d252e79bf8ff4c22321e79b26d1238145047ef14d8fd23c381e249b17d2886e9e1256a9cf6bf57576480dcc8f', true),
-(1, 1, 'juvenal' , 'scrypt:32768:8:1$zebpNPKMDH6Ck8IR$97ec87e2c1f9f8a67192ef784f86dab8223eb8e5570764ae86cd2cafd557ae1278eb0a9ab8fbc4c0a16c1df6703ae50815d765989e0ca465ff7a35bc5d820ec0', true);
+-- Cadastre usuários e gere hashes de senha na aplicação; não inclua credenciais fixas no DDL.
 
 
 -- ==============================================================
@@ -442,14 +438,12 @@ INSERT INTO tb_evento_log (ds_evento) VALUES
 -- ============================================================
 CREATE TABLE tb_logusuario (
 cd_log bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_usuario bigint,
-cd_evento smallint NOT NULL,
+cd_usuario bigint REFERENCES tb_usuario(cd_usuario),
+cd_evento smallint NOT NULL REFERENCES tb_evento_log(cd_evento),
 login_informado varchar(100),
 fl_sucesso boolean NOT NULL DEFAULT true,
 ip_acesso inet,
-dt_evento timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT fk_logusuario_usuario FOREIGN KEY (cd_usuario) REFERENCES tb_usuario (cd_usuario),
-CONSTRAINT fk_logusuario_evento FOREIGN KEY (cd_evento) REFERENCES tb_evento_log (cd_evento));
+dt_evento timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
 
 
@@ -461,7 +455,8 @@ SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.
 p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer, p.vl_parcela - p.vl_desconto AS vl_a_pagar
 FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
-JOIN tb_pessoa pe ON pe.cd_pessoa = c.cd_pessoa
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
 WHERE p.dt_pagamento IS NULL
 AND p.dt_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + 3
 AND st.nm_status IN ('ativo', 'inadimplente');
@@ -475,7 +470,8 @@ SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.
 p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela - p.vl_desconto AS vl_original
 FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
-JOIN tb_pessoa pe ON pe.cd_pessoa = c.cd_pessoa
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
 WHERE p.dt_pagamento IS NULL
 AND p.dt_vencimento BETWEEN CURRENT_DATE - 3 AND CURRENT_DATE - 1
 AND st.nm_status <> 'cancelado';
@@ -492,7 +488,8 @@ ROUND((p.vl_parcela - p.vl_desconto) * e.juros_mensal / 100 * (CURRENT_DATE - p.
 CURRENT_DATE - p.dt_vencimento > e.dias_suspensao AS avaliar_suspensao
 FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
-JOIN tb_pessoa pe ON pe.cd_pessoa = c.cd_pessoa
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
 JOIN tb_encargo_atraso e ON e.vigencia @> p.dt_vencimento
 WHERE p.dt_pagamento IS NULL
 AND CURRENT_DATE - p.dt_vencimento > e.dias_painel
@@ -504,11 +501,11 @@ AND st.nm_status <> 'cancelado';
 -- vw_contatos_pendentes: Contatos pendentes
 -- ==========================================================================
 CREATE VIEW vw_contatos_pendentes AS
-SELECT c.cd_contato, c.nm_contato, c.email, c.celular, c.mensagem, p.nm_plano, c.dt_cadastro, 
+SELECT c.cd_contato, c.nm_contato, c.email, c.celular, c.mensagem, c.dt_cadastro, 
 CURRENT_DATE - c.dt_cadastro::date AS dias_aguardando
 FROM tb_contato c
-LEFT JOIN tb_plano p ON p.cd_plano = c.cd_plano
-WHERE c.cd_status = 1;
+JOIN tb_contato_status st ON st.cd_status = c.cd_status
+WHERE st.nm_status = 'aguardando';
 
 
 -- ==========================================================================
@@ -523,7 +520,7 @@ on a.cd_nivel  = c.cd_nivel;
 
 
 -- ==========================================================================
--- pr_reajustar_plano: Contatos pendentes
+-- fn_nova_versao_plano: versionamento de planos
 -- ==========================================================================
 CREATE OR REPLACE FUNCTION fn_nova_versao_plano(
     p_cd_plano bigint,
@@ -531,7 +528,9 @@ CREATE OR REPLACE FUNCTION fn_nova_versao_plano(
     p_ds_plano varchar(500) DEFAULT NULL,
     p_periodicidade_dias integer DEFAULT NULL,
     p_valor numeric(12,2) DEFAULT NULL,
-    p_texto_banner varchar(100) DEFAULT NULL)
+    p_texto_banner varchar(100) DEFAULT NULL,
+    p_texto_periodo varchar(100) DEFAULT NULL,
+    p_beneficios jsonb DEFAULT NULL)
     
 RETURNS bigint
 LANGUAGE plpgsql
@@ -555,7 +554,8 @@ BEGIN
 
     IF p_nm_plano IS NULL AND p_ds_plano IS NULL
        AND p_periodicidade_dias IS NULL AND p_valor IS NULL
-       AND p_texto_banner IS NULL THEN
+       AND p_texto_banner IS NULL AND p_texto_periodo IS NULL
+       AND p_beneficios IS NULL THEN
         RAISE EXCEPTION 'Informe ao menos um campo para a nova versão';
     END IF;
 
@@ -565,13 +565,15 @@ BEGIN
 
     INSERT INTO tb_plano
         (nm_plano, ds_plano, periodicidade_dias, valor,
-         texto_banner, fl_ativo)
+         texto_banner, texto_periodo, beneficios, fl_ativo)
     VALUES
         (COALESCE(p_nm_plano, v_anterior.nm_plano),
          COALESCE(p_ds_plano, v_anterior.ds_plano),
          COALESCE(p_periodicidade_dias, v_anterior.periodicidade_dias),
          COALESCE(p_valor, v_anterior.valor),
          COALESCE(p_texto_banner, v_anterior.texto_banner),
+         COALESCE(p_texto_periodo, v_anterior.texto_periodo),
+         COALESCE(p_beneficios, v_anterior.beneficios),
          true)
     RETURNING cd_plano INTO v_cd_novo;
 
@@ -584,3 +586,4 @@ BEGIN
 END;
 $$;
 
+COMMIT;

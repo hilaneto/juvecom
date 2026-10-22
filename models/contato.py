@@ -1,40 +1,25 @@
-from peewee import Model, BigAutoField, BigIntegerField, SmallIntegerField, CharField, TextField, DateTimeField, BooleanField, SQL, IntegrityError
-from database.conexao import db, conectar
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from peewee import Model, BigAutoField, CharField, TextField, BooleanField, SmallIntegerField, DateTimeField, SQL, IntegrityError
+from database.conexao import db, conectar
+from models.contato_status import ContatoStatus
 
 
 class Contato(Model):
     cd_contato = BigAutoField()
     nm_contato = CharField(max_length=150)
-    celular = CharField(max_length=20, null=False)
+    celular = CharField(max_length=20)
     email = CharField(max_length=150, null=True)
     mensagem = TextField(null=True)
     marketplace = BooleanField(default=False)
-    cd_plano = BigIntegerField(null=True)
-    cd_contrato = BigIntegerField(null=True)
-    cd_status = SmallIntegerField(null=False)
-    dt_cadastro = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
-    dt_atualizacao = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
+    cd_status = SmallIntegerField()
+    dt_cadastro = DateTimeField(default=datetime.now)
+    dt_atualizacao = DateTimeField(default=datetime.now)
 
     class Meta:
         database = db
         table_name = "tb_contato"
-
-
-    @staticmethod
-    def incluir(dados: dict):
-        nm_contato = (dados.get("nm_contato") or "").strip()
-        celular = (dados.get("celular") or "").strip()
-        email = (dados.get("email") or "").strip() or None
-        mensagem = (dados.get("mensagem") or "").strip() or None
-        marketplace = dados.get("marketplace") in (True, "1")
-        if not (nm_contato and celular):
-            return {"sucesso": False, "erro": "Nome e celular são campos obrigatórios"}
-        with conectar():
-            Contato.create(nm_contato=nm_contato, celular=celular, email=email, mensagem=mensagem, cd_plano=dados.get("cd_plano"), cd_status=1, marketplace=marketplace)
-            return {"sucesso": True, "Nome": nm_contato}
-    
 
     @staticmethod
     def buscar(cd_contato=None, cd_status=None):
@@ -49,11 +34,37 @@ class Contato(Model):
 
             return list(consulta.order_by(Contato.dt_cadastro.desc()))
 
+    @staticmethod
+    def incluir(dados: dict):
+        nm_contato = (dados.get("nm_contato") or "").strip()
+        celular = (dados.get("celular") or "").strip()
+        email = (dados.get("email") or "").strip() or None
+        mensagem = (dados.get("mensagem") or "").strip() or None
+        marketplace = dados.get("marketplace") in (True, "1")
+
+        if not nm_contato or not celular:
+            return {"sucesso": False, "erro": "Nome e celular são campos obrigatórios."}
+
+        if len(nm_contato) > 150 or len(celular) > 20 or (email and len(email) > 150):
+            return {"sucesso": False, "erro": "Um ou mais campos excedem o tamanho permitido."}
+
+        try:
+            with conectar():
+                contato = Contato.create(
+                    nm_contato=nm_contato,
+                    celular=celular,
+                    email=email,
+                    mensagem=mensagem,
+                    marketplace=marketplace,
+                    cd_status=1
+                )
+                return {"sucesso": True, "Nome": nm_contato, "cd_contato": contato.cd_contato}
+
+        except IntegrityError:
+            return {"sucesso": False, "erro": "Não foi possível cadastrar o contato."}
 
     @staticmethod
     def atualizar(dados: dict):
-        from models.plano import Plano
-
         try:
             cd_contato = int(dados.get("cd_contato"))
         except (ValueError, TypeError):
@@ -61,7 +72,7 @@ class Contato(Model):
 
         permitidos = {
             "nm_contato", "celular", "email", "mensagem",
-            "marketplace", "cd_plano", "cd_contrato", "cd_status"
+            "marketplace", "cd_status"
         }
         campos = {chave: valor for chave, valor in dados.items() if chave in permitidos}
 
@@ -87,22 +98,11 @@ class Contato(Model):
 
             campos[campo] = valor or None
 
-        for campo in ("cd_plano", "cd_contrato", "cd_status"):
-            if campo not in campos:
-                continue
-
-            valor = campos[campo]
-
-            if valor in (None, ""):
-                if campo == "cd_status":
-                    return {"sucesso": False, "erro": "Informe o status do contato."}
-
-                campos[campo] = None
-            else:
-                try:
-                    campos[campo] = int(valor)
-                except (ValueError, TypeError):
-                    return {"sucesso": False, "erro": f"{campo} inválido."}
+        if "cd_status" in campos:
+            try:
+                campos["cd_status"] = int(campos["cd_status"])
+            except (ValueError, TypeError):
+                return {"sucesso": False, "erro": "Status inválido."}
 
         if "marketplace" in campos:
             campos["marketplace"] = campos["marketplace"] in (True, "1")
@@ -113,60 +113,48 @@ class Contato(Model):
                     contato = (
                         Contato.select()
                         .where(Contato.cd_contato == cd_contato)
-                        .for_update().first()
+                        .for_update()
+                        .first()
                     )
 
                     if contato is None:
                         return {"sucesso": False, "erro": "Contato não encontrado."}
 
-                    if "cd_plano" in campos and campos["cd_plano"] is not None:
-                        plano = Plano.get_or_none(Plano.cd_plano == campos["cd_plano"])
-
-                        if plano is None or (
-                            not plano.fl_ativo and plano.cd_plano != contato.cd_plano
-                        ):
-                            return {"sucesso": False, "erro": "Plano indisponível."}
-
                     if "cd_status" in campos:
-                        if not ContatoStatus.select().where(
+                        existe = ContatoStatus.select().where(
                             ContatoStatus.cd_status == campos["cd_status"]
-                        ).exists():
-                            return {"sucesso": False, "erro": "Status não encontrado."}
-
-                    if "cd_contrato" in campos and campos["cd_contrato"] is not None:
-                        contrato = (
-                            ContratoOpcao.select()
-                            .where(ContratoOpcao.cd_contrato == campos["cd_contrato"])
-                            .for_update().first()
-                        )
-
-                        if contrato is None:
-                            return {"sucesso": False, "erro": "Contrato não encontrado."}
-
-                        ocupado = Contato.select().where(
-                            (Contato.cd_contrato == campos["cd_contrato"]) &
-                            (Contato.cd_contato != cd_contato)
                         ).exists()
 
-                        if ocupado:
-                            return {"sucesso": False, "erro": "Esse contrato já está vinculado a outro contato."}
+                        if not existe:
+                            return {"sucesso": False, "erro": "Status não encontrado."}
 
                     campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
-                    Contato.update(**campos).where(Contato.cd_contato == cd_contato).execute()
+
+                    Contato.update(**campos).where(
+                        Contato.cd_contato == cd_contato
+                    ).execute()
 
         except IntegrityError:
-            return {"sucesso": False, "erro": "Não foi possível salvar. Confira plano, contrato e status; o contrato pode ter sido vinculado a outro contato."}
+            return {"sucesso": False, "erro": "Não foi possível atualizar o contato."}
 
         return {"sucesso": True, "cd_contato": cd_contato}
 
     @staticmethod
     def excluir(cd_contato):
         with conectar():
-            alterados = (Contato.update(cd_status=3, dt_atualizacao=SQL("CURRENT_TIMESTAMP")).where(Contato.cd_contato == cd_contato).execute())
+            alterados = (
+                Contato.update(
+                    cd_status=3,
+                    dt_atualizacao=SQL("CURRENT_TIMESTAMP")
+                )
+                .where(Contato.cd_contato == cd_contato)
+                .execute()
+            )
+
         if not alterados:
             return {"sucesso": False, "erro": "Contato não encontrado."}
-        return {"sucesso": True, "cd_contato": cd_contato}
 
+        return {"sucesso": True, "cd_contato": cd_contato}
 
     @staticmethod
     def por_prazo():
@@ -175,11 +163,19 @@ class Contato(Model):
         grupos = {"atrasados": [], "recentes": [], "hoje": []}
 
         with conectar():
-            contatos = list(Contato.select().where(Contato.cd_status == 1).order_by(Contato.dt_cadastro))
+            contatos = list(
+                Contato.select()
+                .where(Contato.cd_status == 1)
+                .order_by(Contato.dt_cadastro)
+            )
 
         for contato in contatos:
-            cadastro = contato.dt_cadastro.astimezone(fuso).date()
-            dias = (hoje - cadastro).days
+            cadastro = contato.dt_cadastro
+
+            if cadastro.tzinfo is None:
+                cadastro = cadastro.replace(tzinfo=fuso)
+
+            dias = (hoje - cadastro.astimezone(fuso).date()).days
 
             if dias >= 3:
                 grupos["atrasados"].append(contato)
@@ -190,15 +186,18 @@ class Contato(Model):
 
         return grupos
 
-
     @staticmethod
     def pendentes():
         with conectar():
             return list(
                 Contato.select()
                 .where(Contato.cd_status.in_([1, 2]))
-                .order_by(Contato.marketplace.desc(), Contato.dt_cadastro.asc(), Contato.cd_contato.asc()))
-
+                .order_by(
+                    Contato.marketplace.desc(),
+                    Contato.dt_cadastro.asc(),
+                    Contato.cd_contato.asc()
+                )
+            )
 
     @staticmethod
     def finalizados():
@@ -206,55 +205,15 @@ class Contato(Model):
             return list(
                 Contato.select()
                 .where(Contato.cd_status == 3)
-                .order_by(Contato.dt_atualizacao.desc(),Contato.cd_contato.desc()))
-
-
+                .order_by(
+                    Contato.dt_atualizacao.desc(),
+                    Contato.cd_contato.desc()
+                )
+            )
 
     @staticmethod
-    def opcoes(cd_contato):
-        from models.plano import Plano
-
+    def opcoes(cd_contato=None):
         with conectar():
-            contato = Contato.get_or_none(Contato.cd_contato == cd_contato)
-
-            planos = Plano.select().where(Plano.fl_ativo == True)
-
-            if contato is not None and contato.cd_plano is not None:
-                planos = Plano.select().where(
-                    (Plano.fl_ativo == True) | (Plano.cd_plano == contato.cd_plano)
-                )
-
-            vinculados = Contato.select(Contato.cd_contrato).where(
-                (Contato.cd_contrato.is_null(False)) &
-                (Contato.cd_contato != cd_contato)
+            return list(
+                ContatoStatus.select().order_by(ContatoStatus.cd_status)
             )
-
-            contratos = ContratoOpcao.select().where(
-                ContratoOpcao.cd_contrato.not_in(vinculados)
-            )
-
-            return (
-                list(planos.order_by(Plano.periodicidade_dias.desc(), Plano.nm_plano)),
-                list(contratos.order_by(ContratoOpcao.cd_contrato.desc())),
-                list(ContatoStatus.select().order_by(ContatoStatus.cd_status))
-            )
-
-            
-
-class ContatoStatus(Model):
-    cd_status = SmallIntegerField(primary_key=True)
-    nm_status = CharField(max_length=30)
-    ds_status = CharField(max_length=150)
-
-    class Meta:
-        database = db
-        table_name = "tb_contato_status"
-
-
-class ContratoOpcao(Model):
-    cd_contrato = BigIntegerField(primary_key=True)
-    nm_plano = CharField(max_length=100)
-
-    class Meta:
-        database = db
-        table_name = "tb_contrato"

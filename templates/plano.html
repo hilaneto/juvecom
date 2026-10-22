@@ -77,5 +77,63 @@
             </footer>
         </div>
     </main>
+
+
+<!-- ---------------------------------------- 
+    Bunner promocional 
+  ------------------------------------------  -->
+<div class="promo-overlay" id="promo-overlay" hidden>
+    <div class="promo-modal" role="dialog"
+         aria-modal="true"
+         aria-labelledby="promo-titulo">
+
+        <button class="promo-modal__fechar" type="button"
+                aria-label="Fechar promoção"
+                onclick="fecharPromocao()">×</button>
+
+        <span class="promo-modal__categoria">Oferta exclusiva</span>
+
+        <h2 id="promo-titulo">5% OFF</h2>
+        <h3>Sua loja merece crescer!</h3>
+
+        <p>
+            Cadastre seu contato e ganhe
+            <strong>5% de desconto sobre o valor total do contrato.</strong>
+        </p>
+
+        <a href="{{ url_for('contato') }}"
+           class="promo-modal__botao">
+            Quero meu desconto →
+        </a>
+    </div>
+</div>
+
+
+
+<script>
+    const promo = document.getElementById('promo-overlay');
+    let promoTimer;
+
+    function fecharPromocao() {
+        promo.hidden = true;
+        sessionStorage.setItem('promo_juvaecom', 'fechada');
+    }
+
+    if (!sessionStorage.getItem('promo_juvaecom')) {
+        promoTimer = setTimeout(() => {
+            promo.hidden = false;
+            promo.querySelector('.promo-modal__fechar').focus();
+        }, 7000);
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !promo.hidden) {
+            fecharPromocao();
+        }
+    });
+</script>
+
+
+
 </body>
 </html>

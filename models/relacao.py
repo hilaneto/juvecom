@@ -1,4 +1,4 @@
-from peewee import Model, SmallIntegerField, CharField, DateTimeField, BigIntegerField, CompositeKey
+from peewee import Model, SmallIntegerField, CharField, DateTimeField, BigIntegerField, CompositeKey, SQL
 from database.conexao import db, conectar
 
 
@@ -31,4 +31,39 @@ class PessoaRelacao(Model):
     def buscar(cd_pessoa):
         with conectar():
             consulta = PessoaRelacao.select().where(PessoaRelacao.cd_pessoa == cd_pessoa)
-            return [vinculo.cd_relacao for vinculo in consulta]
+            return [item.cd_relacao for item in consulta]
+
+    @staticmethod
+    def gravar(cd_pessoa, relacoes):
+        codigos = set(relacoes)
+
+        existentes = {
+            item.cd_relacao
+            for item in Relacao.select().where(Relacao.cd_relacao.in_(codigos))
+        }
+
+        if codigos != existentes:
+            raise ValueError("Uma das relações informadas não existe.")
+
+        PessoaRelacao.delete().where(PessoaRelacao.cd_pessoa == cd_pessoa).execute()
+
+        if codigos:
+            PessoaRelacao.insert_many([
+                {
+                    "cd_pessoa": cd_pessoa,
+                    "cd_relacao": codigo,
+                    "dt_atualizacao": SQL("CURRENT_TIMESTAMP")
+                }
+                for codigo in codigos
+            ]).execute()
+
+    @staticmethod
+    def excluir(cd_pessoa, cd_relacao):
+        return (
+            PessoaRelacao.delete()
+            .where(
+                (PessoaRelacao.cd_pessoa == cd_pessoa) &
+                (PessoaRelacao.cd_relacao == cd_relacao)
+            )
+            .execute()
+        )

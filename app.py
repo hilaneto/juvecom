@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask, abort, redirect, render_template, request, session, url_for
 from peewee import OperationalError
 import secrets
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 from functools import wraps
 from models.contato import Contato
 from models.plano import Plano
@@ -11,6 +11,9 @@ from models.usuario import Usuario
 from models.pessoa import Pessoa
 from models.relacao import Relacao, PessoaRelacao
 from models.contato_conversa import ContatoConversa
+from models.cadastro_cliente import CadastroCliente
+from models.cliente import Cliente
+from zoneinfo import ZoneInfo
 
 
 load_dotenv()
@@ -188,28 +191,27 @@ def adm_contato():
             ))
 
         erro = resultado["erro"]
-
+        
     if selecionado is not None:
-        planos, contratos, status = Contato.opcoes(cd_contato)
+        status = Contato.opcoes(cd_contato)
         conversas = ContatoConversa.buscar(cd_contato)
     else:
-        planos, contratos, status, conversas = [], [], [], []
+        status = Contato.opcoes()
+        conversas = []
 
     return render_template(
         "adm_contato.html",
         fila=fila,
         selecionado=selecionado,
         dados=dados,
-        planos=planos,
-        contratos=contratos,
         status=status,
         conversas=conversas,
         texto_conversa=texto_conversa,
         erro=erro,
         sucesso=request.args.get("sucesso"),
         finalizados=finalizados,
+        hoje=date.today().isoformat(),
     )
-
 
 @app.route("/adm/usuarios", methods=["GET", "POST"])
 @login_obrigatorio
@@ -365,6 +367,8 @@ def resetar_senha_usuario(cd_usuario):
         abort(404)
 
     return redirect(url_for("adm_usuario", senha_resetada=1))
+
+
 @app.route("/adm/pessoas", methods=["GET", "POST"])
 @login_obrigatorio
 def adm_pessoa():
@@ -459,6 +463,113 @@ def adm_pessoa():
         relacoes=relacoes,
         relacoes_selecionadas=relacoes_selecionadas
     )
+
+
+@app.route("/adm/clientes", methods=["GET", "POST"])
+@login_obrigatorio
+def adm_cliente():
+    if session["cd_nivel"] not in (0, 1):
+        abort(403)
+
+    hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date().isoformat()
+
+    dados, loja = {}, {}
+    cliente = {"dt_cadastro": hoje}
+    lojas = []
+    erro = None
+    selecionado = None
+
+    # Inclusão de cliente
+    if request.method == "POST":
+        validar_csrf()
+        formulario = request.form.to_dict()
+
+        acao = formulario.get("acao", "salvar")
+        cd_cliente = formulario.get("cd_cliente", "").strip()
+
+        if acao == "excluir":
+            if not cd_cliente.isdigit():
+                erro = "Código do cliente não informado."
+            else:
+                resultado = Cliente.excluir(int(cd_cliente))
+
+                if resultado["sucesso"]:
+                    return redirect(url_for("adm_cliente", excluido=1))
+
+                erro = resultado["erro"]
+                selecionado = int(cd_cliente)
+
+        elif acao == "salvar":
+            dados = {
+                campo: formulario.get(campo, "")
+                for campo in ("tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email")
+            }
+
+            dados["dados"] = {
+                campo: formulario.get(campo, "")
+                for campo in ("endereco", "numero", "complemento", "bairro", "cep", "cidade", "uf")
+            }
+
+            cliente = {
+                campo: formulario.get(campo, "")
+                for campo in ("nm_responsavel", "cd_contato", "dt_cadastro")
+            }
+
+            loja = {
+                campo: formulario.get(campo, "")
+                for campo in ("cd_loja", "nm_loja", "shop_id", "url_loja")
+            }
+
+            lojas = [loja] if any(valor.strip() for valor in loja.values()) else []
+
+            if cd_cliente:
+                resultado = CadastroCliente.atualizar(int(cd_cliente), dados, cliente, lojas)
+            else:
+                resultado = CadastroCliente.incluir(dados, cliente, lojas)
+
+            if resultado["sucesso"]:
+                return redirect(url_for("adm_cliente", sucesso=1))
+
+            erro = resultado["erro"]
+            selecionado = int(cd_cliente) if cd_cliente else None
+
+        else:
+            abort(400)
+
+    # Listagem exclusiva de clientes
+    registros = CadastroCliente.listar()
+
+    # Seleção de cliente para consulta
+    if request.method == "GET":
+        cd_cliente = request.args.get("cd_cliente", type=int)
+
+        if cd_cliente is not None:
+            resultado = CadastroCliente.buscar(cd_cliente)
+
+            if resultado["sucesso"]:
+                dados = resultado["dados"]
+                cliente = resultado["cliente"]
+                loja = resultado["loja"]
+                lojas = resultado["lojas"]
+                selecionado = cd_cliente
+            else:
+                erro = resultado["erro"]
+
+    return render_template(
+        "cadastro/cadastro.html",
+        titulo="Clientes",
+        tipo_cadastro="cliente",
+        dados=dados,
+        cliente=cliente,
+        loja=loja,
+        lojas=lojas,
+        registros=registros,
+        selecionado=selecionado,
+        erro=erro,
+        sucesso=request.args.get("sucesso") == "1",
+        hoje=hoje
+    )
+
 
 @app.errorhandler(OperationalError)
 def erro_conexao_banco(erro):

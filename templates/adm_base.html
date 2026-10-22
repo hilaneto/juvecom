@@ -1,19 +1,23 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Painel Juvaecom{% endblock %}</title>
+    <title>{% block title %}Painel Juvecom{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
 </head>
+
 <body>
     <div class="adm-layout">
+
         <aside class="adm-lateral">
             <a class="adm-lateral__marca" href="{{ url_for('adm') }}">
                 Juva<span>ecom</span>
             </a>
 
             <nav class="adm-lateral__nav" aria-label="Menu administrativo">
+
                 <a href="{{ url_for('adm') }}"
                    {% if request.endpoint == 'adm' %}class="ativo" aria-current="page"{% endif %}>
                     Home
@@ -24,23 +28,42 @@
                     Contatos pendentes
                 </a>
 
-                {% if session.get('cd_nivel') in (0, 1) %}
-                    <a href="{{ url_for('adm_pessoa') }}"
-                    {% if request.endpoint == 'adm_pessoa' %}class="ativo" aria-current="page"{% endif %}>
-                        Pessoas
-                    </a>
-                {% endif %}
+                <!-- CADASTROS -->
+                <details class="adm-submenu"
+                         {% if request.endpoint in ('adm_cliente', 'adm_colaborador', 'adm_fornecedor') %}open{% endif %}>
 
+                    <summary>Cadastros</summary>
+
+                    <div class="adm-submenu__itens">
+
+                        <a href="{{ url_for('adm_cliente') }}"
+                           {% if request.endpoint == 'adm_cliente' %}class="ativo" aria-current="page"{% endif %}>
+                            Clientes
+                        </a>
+
+                        <span>
+                            Colaboradores
+                            <small>Em construção</small>
+                        </span>
+
+                        <span>
+                            Fornecedores
+                            <small>Em construção</small>
+                        </span>
+
+                    </div>
+                </details>
+
+                <!-- OUTRAS FUNCIONALIDADES -->
                 <span>Lojas <small>Em construção</small></span>
                 <span>Contratos <small>Em construção</small></span>
                 <span>Cobranças <small>Em construção</small></span>
 
                 <a href="{{ url_for('adm_usuario') }}"
-                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}>
+                   {% if request.endpoint == 'adm_usuario' %}class="ativo" aria-current="page"{% endif %}>
                     Usuários
                 </a>
 
-                
             </nav>
 
             <form class="adm-menu-sair" method="post" action="{{ url_for('logout') }}">

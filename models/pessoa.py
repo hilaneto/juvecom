@@ -1,8 +1,9 @@
+
 from peewee import Model, BigAutoField, CharField, BooleanField, DateTimeField, SQL, IntegrityError
 from playhouse.postgres_ext import BinaryJSONField
 from database.conexao import db, conectar
 from suporte.validacao import CpfCnpj, somente_numeros
-from models.relacao import Relacao, PessoaRelacao
+from models.relacao import PessoaRelacao
 
 class Pessoa(Model):
     cd_pessoa = BigAutoField()
@@ -15,7 +16,7 @@ class Pessoa(Model):
     fl_ativo = BooleanField(default=True)
     dt_cadastro = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
     dt_atualizacao = DateTimeField(default=SQL("CURRENT_TIMESTAMP"))
-    
+
     class Meta:
         database = db
         table_name = "tb_pessoa"
@@ -78,42 +79,43 @@ class Pessoa(Model):
                 if campos[campo] and len(campos[campo]) > limite:
                     return f"{campo} deve ter até {limite} caracteres."
 
-
         if "dados" in campos:
-
             if not isinstance(campos["dados"], dict):
                 return "O campo dados deve ser um dicionário."
+
             endereco = campos["dados"].copy()
 
             for campo in ("endereco", "numero", "complemento", "bairro", "cep", "cidade", "uf"):
                 if campo in endereco:
                     valor = endereco[campo]
+
                     if valor is not None and not isinstance(valor, str):
                         return f"{campo} deve ser um texto."
-                    endereco[campo] = (valor or "").strip()
 
+                    endereco[campo] = (valor or "").strip()
 
             if "cep" in endereco:
                 endereco["cep"] = somente_numeros(endereco["cep"])
+
                 if endereco["cep"] and len(endereco["cep"]) != 8:
                     return "O CEP deve conter 8 dígitos."
 
-
             if "uf" in endereco:
                 endereco["uf"] = endereco["uf"].upper()
+
                 if endereco["uf"] and (
                     len(endereco["uf"]) != 2
                     or any(letra not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" for letra in endereco["uf"])
                 ):
                     return "A UF deve conter 2 letras."
 
-
             limites = {"endereco": 60, "numero": 10, "complemento": 20, "bairro": 50, "cidade": 50}
+
             for campo, limite in limites.items():
                 if campo in endereco and len(endereco[campo]) > limite:
                     return f"{campo} deve ter até {limite} caracteres."
-            campos["dados"] = endereco
 
+            campos["dados"] = endereco
 
         if "fl_ativo" in campos and not isinstance(campos["fl_ativo"], bool):
             return "fl_ativo deve ser True ou False."
@@ -122,12 +124,15 @@ class Pessoa(Model):
 
 
     @staticmethod
-    def buscar(cd_pessoa=None, fl_ativo=None):
+    def buscar(cd_pessoa=None, cpf_cnpj=None, fl_ativo=None):
         with conectar():
             consulta = Pessoa.select()
 
             if cd_pessoa is not None:
                 consulta = consulta.where(Pessoa.cd_pessoa == cd_pessoa)
+
+            if cpf_cnpj is not None:
+                consulta = consulta.where(Pessoa.cpf_cnpj == somente_numeros(cpf_cnpj))
 
             if fl_ativo is not None:
                 consulta = consulta.where(Pessoa.fl_ativo == fl_ativo)
@@ -148,21 +153,23 @@ class Pessoa(Model):
         if erro:
             return {"sucesso": False, "erro": erro}
 
+        if not isinstance(relacoes, (list, tuple, set)) or not relacoes:
+            return {"sucesso": False, "erro": "Informe pelo menos uma relação para a pessoa."}
+
         try:
             with conectar():
                 with db.atomic():
                     pessoa = Pessoa.create(**campos)
+                    PessoaRelacao.gravar(pessoa.cd_pessoa, relacoes)
 
-                    if relacoes is not None:
-                        Pessoa.gravar_relacoes(pessoa.cd_pessoa, relacoes)
-
-        except ValueError as erro:
+        except (ValueError, TypeError) as erro:
             return {"sucesso": False, "erro": str(erro)}
+
         except IntegrityError:
             return {"sucesso": False, "erro": "Não foi possível incluir. Verifique se o CPF/CNPJ já está cadastrado."}
 
         return {"sucesso": True, "cd_pessoa": pessoa.cd_pessoa}
-
+    
 
     @staticmethod
     def atualizar(dados: dict, relacoes=None):
@@ -180,54 +187,36 @@ class Pessoa(Model):
         try:
             with conectar():
                 with db.atomic():
-                    pessoa = (Pessoa.select().where(Pessoa.cd_pessoa == cd_pessoa).for_update().first())
+                    pessoa = Pessoa.select().where(Pessoa.cd_pessoa == cd_pessoa).for_update().first()
 
                     if pessoa is None:
-                        return {"sucesso": False, "erro": "Pessoa não encontrada."}
+                        raise ValueError("Pessoa não encontrada.")
 
                     if "tp_pessoa" in campos or "cpf_cnpj" in campos:
                         campos.setdefault("tp_pessoa", pessoa.tp_pessoa)
                         campos.setdefault("cpf_cnpj", pessoa.cpf_cnpj)
 
                     if "dados" in campos and isinstance(campos["dados"], dict):
-                        campos["dados"] = {**pessoa.dados, **campos["dados"]}
+                        campos["dados"] = {**(pessoa.dados or {}), **campos["dados"]}
 
                     erro = Pessoa.validar(campos)
 
                     if erro:
-                        return {"sucesso": False, "erro": erro}
+                        raise ValueError(erro)
 
-                    campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
-                    Pessoa.update(**campos).where(Pessoa.cd_pessoa == cd_pessoa).execute()
+                    if campos:
+                        campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
+                        Pessoa.update(**campos).where(Pessoa.cd_pessoa == cd_pessoa).execute()
 
                     if relacoes is not None:
-                        Pessoa.gravar_relacoes(cd_pessoa, relacoes)
+                        PessoaRelacao.gravar(cd_pessoa, relacoes)
 
-        except ValueError as erro:
+        except (ValueError, TypeError) as erro:
             return {"sucesso": False, "erro": str(erro)}
         except IntegrityError:
             return {"sucesso": False, "erro": "Não foi possível atualizar. Verifique se o CPF/CNPJ já está cadastrado."}
 
         return {"sucesso": True, "cd_pessoa": cd_pessoa}
-        
-
-    @staticmethod
-    def gravar_relacoes(cd_pessoa, relacoes):
-        codigos = set(relacoes)
-        existentes = {
-            relacao.cd_relacao
-            for relacao in Relacao.select().where(Relacao.cd_relacao.in_(codigos))}
-
-        if codigos != existentes:
-            raise ValueError("Uma das relações informadas não existe.")
-
-        PessoaRelacao.delete().where(PessoaRelacao.cd_pessoa == cd_pessoa).execute()
-
-        if codigos:
-            PessoaRelacao.insert_many([
-                {"cd_pessoa": cd_pessoa, "cd_relacao": codigo, "dt_atualizacao": SQL("CURRENT_TIMESTAMP")}
-                for codigo in codigos
-                ]).execute()
 
 
     @staticmethod

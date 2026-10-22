@@ -1,0 +1,57 @@
+
+@app.route("/adm/clientes", methods=["GET", "POST"])
+@login_obrigatorio
+def adm_cliente():
+    if session["cd_nivel"] not in (0, 1):
+        abort(403)
+
+    dados, cliente, loja = {}, {}, {}
+    erro = None
+
+    if request.method == "POST":
+        validar_csrf()
+        formulario = request.form.to_dict()
+
+        dados = {
+            campo: formulario.get(campo, "")
+            for campo in ("tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email")
+        }
+
+        dados["dados"] = {
+            campo: formulario.get(campo, "")
+            for campo in ("endereco", "numero", "complemento", "bairro", "cep", "cidade", "uf")
+        }
+
+        cliente = {
+            campo: formulario.get(campo, "")
+            for campo in ("nm_responsavel", "cd_contato", "dt_cadastro")
+        }        
+
+        loja = {
+            campo: formulario.get(campo, "")
+            for campo in ("nm_loja", "shop_id", "url_loja")
+        }
+
+        lojas = [loja] if any(valor.strip() for valor in loja.values()) else []
+
+        resultado = CadastroCliente.incluir(dados, cliente, lojas)
+
+        if resultado["sucesso"]:
+            return redirect(url_for("adm_cliente", sucesso=1))
+
+        erro = resultado["erro"]
+
+    return render_template(
+        "cadastro/cadastro.html",
+        titulo="Clientes",
+        tipo_cadastro="cliente",
+        dados=dados,
+        cliente=cliente,
+        loja=loja,
+        lojas=[],
+        registros=[],
+        selecionado=None,
+        erro=erro,
+        sucesso=request.args.get("sucesso") == "1",
+        hoje=datetime.now(ZoneInfo("America/Sao_Paulo")).date().isoformat(),
+    )
