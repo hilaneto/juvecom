@@ -1758,6 +1758,21 @@ h1 {
     background: rgba(0, 0, 0, .65);
 }
 
+
+.promo-modal {
+    background: linear-gradient(
+        135deg,
+        #EE4D2D 0%,
+        #FF7337 55%,
+        #FF9A45 100%
+    );
+}
+
+.promo-modal__botao {
+    background: #fff;
+    color: #C74325;
+}
+
 .promo-modal {
     position: relative;
     width: 100%;
@@ -1765,7 +1780,7 @@ h1 {
     box-sizing: border-box;
     padding: 42px 32px;
     border-radius: 20px;
-    background: linear-gradient(135deg, #123f32, #237b55);
+    background: linear-gradient(135deg, #EE4D2D 0%, #FF7337 55%, #FF9A45 100%);
     color: #fff;
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
@@ -1787,7 +1802,7 @@ h1 {
     font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #c8ebd4;
+    color: #FFFFFF;
 }
 
 .promo-modal h2 {
@@ -1813,7 +1828,7 @@ h1 {
     padding: 14px;
     border-radius: 9px;
     background: #fff;
-    color: #18563e;
+    color: #C74325;
     font-weight: 700;
     text-decoration: none;
 }

@@ -5,7 +5,7 @@
 -- rodar no terminal
 -- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom_validado.sql
 -- local/servidor: scp cria_juvecom.sql dev:/tmp/cria_juvecom.sql && ssh -t dev 'psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f /tmp/cria_juvecom.sql'
- -- ============================================================
+-- ============================================================
 
 
 -- ATENÇÃO: usar apenas em banco novo/vazio. Não é script de migração.
