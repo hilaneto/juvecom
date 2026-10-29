@@ -20,32 +20,6 @@ class Usuario(Model):
         database = db
         table_name = "tb_usuario"
 
-    @staticmethod
-    def incluir(dados: dict):
-        cd_pessoa = dados.get("cd_pessoa")
-        cd_nivel = dados.get("cd_nivel")
-        login = (dados.get("login") or "").strip()
-        senha = dados.get("senha", SENHA_INICIAL)
-
-        if cd_pessoa in (None, "") or cd_nivel in (None, ""):
-            return {"sucesso": False, "erro": "Pessoa e nível são obrigatórios."}
-
-        if not login:
-            return {"sucesso": False, "erro": "Informe o login."}
-
-        if not isinstance(senha, str) or not senha.strip() or len(senha) < 6:
-            return {"sucesso": False, "erro": "A senha deve ter no mínimo 6 caracteres."}
-
-        try:
-            with conectar():
-                usuario = Usuario.create(
-                    cd_pessoa=cd_pessoa, cd_nivel=cd_nivel, login=login,
-                    senha_hash=generate_password_hash(senha), fl_ativo=True
-                )
-        except IntegrityError:
-            return {"sucesso": False, "erro": "Confira pessoa, nível e login. Pessoa ou login podem já estar cadastrados."}
-
-        return {"sucesso": True, "cd_usuario": usuario.cd_usuario}
 
     @staticmethod
     def buscar(cd_usuario=None, fl_ativo=None):
@@ -60,73 +34,6 @@ class Usuario(Model):
 
             return list(consulta.order_by(UsuarioView.cd_nivel, UsuarioView.login))
 
-    @staticmethod
-    def opcoes():
-        with conectar():
-            pessoas = list(
-                PessoaOpcao.select()
-                .where(PessoaOpcao.cd_pessoa.not_in(Usuario.select(Usuario.cd_pessoa)))
-                .order_by(PessoaOpcao.nm_pessoa)
-            )
-            niveis = list(NivelOpcao.select().order_by(NivelOpcao.cd_nivel))
-
-        return pessoas, niveis
-
-    @staticmethod
-    def atualizar(dados: dict):
-        cd_usuario = dados.get("cd_usuario")
-
-        if cd_usuario in (None, ""):
-            return {"sucesso": False, "erro": "Informe o código do usuário."}
-
-        permitidos = {"login", "cd_nivel"}
-        campos = {chave: valor for chave, valor in dados.items() if chave in permitidos}
-
-        if "login" in campos:
-            login = campos["login"]
-            if not isinstance(login, str) or not login.strip():
-                return {"sucesso": False, "erro": "O login não pode ficar vazio."}
-            campos["login"] = login.strip()
-
-        if "cd_nivel" in campos and campos["cd_nivel"] in (None, ""):
-            return {"sucesso": False, "erro": "Informe o nível do usuário."}
-
-        senha = dados.get("senha")
-
-        if senha not in (None, ""):
-            if not isinstance(senha, str) or not senha.strip() or len(senha) < 6:
-                return {"sucesso": False, "erro": "A senha deve ter no mínimo 6 caracteres."}
-            campos["senha_hash"] = generate_password_hash(senha)
-
-        if not campos:
-            return {"sucesso": False, "erro": "Informe um campo para atualizar."}
-
-        campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
-
-        try:
-            with conectar():
-                alterados = Usuario.update(**campos).where(Usuario.cd_usuario == cd_usuario).execute()
-        except IntegrityError:
-            return {"sucesso": False, "erro": "Confira o nível e verifique se o login já está cadastrado."}
-
-        return (
-            {"sucesso": True, "cd_usuario": cd_usuario} if alterados
-            else {"sucesso": False, "erro": "Usuário não encontrado."}
-        )
-
-    @staticmethod
-    def excluir(cd_usuario):
-        if cd_usuario in (None, ""):
-            return {"sucesso": False, "erro": "Informe o código do usuário."}
-
-        with conectar():
-            alterados = (
-                Usuario.update(fl_ativo=False, dt_atualizacao=SQL("CURRENT_TIMESTAMP"))
-                .where(Usuario.cd_usuario == cd_usuario).execute()
-            )
-
-        return ({"sucesso": True, "cd_usuario": cd_usuario} if alterados
-                else {"sucesso": False, "erro": "Usuário não encontrado."})
 
     @staticmethod
     def autenticar(login, senha):
@@ -184,9 +91,6 @@ class Usuario(Model):
 
         return {"sucesso": True, "cd_usuario": cd_usuario}
 
-    @staticmethod
-    def trocar_senha_inicial(cd_usuario, senha, confirmacao):
-        return Usuario.trocar_senha(cd_usuario, senha, confirmacao)
 
     @staticmethod
     def salvar_autorizado(cd_operador, dados: dict):
@@ -370,15 +274,6 @@ class UsuarioView(Model):
     class Meta:
         database = db
         table_name = "vw_usuario"
-
-
-class PessoaOpcao(Model):
-    cd_pessoa = BigIntegerField(primary_key=True)
-    nm_pessoa = CharField(max_length=150)
-
-    class Meta:
-        database = db
-        table_name = "tb_pessoa"
 
 
 class NivelOpcao(Model):

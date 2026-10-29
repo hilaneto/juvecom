@@ -1,9 +1,13 @@
 
-from peewee import Model, BigAutoField, CharField, BooleanField, DateTimeField, SQL, IntegrityError
+from peewee import (
+    Model, BigAutoField, CharField, BooleanField,
+    DateTimeField, SQL, IntegrityError
+)
 from playhouse.postgres_ext import BinaryJSONField
+
 from database.conexao import db, conectar
 from suporte.validacao import CpfCnpj, somente_numeros
-from models.relacao import PessoaRelacao
+
 
 class Pessoa(Model):
     cd_pessoa = BigAutoField()
@@ -20,7 +24,6 @@ class Pessoa(Model):
     class Meta:
         database = db
         table_name = "tb_pessoa"
-
 
     @staticmethod
     def validar(campos):
@@ -85,7 +88,10 @@ class Pessoa(Model):
 
             endereco = campos["dados"].copy()
 
-            for campo in ("endereco", "numero", "complemento", "bairro", "cep", "cidade", "uf"):
+            for campo in (
+                "endereco", "numero", "complemento",
+                "bairro", "cep", "cidade", "uf"
+            ):
                 if campo in endereco:
                     valor = endereco[campo]
 
@@ -105,11 +111,20 @@ class Pessoa(Model):
 
                 if endereco["uf"] and (
                     len(endereco["uf"]) != 2
-                    or any(letra not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" for letra in endereco["uf"])
+                    or any(
+                        letra not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        for letra in endereco["uf"]
+                    )
                 ):
                     return "A UF deve conter 2 letras."
 
-            limites = {"endereco": 60, "numero": 10, "complemento": 20, "bairro": 50, "cidade": 50}
+            limites = {
+                "endereco": 60,
+                "numero": 10,
+                "complemento": 20,
+                "bairro": 50,
+                "cidade": 50
+            }
 
             for campo, limite in limites.items():
                 if campo in endereco and len(endereco[campo]) > limite:
@@ -117,11 +132,12 @@ class Pessoa(Model):
 
             campos["dados"] = endereco
 
-        if "fl_ativo" in campos and not isinstance(campos["fl_ativo"], bool):
+        if "fl_ativo" in campos and not isinstance(
+            campos["fl_ativo"], bool
+        ):
             return "fl_ativo deve ser True ou False."
 
         return None
-
 
     @staticmethod
     def buscar(cd_pessoa=None, cpf_cnpj=None, fl_ativo=None):
@@ -129,21 +145,39 @@ class Pessoa(Model):
             consulta = Pessoa.select()
 
             if cd_pessoa is not None:
-                consulta = consulta.where(Pessoa.cd_pessoa == cd_pessoa)
+                consulta = consulta.where(
+                    Pessoa.cd_pessoa == cd_pessoa
+                )
 
             if cpf_cnpj is not None:
-                consulta = consulta.where(Pessoa.cpf_cnpj == somente_numeros(cpf_cnpj))
+                consulta = consulta.where(
+                    Pessoa.cpf_cnpj == somente_numeros(cpf_cnpj)
+                )
 
             if fl_ativo is not None:
-                consulta = consulta.where(Pessoa.fl_ativo == fl_ativo)
+                consulta = consulta.where(
+                    Pessoa.fl_ativo == fl_ativo
+                )
 
-            return list(consulta.order_by(Pessoa.nm_pessoa, Pessoa.cd_pessoa))
-
+            return list(
+                consulta.order_by(
+                    Pessoa.nm_pessoa,
+                    Pessoa.cd_pessoa
+                )
+            )
 
     @staticmethod
-    def incluir(dados: dict, relacoes=None):
-        permitidos = {"tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email", "dados"}
-        campos = {chave: valor for chave, valor in dados.items() if chave in permitidos}
+    def incluir(dados: dict):
+        permitidos = {
+            "tp_pessoa", "nm_pessoa", "cpf_cnpj",
+            "telefone", "email", "dados"
+        }
+
+        campos = {
+            chave: valor
+            for chave, valor in dados.items()
+            if chave in permitidos
+        }
 
         for campo in ("tp_pessoa", "nm_pessoa", "cpf_cnpj"):
             campos.setdefault(campo, None)
@@ -153,72 +187,120 @@ class Pessoa(Model):
         if erro:
             return {"sucesso": False, "erro": erro}
 
-        if not isinstance(relacoes, (list, tuple, set)) or not relacoes:
-            return {"sucesso": False, "erro": "Informe pelo menos uma relação para a pessoa."}
-
         try:
             with conectar():
                 with db.atomic():
                     pessoa = Pessoa.create(**campos)
-                    PessoaRelacao.gravar(pessoa.cd_pessoa, relacoes)
 
         except (ValueError, TypeError) as erro:
             return {"sucesso": False, "erro": str(erro)}
 
         except IntegrityError:
-            return {"sucesso": False, "erro": "Não foi possível incluir. Verifique se o CPF/CNPJ já está cadastrado."}
+            return {
+                "sucesso": False,
+                "erro": (
+                    "Não foi possível incluir. "
+                    "Verifique se o CPF/CNPJ já está cadastrado."
+                )
+            }
 
-        return {"sucesso": True, "cd_pessoa": pessoa.cd_pessoa}
-    
+        return {
+            "sucesso": True,
+            "cd_pessoa": pessoa.cd_pessoa
+        }
 
     @staticmethod
-    def atualizar(dados: dict, relacoes=None):
+    def atualizar(dados: dict):
         cd_pessoa = dados.get("cd_pessoa")
 
         if cd_pessoa in (None, ""):
-            return {"sucesso": False, "erro": "Informe o código da pessoa."}
+            return {
+                "sucesso": False,
+                "erro": "Informe o código da pessoa."
+            }
 
-        permitidos = {"tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email", "dados", "fl_ativo"}
-        campos = {chave: valor for chave, valor in dados.items() if chave in permitidos}
+        permitidos = {
+            "tp_pessoa", "nm_pessoa", "cpf_cnpj",
+            "telefone", "email", "dados", "fl_ativo"
+        }
 
-        if not campos and relacoes is None:
-            return {"sucesso": False, "erro": "Informe um campo para atualizar."}
+        campos = {
+            chave: valor
+            for chave, valor in dados.items()
+            if chave in permitidos
+        }
+
+        if not campos:
+            return {
+                "sucesso": False,
+                "erro": "Informe um campo para atualizar."
+            }
 
         try:
             with conectar():
                 with db.atomic():
-                    pessoa = Pessoa.select().where(Pessoa.cd_pessoa == cd_pessoa).for_update().first()
+                    pessoa = (
+                        Pessoa.select()
+                        .where(Pessoa.cd_pessoa == cd_pessoa)
+                        .for_update()
+                        .first()
+                    )
 
                     if pessoa is None:
                         raise ValueError("Pessoa não encontrada.")
 
                     if "tp_pessoa" in campos or "cpf_cnpj" in campos:
-                        campos.setdefault("tp_pessoa", pessoa.tp_pessoa)
-                        campos.setdefault("cpf_cnpj", pessoa.cpf_cnpj)
+                        campos.setdefault(
+                            "tp_pessoa", pessoa.tp_pessoa
+                        )
+                        campos.setdefault(
+                            "cpf_cnpj", pessoa.cpf_cnpj
+                        )
 
-                    if "dados" in campos and isinstance(campos["dados"], dict):
-                        campos["dados"] = {**(pessoa.dados or {}), **campos["dados"]}
+                    if (
+                        "dados" in campos
+                        and isinstance(campos["dados"], dict)
+                    ):
+                        campos["dados"] = {
+                            **(pessoa.dados or {}),
+                            **campos["dados"]
+                        }
 
                     erro = Pessoa.validar(campos)
 
                     if erro:
                         raise ValueError(erro)
 
-                    if campos:
-                        campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
-                        Pessoa.update(**campos).where(Pessoa.cd_pessoa == cd_pessoa).execute()
+                    campos["dt_atualizacao"] = SQL(
+                        "CURRENT_TIMESTAMP"
+                    )
 
-                    if relacoes is not None:
-                        PessoaRelacao.gravar(cd_pessoa, relacoes)
+                    (
+                        Pessoa.update(**campos)
+                        .where(Pessoa.cd_pessoa == cd_pessoa)
+                        .execute()
+                    )
 
         except (ValueError, TypeError) as erro:
             return {"sucesso": False, "erro": str(erro)}
+
         except IntegrityError:
-            return {"sucesso": False, "erro": "Não foi possível atualizar. Verifique se o CPF/CNPJ já está cadastrado."}
+            return {
+                "sucesso": False,
+                "erro": (
+                    "Não foi possível atualizar. "
+                    "Verifique se o CPF/CNPJ já está cadastrado."
+                )
+            }
 
-        return {"sucesso": True, "cd_pessoa": cd_pessoa}
-
+        return {
+            "sucesso": True,
+            "cd_pessoa": cd_pessoa
+        }
 
     @staticmethod
     def excluir(cd_pessoa):
-        return Pessoa.atualizar({"cd_pessoa": cd_pessoa, "fl_ativo": False})
+        return Pessoa.atualizar({
+            "cd_pessoa": cd_pessoa,
+            "fl_ativo": False
+        })

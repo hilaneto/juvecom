@@ -10,48 +10,34 @@
 
 <body>
     <div class="adm-layout">
-
         <aside class="adm-lateral">
-            <a class="adm-lateral__marca" href="{{ url_for('adm') }}">
-                Juva<span>ecom</span>
-            </a>
+            <a class="adm-lateral__marca" href="{{ url_for('adm') }}"> Juva<span>ecom</span> </a>
 
             <nav class="adm-lateral__nav" aria-label="Menu administrativo">
-
                 <a href="{{ url_for('adm') }}"
-                   {% if request.endpoint == 'adm' %}class="ativo" aria-current="page"{% endif %}>
-                    Home
-                </a>
-
+                   {% if request.endpoint == 'adm' %}class="ativo" aria-current="page"{% endif %}> Home </a>
                 <a href="{{ url_for('adm_contato') }}"
-                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}>
-                    Contatos pendentes
-                </a>
+                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}> Contatos pendentes </a>
 
                 <!-- CADASTROS -->
                 <details class="adm-submenu"
-                         {% if request.endpoint in ('adm_cliente', 'adm_colaborador', 'adm_fornecedor') %}open{% endif %}>
+                        {% if request.endpoint in ('adm_cliente', 'adm_usuario', 'adm_colaborador', 'adm_fornecedor') %}open{% endif %}>
 
                     <summary>Cadastros</summary>
 
                     <div class="adm-submenu__itens">
 
                         <a href="{{ url_for('adm_cliente') }}"
-                           {% if request.endpoint == 'adm_cliente' %}class="ativo" aria-current="page"{% endif %}>
-                            Clientes
-                        </a>
+                           {% if request.endpoint == 'adm_cliente' %}class="ativo" aria-current="page"{% endif %}> Clientes </a>
 
-                        <span>
-                            Colaboradores
-                            <small>Em construção</small>
-                        </span>
+                        <a href="{{ url_for('adm_usuario') }}"
+                        {% if request.endpoint == 'adm_usuario' %}class="ativo" aria-current="page"{% endif %}> Usuários </a>
 
-                        <span>
-                            Fornecedores
-                            <small>Em construção</small>
-                        </span>
+                        <span> Colaboradores <small>Em construção</small> </span>
+                        <span> Fornecedores <small>Em construção</small> </span>
 
                     </div>
+
                 </details>
 
                 <!-- OUTRAS FUNCIONALIDADES -->
@@ -59,22 +45,16 @@
                 <span>Contratos <small>Em construção</small></span>
                 <span>Cobranças <small>Em construção</small></span>
 
-                <a href="{{ url_for('adm_usuario') }}"
-                   {% if request.endpoint == 'adm_usuario' %}class="ativo" aria-current="page"{% endif %}>
-                    Usuários
-                </a>
-
             </nav>
 
             <form class="adm-menu-sair" method="post" action="{{ url_for('logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
                 <button type="submit">Sair</button>
             </form>
+
         </aside>
 
-        <main class="adm-principal">
-            {% block conteudo %}{% endblock %}
-        </main>
+        <main class="adm-principal"> {% block conteudo %}{% endblock %} </main>
 
     </div>
 </body>

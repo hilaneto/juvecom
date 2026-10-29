@@ -1,3 +1,4 @@
+
 {% extends "adm_base.html" %}
 
 {% block title %}{{ titulo }} | Juvecom{% endblock %}
@@ -7,6 +8,45 @@
 <p class="home__categoria">Cadastros</p>
 <h1>{{ titulo }} do <span>sistema.</span></h1>
 
+{% set nomes = {
+    'cliente': 'Cliente',
+    'usuario': 'Usuário',
+    'fornecedor': 'Fornecedor'
+} %}
+
+{% set plurais = {
+    'cliente': 'Clientes',
+    'usuario': 'Usuários',
+    'fornecedor': 'Fornecedores'
+} %}
+
+{% set nome_entidade = nomes.get(tipo_cadastro, 'Cadastro') %}
+{% set plural_entidade = plurais.get(tipo_cadastro, 'Cadastros') %}
+
+{% set nivel_operador = session.get('cd_nivel') %}
+{% set cd_operador = session.get('cd_usuario') %}
+
+{% set nivel_usuario = usuario.get('cd_nivel', -1)|int
+    if tipo_cadastro == 'usuario' else -1 %}
+
+{% set pode_salvar = (
+    tipo_cadastro != 'usuario'
+    or nivel_operador == 0
+    or (
+        nivel_operador == 1
+        and selecionado
+        and selecionado != cd_operador
+        and nivel_usuario in (2, 3, 4)
+    )
+) %}
+
+{% set pode_novo = (
+    tipo_cadastro != 'usuario'
+    or nivel_operador == 0
+) %}
+
+<!-- MENSAGENS -->
+
 {% if erro %}
     <div class="contato-aviso contato-aviso--erro" role="alert">
         {{ erro }}
@@ -15,45 +55,97 @@
 
 {% if sucesso %}
     <div class="contato-aviso contato-aviso--sucesso" role="status">
-        Cliente cadastrado com sucesso.
+        {{ nome_entidade }} salvo com sucesso.
     </div>
 {% endif %}
 
-{% if excluido %}
+{% if request.args.get('excluido') == '1' %}
     <div class="contato-aviso contato-aviso--sucesso" role="status">
-        Cliente excluído com sucesso.
+        {{ nome_entidade }} excluído com sucesso.
+    </div>
+{% endif %}
+
+{% if tipo_cadastro == 'usuario'
+      and request.args.get('senha_resetada') == '1' %}
+    <div class="contato-aviso contato-aviso--sucesso" role="status">
+        Senha resetada com sucesso.
+        O usuário deverá alterá-la no próximo acesso.
     </div>
 {% endif %}
 
 <div class="pessoa-layout cadastro-compacto">
 
     <!-- FORMULÁRIO -->
+
     <section class="pessoa-card">
 
         <form id="cadastro-formulario"
               class="pessoa-form"
               method="post"
-              action="{{ url_for('adm_cliente') }}">
+              action="{{ url_cadastro }}">
 
-            <input type="hidden" name="cd_loja" value="{{ loja.get('cd_loja', '') }}">
-            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-            <input type="hidden" name="cd_cliente" value="{{ selecionado or '' }}">
+            <input type="hidden"
+                   name="csrf_token"
+                   value="{{ session['csrf_token'] }}">
 
-            <!-- Dados da Pessoa e Endereço -->
+            <input type="hidden"
+                name="cd_usuario"
+                value="{{ selecionado if selecionado is not none else '' }}">                   
+
+            <!-- IDENTIFICADORES -->
+
+            {% if tipo_cadastro == 'cliente' %}
+
+                <input type="hidden"
+                       name="cd_cliente"
+                       value="{{ selecionado or '' }}">
+
+                <input type="hidden"
+                       name="cd_loja"
+                       value="{{ loja.get('cd_loja') or '' }}">
+
+            {% elif tipo_cadastro == 'usuario' %}
+
+                <input type="hidden"
+                       name="cd_usuario"
+                       value="{{ selecionado or '' }}">
+
+            {% elif tipo_cadastro == 'fornecedor' %}
+
+                <input type="hidden"
+                       name="cd_fornecedor"
+                       value="{{ selecionado or '' }}">
+
+            {% endif %}
+
+            <!-- DADOS DA PESSOA -->
+
             <section class="cadastro-grupo">
                 {% include "cadastro/_pessoa.html" %}
             </section>
 
-            {% if tipo_cadastro == "cliente" %}
+            <!-- DADOS ESPECÍFICOS -->
 
-                <!-- Dados do Cliente -->
+            {% if tipo_cadastro == 'cliente' %}
+
                 <section class="cadastro-grupo">
                     {% include "cadastro/_cliente.html" %}
                 </section>
 
-                <!-- Dados da Loja -->
                 <section class="cadastro-grupo">
                     {% include "cadastro/_loja.html" %}
+                </section>
+
+            {% elif tipo_cadastro == 'usuario' %}
+
+                <section class="cadastro-grupo">
+                    {% include "cadastro/_usuario.html" %}
+                </section>
+
+            {% elif tipo_cadastro == 'fornecedor' %}
+
+                <section class="cadastro-grupo">
+                    {% include "cadastro/_fornecedor.html" %}
                 </section>
 
             {% endif %}
@@ -61,55 +153,156 @@
         </form>
 
         <!-- BOTÕES -->
+
         <div class="pessoa-botoes">
 
-            <button class="pessoa-botao pessoa-botao--salvar"
-                    type="submit"
-                    form="cadastro-formulario">
-                Salvar
-            </button>
+            <!-- SALVAR -->
 
-            <form method="get" action="{{ url_for('adm_cliente') }}">
-                <button class="pessoa-botao" type="submit">
-                    Novo
+            {% if pode_salvar %}
+
+                <button class="pessoa-botao pessoa-botao--salvar"
+                        type="submit"
+                        form="cadastro-formulario"
+                        name="acao"
+                        value="salvar">
+                    Salvar
                 </button>
-            </form>
 
-            <button class="pessoa-botao pessoa-botao--excluir"
-                    id="btn-excluir"
-                    type="submit"
-                    form="cadastro-formulario"
-                    name="acao"
-                    value="excluir"
-                    formnovalidate
-                    onclick="return confirm('Confirma a exclusão deste cliente?')"
-                    {% if not selecionado %}disabled{% endif %}>
-                Excluir
-            </button>
+            {% endif %}
+
+            <!-- NOVO -->
+
+            {% if pode_novo %}
+
+                <form method="get" action="{{ url_novo }}">
+                    <button class="pessoa-botao" type="submit">
+                        Novo
+                    </button>
+                </form>
+
+            {% endif %}
+
+            <!-- EXCLUIR CLIENTE / FORNECEDOR -->
+
+            {% if tipo_cadastro in ('cliente', 'fornecedor') %}
+
+                <button class="pessoa-botao pessoa-botao--excluir"
+                        id="btn-excluir"
+                        type="submit"
+                        form="cadastro-formulario"
+                        name="acao"
+                        value="excluir"
+                        formnovalidate
+                        onclick="return confirm('Confirma a exclusão deste cadastro?')"
+                        {% if not selecionado %}disabled{% endif %}>
+                    Excluir
+                </button>
+
+            {% endif %}
+
+            <!-- RESETAR SENHA -->
+
+            {% if tipo_cadastro == 'usuario'
+                  and nivel_operador == 0
+                  and selecionado %}
+
+                <form method="post"
+                      action="{{ url_for(
+                          'resetar_senha_usuario',
+                          cd_usuario=selecionado
+                      ) }}"
+                      onsubmit="return confirm('Confirma o reset da senha deste usuário?');">
+
+                    <input type="hidden"
+                           name="csrf_token"
+                           value="{{ session['csrf_token'] }}">
+
+                    <button class="pessoa-botao" type="submit">
+                        Resetar senha
+                    </button>
+                </form>
+
+            {% endif %}
+
+            <!-- ALTERAR MINHA SENHA -->
+
+            {% if tipo_cadastro == 'usuario' %}
+
+                <a class="pessoa-botao"
+                   href="{{ url_for('trocar_senha') }}">
+                    Alterar minha senha
+                </a>
+
+            {% endif %}
 
         </div>
 
     </section>
 
-    <!-- LISTA DE CLIENTES -->
+    <!-- LISTAGEM -->
+
     <aside class="pessoa-lista cadastro-lista">
 
         <h2 class="pessoa-form__titulo">
-            Clientes cadastrados ({{ registros|length }})
+            {{ plural_entidade }} cadastrados
+            ({{ registros|length }})
         </h2>
 
         {% if registros %}
+
             <ul>
                 {% for registro in registros %}
+
                     <li>
-                        <a href="{{ url_for('adm_cliente', cd_cliente=registro.cd_cliente) }}">
-                            {{ registro.nm_pessoa }}
-                        </a>
+
+                        {% if tipo_cadastro == 'usuario' %}
+
+                            {% if nivel_operador == 0
+                                  or registro.cd_usuario == cd_operador
+                                  or (
+                                      nivel_operador == 1
+                                      and registro.cd_nivel in (2, 3, 4)
+                                  ) %}
+
+                                <a href="{{ url_for(
+                                    'adm_usuario',
+                                    cd_usuario=registro.cd_usuario
+                                ) }}">
+                                    {{ registro.nm_pessoa }}
+                                </a>
+                            {% else %}
+                                {{ registro.nm_pessoa }}
+                            {% endif %}
+
+                        {% elif tipo_cadastro == 'cliente' %}
+
+                            <a href="{{ url_for(
+                                'adm_cliente',
+                                cd_cliente=registro.cd_cliente
+                            ) }}">
+                                {{ registro.nm_pessoa }}
+                            </a>
+
+                        {% elif tipo_cadastro == 'fornecedor' %}
+
+                            <a href="{{ url_for(
+                                'adm_fornecedor',
+                                cd_fornecedor=registro.cd_fornecedor
+                            ) }}">
+                                {{ registro.nm_pessoa }}
+                            </a>
+
+                        {% endif %}
+
                     </li>
+
                 {% endfor %}
             </ul>
+
         {% else %}
-            <p>Nenhum cliente cadastrado.</p>
+
+            <p>Nenhum cadastro encontrado.</p>
+
         {% endif %}
 
     </aside>

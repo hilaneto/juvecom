@@ -1,0 +1,118 @@
+
+<h2 class="pessoa-form__titulo">Dados do Usuário</h2>
+
+{% set nivel_operador = session.get('cd_nivel') %}
+{% set nivel_usuario = usuario.get('cd_nivel', -1)|int %}
+{% set ativo = usuario.get('fl_ativo', True)|string|lower in ('true', '1', 'on') %}
+{% set pode_editar_situacao = selecionado and (
+    nivel_operador == 0 or
+    (nivel_operador == 1 and nivel_usuario in (2, 3, 4)
+     and selecionado != session.get('cd_usuario'))
+) %}
+
+<div class="juv-usuario">
+
+    {% if nivel_operador == 0 %}
+
+        <div class="juv-usuario__campo">
+            <label for="usuario_login">Login</label>
+
+            <input
+                id="usuario_login"
+                name="login"
+                type="text"
+                maxlength="100"
+                placeholder="Informe o login"
+                value="{{ usuario.get('login', '') }}"
+                autocomplete="off"
+                required>
+        </div>
+
+        <div class="juv-usuario__campo">
+            <label for="usuario_nivel">Nível de Acesso</label>
+
+            <select
+                id="usuario_nivel"
+                name="cd_nivel"
+                required>
+
+                <option value="">Selecione o nível</option>
+
+                {% for nivel in niveis %}
+                    <option
+                        value="{{ nivel.cd_nivel }}"
+                        {% if usuario.get('cd_nivel', '')|string == nivel.cd_nivel|string %}
+                            selected
+                        {% endif %}>
+                        {{ nivel.nm_nivel }}
+                    </option>
+                {% endfor %}
+
+            </select>
+        </div>
+
+    {% elif selecionado %}
+
+        <div class="juv-usuario__campo">
+            <label>Login</label>
+            <div class="juv-usuario__leitura">
+                {{ usuario.get('login', '') }}
+            </div>
+        </div>
+
+        <div class="juv-usuario__campo">
+            <label>Nível de Acesso</label>
+            <div class="juv-usuario__leitura">
+                {{ usuario.get('nm_nivel', nivel_usuario) }}
+            </div>
+        </div>
+
+    {% endif %}
+
+    {% if selecionado %}
+
+        <div class="juv-usuario__campo">
+            <label for="usuario_ativo">Situação</label>
+
+            {% if pode_editar_situacao %}
+
+                <select id="usuario_ativo" name="fl_ativo">
+                    <option value="1" {% if ativo %}selected{% endif %}>
+                        Ativo
+                    </option>
+                    <option value="0" {% if not ativo %}selected{% endif %}>
+                        Inativo
+                    </option>
+                </select>
+
+            {% else %}
+
+                <div class="juv-usuario__leitura">
+                    {{ 'Ativo' if ativo else 'Inativo' }}
+                </div>
+
+            {% endif %}
+        </div>
+
+    {% endif %}
+
+    {% if not selecionado and nivel_operador == 0 %}
+
+        <div class="juv-usuario__aviso">
+            <strong>Senha inicial:</strong> jps123.
+            O usuário deverá alterá-la no primeiro acesso.
+        </div>
+
+    {% endif %}
+
+    {% if selecionado %}
+
+        <div class="juv-usuario__campo">
+            <a href="{{ url_for('trocar_senha') }}">
+                Alterar minha senha
+            </a>
+        </div>
+
+    {% endif %}
+
+</div>

@@ -8,10 +8,9 @@ from functools import wraps
 from models.contato import Contato
 from models.plano import Plano
 from models.usuario import Usuario
-from models.pessoa import Pessoa
-from models.relacao import Relacao, PessoaRelacao
 from models.contato_conversa import ContatoConversa
 from models.cadastro_cliente import CadastroCliente
+from models.cadastro_usuario import CadastroUsuario
 from models.cliente import Cliente
 from zoneinfo import ZoneInfo
 
@@ -213,6 +212,7 @@ def adm_contato():
         hoje=date.today().isoformat(),
     )
 
+
 @app.route("/adm/usuarios", methods=["GET", "POST"])
 @login_obrigatorio
 def adm_usuario():
@@ -222,97 +222,203 @@ def adm_usuario():
     if nivel not in (0, 1, 2, 3, 4):
         abort(403)
 
+    hoje = datetime.now(
+        ZoneInfo("America/Sao_Paulo")
+    ).date().isoformat()
+
     erro = None
     selecionado = None
     dados = {}
+    usuario = {}
+    cd_usuario = None
 
     if request.method == "POST":
         validar_csrf()
-        dados = request.form.to_dict()
+        formulario = request.form.to_dict()
 
-        codigo_recebido = dados.get("cd_usuario", "")
+        codigo_recebido = formulario.get("cd_usuario", "").strip()
+
+
+        print("DEBUG USUARIO:",
+              "cd_usuario =", repr(codigo_recebido),
+              "acao =", formulario.get("acao"),
+              flush=True
+            )
 
         try:
-            codigo = int(codigo_recebido) if codigo_recebido != "" else None
+            cd_usuario = (
+                int(codigo_recebido)
+                if codigo_recebido else None
+            )
         except (ValueError, TypeError):
             abort(400)
 
-        # Confere o acesso ao registro antes de processar o formulário.
-        if codigo is None:
+        # Verificar permissões de acesso
+        if cd_usuario is None:
             if nivel != 0:
                 abort(403)
         else:
-            if nivel not in (0, 1) and codigo != cd_operador:
-                abort(403)
-
-            encontrados = Usuario.buscar(cd_usuario=codigo)
+            encontrados = Usuario.buscar(
+                cd_usuario=cd_usuario
+            )
 
             if not encontrados:
                 abort(404)
 
-            selecionado = encontrados[0]
+            registro = encontrados[0]
 
-            if nivel == 1 and codigo != cd_operador:
-                if selecionado.cd_nivel not in (2, 3, 4):
+            if nivel == 1:
+                if (
+                    cd_usuario != cd_operador
+                    and registro.cd_nivel not in (2, 3, 4)
+                ):
                     abort(403)
 
-        resultado = Usuario.salvar_autorizado(cd_operador, dados)
+            elif nivel >= 2 and cd_usuario != cd_operador:
+                abort(403)
 
-        if resultado["sucesso"]:
-            return redirect(url_for("adm_usuario", sucesso=1))
+        # Dados da Pessoa
+        dados = {
+            campo: formulario.get(campo, "")
+            for campo in (
+                "tp_pessoa",
+                "nm_pessoa",
+                "cpf_cnpj",
+                "telefone",
+                "email"
+            )
+        }
 
-        erro = resultado["erro"]
+        dados["dados"] = {
+            campo: formulario.get(campo, "")
+            for campo in (
+                "endereco",
+                "numero",
+                "complemento",
+                "bairro",
+                "cep",
+                "cidade",
+                "uf"
+            )
+        }
+
+        # Dados do Usuário
+        usuario = {
+            campo: formulario[campo]
+            for campo in (
+                "login",
+                "cd_nivel",
+                "fl_ativo"
+            )
+            if campo in formulario
+        }
+
+        acao = formulario.get("acao", "salvar")
+
+        if acao == "salvar":
+            if cd_usuario is None:
+                resultado = CadastroUsuario.incluir(
+                    cd_operador,
+                    dados,
+                    usuario
+                )
+            else:
+                resultado = CadastroUsuario.atualizar(
+                    cd_operador,
+                    cd_usuario,
+                    dados,
+                    usuario
+                )
+
+            if resultado["sucesso"]:
+                return redirect(
+                    url_for("adm_usuario", sucesso=1)
+                )
+
+            erro = resultado["erro"]
+            selecionado = cd_usuario
+
+        else:
+            abort(400)
 
     else:
-        codigo_recebido = request.args.get("editar")
+        # Compatibilidade com links antigos: editar
+        codigo_recebido = request.args.get(
+            "cd_usuario",
+            request.args.get("editar")
+        )
 
         try:
-            codigo = int(codigo_recebido) if codigo_recebido is not None else None
+            cd_usuario = (
+                int(codigo_recebido)
+                if codigo_recebido is not None else None
+            )
         except (ValueError, TypeError):
             abort(400)
 
-        # Níveis inferiores editam somente a própria senha.
-        if nivel not in (0, 1):
-            if codigo is not None and codigo != cd_operador:
+        # Níveis inferiores consultam somente a própria conta
+        if nivel >= 2:
+            if cd_usuario is not None and cd_usuario != cd_operador:
                 abort(403)
 
-            codigo = cd_operador
+            cd_usuario = cd_operador
 
-        if codigo is not None:
-            encontrados = Usuario.buscar(cd_usuario=codigo)
+        if cd_usuario is not None:
+            encontrados = Usuario.buscar(
+                cd_usuario=cd_usuario
+            )
 
             if not encontrados:
                 abort(404)
 
-            selecionado = encontrados[0]
+            registro = encontrados[0]
 
-            if nivel == 1 and codigo != cd_operador:
-                if selecionado.cd_nivel not in (2, 3, 4):
+            if nivel == 1:
+                if (
+                    cd_usuario != cd_operador
+                    and registro.cd_nivel not in (2, 3, 4)
+                ):
                     abort(403)
 
-            dados = selecionado.__data__.copy()
+            resultado = CadastroUsuario.buscar(cd_usuario)
 
-    if nivel in (0, 1):
-        usuarios = Usuario.buscar()
-    else:
-        usuarios = Usuario.buscar(cd_usuario=cd_operador)
+            if resultado["sucesso"]:
+                dados = resultado["dados"]
+                usuario = resultado["usuario"]
+                selecionado = cd_usuario
+            else:
+                erro = resultado["erro"]
 
-    if nivel == 0:
-        pessoas, niveis = Usuario.opcoes()
-    else:
-        pessoas, niveis = [], []
+    # Listagem conforme nível de acesso
+    registros = CadastroUsuario.listar()
 
-    dados.pop("senha", None)
+    if nivel >= 2:
+        registros = [
+            registro
+            for registro in registros
+            if registro["cd_usuario"] == cd_operador
+        ]
+
+    # Opções para seleção do nível
+    niveis = (
+        CadastroUsuario.niveis()
+        if nivel == 0 else []
+    )
 
     return render_template(
-        "adm_usuario.html",
-        usuarios=usuarios,
-        pessoas=pessoas,
+        "cadastro/cadastro.html",
+        titulo="Usuários",
+        tipo_cadastro="usuario",
+        dados=dados,
+        usuario=usuario,
+        registros=registros,
         niveis=niveis,
         selecionado=selecionado,
-        dados=dados,
         erro=erro,
-        sucesso=request.args.get("sucesso") == "1"
+        sucesso=request.args.get("sucesso") == "1",
+        hoje=hoje,
+        url_cadastro=url_for("adm_usuario"),
+        url_novo=url_for("adm_usuario")
     )
 
 
@@ -367,102 +473,6 @@ def resetar_senha_usuario(cd_usuario):
         abort(404)
 
     return redirect(url_for("adm_usuario", senha_resetada=1))
-
-
-@app.route("/adm/pessoas", methods=["GET", "POST"])
-@login_obrigatorio
-def adm_pessoa():
-    if session["cd_nivel"] not in (0, 1):
-        abort(403)
-
-    erro = None
-    selecionado = None
-    dados = {}
-    relacoes = Relacao.buscar()
-    relacoes_selecionadas = []
-
-    if request.method == "POST":
-        validar_csrf()
-        formulario = request.form.to_dict()
-
-        try:
-            codigo = formulario.get("cd_pessoa", "")
-            cd_pessoa = int(codigo) if codigo != "" else None
-            relacoes_selecionadas = [
-                int(valor) for valor in request.form.getlist("cd_relacao")
-            ]
-        except (ValueError, TypeError):
-            abort(400)
-
-        acao = formulario.get("acao", "salvar")
-
-        if acao == "excluir":
-            if cd_pessoa is None:
-                abort(400)
-
-            resultado = Pessoa.excluir(cd_pessoa)
-
-        elif acao == "salvar":
-            dados = {
-                campo: formulario.get(campo, "")
-                for campo in ("tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email")
-            }
-
-            dados["dados"] = {
-                campo: formulario.get(campo, "")
-                for campo in ("endereco", "numero", "complemento", "bairro", "cep", "cidade", "uf")
-            }
-
-            if cd_pessoa is None:
-                resultado = Pessoa.incluir(dados, relacoes=relacoes_selecionadas)
-            else:
-                dados["cd_pessoa"] = cd_pessoa
-                resultado = Pessoa.atualizar(dados, relacoes=relacoes_selecionadas)                
-
-        else:
-            abort(400)
-
-        if resultado["sucesso"]:
-            return redirect(url_for("adm_pessoa", sucesso=1))
-
-        erro = resultado["erro"]
-
-        if cd_pessoa is not None:
-            encontrados = Pessoa.buscar(cd_pessoa)
-            selecionado = encontrados[0] if encontrados else None
-
-            if acao == "excluir" and selecionado is not None:
-                dados = selecionado.__data__.copy()
-                relacoes_selecionadas = PessoaRelacao.buscar(cd_pessoa)
-
-    else:
-        codigo = request.args.get("editar")
-
-        if codigo is not None:
-            try:
-                cd_pessoa = int(codigo)
-            except (ValueError, TypeError):
-                abort(400)
-
-            encontrados = Pessoa.buscar(cd_pessoa)
-
-            if not encontrados:
-                abort(404)
-
-            selecionado = encontrados[0]
-            dados = selecionado.__data__.copy()
-            relacoes_selecionadas = PessoaRelacao.buscar(cd_pessoa)
-
-    return render_template(
-        "adm_pessoa.html",
-        pessoas=Pessoa.buscar(fl_ativo=True),
-        selecionado=selecionado,
-        dados=dados,
-        erro=erro,
-        sucesso=request.args.get("sucesso") == "1",
-        relacoes=relacoes,
-        relacoes_selecionadas=relacoes_selecionadas
-    )
 
 
 @app.route("/adm/clientes", methods=["GET", "POST"])
@@ -567,7 +577,9 @@ def adm_cliente():
         selecionado=selecionado,
         erro=erro,
         sucesso=request.args.get("sucesso") == "1",
-        hoje=hoje
+        hoje=hoje,
+        url_cadastro=url_for("adm_cliente"),
+        url_novo=url_for("adm_cliente")
     )
 
 

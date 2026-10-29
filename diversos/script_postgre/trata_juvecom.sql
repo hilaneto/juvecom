@@ -44,6 +44,7 @@ select * from tb_contrato_modelo;
 select * from tb_pessoa
 select * from tb_cliente
 
+select * from tb_usuario_nivel;
 
 
 
@@ -52,6 +53,11 @@ select * from vw_contatos_pendentes;
 select * from vw_usuario;
 
 -- ===================================================================================================================
+
+
+select * from tb_pessoa a inner join tb_usuario b
+on a.cd_pessoa = b.cd_pessoa
+
 
 
 -- Pessoa ------------------------------------

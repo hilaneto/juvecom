@@ -19,6 +19,7 @@ select * from tb_plano_servico;
 -- -----------------------------------------------
 select * from tb_pessoa;
 select * from tb_pessoa_relacao;
+select * from tb_cliente;
 select * from tb_loja;
 select * from tb_contrato;
 select * from tb_contrato_documento;
@@ -37,7 +38,7 @@ select * from vw_usuario;
 
 -- ===================================================================================================================
 
-
+select * from tb_cliente;
 
 -- CONTATOS -----------------------------------
 select * from tb_contato;
@@ -47,30 +48,6 @@ select * from tb_contato_status;
 INSERT into tb_contato
 (cd_status, nm_contato, celular, email, mensagem)
 VALUES(1, 'Juvenal Pereira de Souza', '11 98738-5695', 'variedadesjps@gmail.com', 'TESTE');
-
-
-
-
-INSERT INTO tb_contato (nm_contato, celular, email, mensagem, marketplace, cd_status, dt_cadastro, dt_atualizacao)
-SELECT
-    'Contato Teste ' || lpad(n::text, 2, '0'),
-    '1190000' || lpad(n::text, 4, '0'),
-    'contato' || n || '@example.com',
-    CASE
-        WHEN n % 3 = 1 THEN 'Gostaria de conhecer os planos de gestão.'
-        WHEN n % 3 = 2 THEN 'Aguardando retorno sobre a proposta.'
-        ELSE 'Atendimento de teste encerrado.'
-    END,
-    n % 2 = 0,
-    CASE
-        WHEN n % 3 = 1 THEN 1  -- Aguardando: 8 contatos
-        WHEN n % 3 = 2 THEN 2  -- Pendente: 8 contatos
-        ELSE 3                -- Finalizado: 7 contatos
-    END,
-    CURRENT_TIMESTAMP - (n - 1) * INTERVAL '1 day',
-    CURRENT_TIMESTAMP - (n - 1) * INTERVAL '1 day' + INTERVAL '30 minutes'
-FROM generate_series(1, 23) AS serie(n);
-
 
 
 
@@ -95,10 +72,46 @@ SELECT * FROM vw_contatos_pendentes ORDER BY dt_contato;
 
 select * from tb_pessoa;
 
+select * from tb_cliente;
+
+select * from tb_pessoa a inner join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa 
+
+
+select * from tb_pessoa a inner join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa
+inner join tb_loja c
+on b.cd_cliente = c.cd_cliente
+
+
+-- tb_usuario ------------------------------------------------
+
+select * from tb_pessoa;
+
+select * from tb_usuario;
+
+select * from tb_pessoa a inner join tb_usuario b
+on a.cd_pessoa = b.cd_pessoa
+
+
+-- -----------------------------
+select * from tb_pessoa_relacao;
+
+
+
+
 -- tb_contrato_documento --------
 SELECT cd_modelo, octet_length(arquivo_pdf) AS tamanho_bytes, dt_atualizacao
 FROM tb_contrato_modelo;
 
+
+
+
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'tb_usuario'
+ORDER BY ordinal_position;
 
 -- Simulação --------------------------------------------
 SELECT c.cd_contrato, pe.nm_pessoa, c.nm_plano,

@@ -1,8 +1,8 @@
-/* JUVAECOM â€” FOLHA DE ESTILOS COMENTADA
-   OrganizaÃ§Ã£o por pÃ¡gina e componente.
-   SeÃ§Ãµes de compatibilidade preservam seletores antigos atÃ© a revisÃ£o dos templates.
-   Regras posteriores podem sobrescrever anteriores: mantenha a ordem deste arquivo.
+/* JUVAECOM — CSS CONSOLIDADO
+   Refatoração do arquivo original: estilos públicos preservados,
+   formulários de cadastro reorganizados sem seletores conflitantes.
 */
+
 
 /* ==========================================================
    01 â€” BASE GLOBAL: dimensÃµes, corpo da pÃ¡gina e tipografia
@@ -495,416 +495,6 @@ h1 {
     margin: 16px auto 0;
 }
 
-
-/* ==========================================================
-   13 â€” USUÃRIOS: inclusÃ£o com CPF/CNPJ, login e nÃ­vel
-   ========================================================== */
-.usuario-inclusao {
-    margin: 28px 0;
-    padding: 24px;
-    border: 1px solid #ffffff24;
-    border-radius: 12px;
-    background: #25211f;
-}
-
-.usuario-inclusao h2 {
-    margin: 0 0 20px;
-    font-size: 22px;
-}
-
-.usuario-inclusao__linha {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
-    gap: 16px;
-    align-items: end;
-}
-
-.usuario-inclusao__linha label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 700;
-}
-
-.usuario-inclusao__linha input,
-.usuario-inclusao__linha select {
-    width: 100%;
-    height: 44px;
-    padding: 10px 12px;
-    border: 1px solid #ffffff35;
-    border-radius: 8px;
-    background: #171513;
-    color: #fff;
-    font: inherit;
-}
-
-.usuario-inclusao__linha input:focus,
-.usuario-inclusao__linha select:focus {
-    outline: 2px solid #ff7841;
-    outline-offset: 2px;
-}
-
-.usuario-inclusao__linha button {
-    height: 44px;
-    padding: 0 22px;
-    border: 0;
-    border-radius: 8px;
-    background: #ff7841;
-    color: #171513;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.usuario-inclusao__linha button:hover {
-    background: #ff995f;
-}
-
-.usuario-inclusao__aviso {
-    margin: 16px 0 0;
-    color: #eee5df;
-    font-size: 13px;
-}
-
-@media (max-width: 800px) {
-    .usuario-inclusao__linha {
-        grid-template-columns: 1fr;
-    }
-}
-
-
-/* ==========================================================
-   14 â€” USUÃRIOS: identificaÃ§Ã£o e acesso Ã  troca de senha
-   ========================================================== */
-.adm-topo {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-bottom: 28px;
-}
-
-.adm-topo > span {
-    color: #eee5df;
-    font-size: 14px;
-}
-
-.adm-topo__botao {
-    padding: 9px 14px;
-    border: 1px solid #ffffff35;
-    border-radius: 8px;
-    color: #fff;
-    font-size: 13px;
-    text-decoration: none;
-}
-
-.adm-topo__botao:hover {
-    border-color: #ff7841;
-    color: #ff995f;
-}
-
-/* ==========================================================
-   15 â€” USUÃRIOS: botÃ£o para resetar a senha
-   ========================================================== */
-.usuario-resetar {
-    padding: 7px 10px;
-    border: 1px solid #ff7841;
-    border-radius: 6px;
-    background: transparent;
-    color: #ff995f;
-    font: inherit;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-
-.usuario-resetar:hover {
-    background: #ff7841;
-    color: #171513;
-}
-
-
-
-/* ==========================================================
-   16 â€” PESSOA: cartÃ£o, campos e aÃ§Ãµes do formulÃ¡rio
-   ========================================================== */
-.pessoa-card {
-    margin: 28px 0;
-    padding: 24px;
-    border: 1px solid #ffffff24;
-    border-radius: 12px;
-    background: #25211f;
-}
-
-.pessoa-card h2 {
-    margin: 0 0 22px;
-    font-size: 24px;
-}
-
-.pessoa-form {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
-}
-
-.pessoa-form__amplo { grid-column: span 2; }
-
-.pessoa-form__titulo,
-.pessoa-form__acoes { grid-column: 1 / -1; }
-
-.pessoa-form__titulo {
-    margin: 8px 0 0;
-    font-size: 18px;
-    color: #ff995f;
-}
-
-.pessoa-form label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 700;
-}
-
-.pessoa-form input,
-.pessoa-form select {
-    width: 100%;
-    height: 44px;
-    padding: 10px 12px;
-    border: 1px solid #ffffff35;
-    border-radius: 8px;
-    background: #171513;
-    color: #fff;
-    font: inherit;
-}
-
-.pessoa-form input:focus,
-.pessoa-form select:focus {
-    outline: 2px solid #ff7841;
-    outline-offset: 2px;
-}
-
-.pessoa-form__acoes,
-.pessoa-tabela__acoes {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 14px;
-}
-
-.pessoa-form__acoes > button {
-    padding: 12px 20px;
-    border: 0;
-    border-radius: 8px;
-    background: #ff7841;
-    color: #171513;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.pessoa-form__acoes > button:hover { background: #ff995f; }
-
-.pessoa-form__acoes a,
-.pessoa-tabela__acoes a {
-    color: #ff995f;
-    text-decoration: none;
-}
-
-.pessoa-tabela__acoes form { margin: 0; }
-
-@media (max-width: 800px) {
-    .pessoa-form { grid-template-columns: 1fr; }
-    .pessoa-form__amplo { grid-column: auto; }
-}
-
-
-/* ==========================================================
-   17 â€” PESSOA: botÃµes Salvar, Novo e Excluir
-   ========================================================== */
-.pessoa-botoes {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 22px;
-}
-
-.pessoa-botoes form { margin: 0; }
-
-.pessoa-botao {
-    padding: 11px 20px;
-    border: 1px solid #ffffff35;
-    border-radius: 8px;
-    background: #171513;
-    color: #fff;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.pessoa-botao--salvar {
-    border-color: #ff7841;
-    background: #ff7841;
-    color: #171513;
-}
-
-.pessoa-botao--excluir {
-    border-color: #d96666;
-    color: #ff9999;
-}
-
-.pessoa-botao:hover:not(:disabled) { filter: brightness(1.15); }
-
-.pessoa-botao:disabled {
-    opacity: .4;
-    cursor: not-allowed;
-}
-
-.pessoa-selecionar {
-    color: #ff995f;
-    text-decoration: none;
-}
-
-.pessoa-selecionar:hover { text-decoration: underline; }
-
-.atendimento-tabela tr.pessoa-selecionada {
-    background: #ff78411a;
-}
-
-
-/* ==========================================================
-   18 â€” PESSOA: formulÃ¡rio central e lista de nomes Ã  direita
-   ========================================================== */
-.pessoa-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 260px;
-    gap: 24px;
-    align-items: start;
-    margin-top: 28px;
-}
-
-.pessoa-layout .pessoa-card { margin: 0; }
-
-.pessoa-lista {
-    padding: 20px;
-    border: 1px solid #ffffff24;
-    border-radius: 12px;
-    background: #25211f;
-}
-
-.pessoa-lista label {
-    display: block;
-    margin-bottom: 14px;
-    font-weight: 700;
-    color: #ff995f;
-}
-
-.pessoa-lista select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ffffff35;
-    border-radius: 8px;
-    background: #171513;
-    color: #fff;
-    font: inherit;
-}
-
-.pessoa-lista option { padding: 8px 10px; }
-
-.pessoa-lista select:focus {
-    outline: 2px solid #ff7841;
-    outline-offset: 2px;
-}
-
-@media (max-width: 1000px) {
-    .pessoa-layout { grid-template-columns: 1fr; }
-}
-
-
-/* 19 â€” PESSOA: grade atual de 20 colunas; os spans estÃ£o na seÃ§Ã£o 28. */
-.pessoa-form {
-    display: grid;
-    grid-template-columns: repeat(20, minmax(0, 1fr));
-    column-gap: 10px;
-    row-gap: 16px;
-}
-
-
-/* ==========================================================
-   20 â€” PESSOA: seleÃ§Ã£o das relaÃ§Ãµes (cliente, colaborador e fornecedor)
-   ========================================================== */
-.pessoa-relacoes {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin: 0;
-    padding: 12px;
-    border: 1px solid #ffffff35;
-    border-radius: 8px;
-}
-
-.pessoa-relacoes legend {
-    padding: 0 6px;
-    font-size: 14px;
-}
-
-.pessoa-relacoes label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
-}
-
-.pessoa-relacoes input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    padding: 0;
-}
-
-
-
-/* ==========================================================
-   21 â€” USUÃRIOS: alteraÃ§Ã£o do nÃ­vel na tabela
-   ========================================================== */
-.usuario-nivel {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-}
-
-.usuario-nivel select {
-    padding: 6px 8px;
-    border: 1px solid #ffffff35;
-    border-radius: 6px;
-    background: #171513;
-    color: white;
-    font: inherit;
-}
-
-.usuario-nivel button {
-    padding: 6px 10px;
-    border: 0;
-    border-radius: 6px;
-    background: #ff7841;
-    color: #171513;
-    font: inherit;
-    cursor: pointer;
-}
-
-
-/* ==========================================================
-   22 â€” PESSOA: linha divisora entre grupos de campos
-   ========================================================== */
-.pessoa-form__divisor {
-    grid-column: 1 / -1;
-    width: 100%;
-    border: 0;
-    border-top: 1px solid #ffffff35;
-    margin: 4px 0;
-    border-color: #ff7841;
-    color: #ff995f;    
-}
 
 
 /* ==========================================================
@@ -1419,12 +1009,6 @@ h1 {
 }
 
 
-.central-contato__fila select {
-    height: 240px;
-    padding: 6px;
-    font-size: 13px;
-}
-
 /* ==========================================================
    27 â€” CENTRAL DE ATENDIMENTO: lista dos finalizados e divisor
    ========================================================== */
@@ -1439,59 +1023,6 @@ h1 {
 }
 
 /* ==========================================================
-   28 â€” PESSOA: largura de cada campo na grade de 20 colunas
-   ========================================================== */
-.pessoa-campo--tipo { grid-column: span 3; }
-.pessoa-campo--nome { grid-column: span 11; }
-.pessoa-campo--documento { grid-column: span 6; }
-
-.pessoa-campo--telefone { grid-column: span 4; }
-.pessoa-campo--email { grid-column: span 7; }
-.pessoa-relacoes { grid-column: span 8; }
-
-.pessoa-campo--endereco { grid-column: span 12; }
-.pessoa-campo--numero { grid-column: span 2; }
-.pessoa-campo--complemento { grid-column: span 6; }
-
-.pessoa-campo--bairro { grid-column: span 8; }
-.pessoa-campo--cidade { grid-column: span 8; }
-.pessoa-campo--uf { grid-column: span 2; }
-.pessoa-campo--cep { grid-column: span 2; }
-
-.pessoa-lista select {font-size: 13px;}
-
-/* ==========================================================
-   29 â€” RESPONSIVIDADE FINAL: regras apÃ³s os ajustes de largura
-   ========================================================== */
-@media (max-width: 800px) {
-    .pessoa-form { grid-template-columns: 1fr; }
-    .pessoa-form > div,
-    .pessoa-form > fieldset,
-    .pessoa-form > hr { grid-column: 1 / -1; }
-}
-
-@media (max-width: 750px) {
-    .central-contato__fila select,
-    .central-contato__fila #contato_finalizado { height: 180px; }
-}
-
-
-/* Link do Instagram */
-.home__instagram {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    margin-top: 24px;
-    color: #fff;
-    font-size: 13px;
-    text-decoration: none;
-}
-
-.home__instagram img {
-    display: block;
-    width: 30px;
-    height: 30px;
-}
 
 /* Instagram na home: ícone e nome do perfil */
 .home__instagram {
@@ -1527,219 +1058,272 @@ h1 {
 }
 
 
-/* 30 — CLIENTE: distribuição dos campos */
-
-.cliente-campo--responsavel { grid-column: span 12; }
-.cliente-campo--contato { grid-column: span 4; }
-.cliente-campo--ativo { grid-column: span 4; }
-
-@media (max-width: 800px) {
-    .cliente-campo--responsavel,
-    .cliente-campo--contato,
-    .cliente-campo--ativo { grid-column: 1 / -1; }
-}
-
-
-/* 31 — LOJA: distribuição dos campos */
-
-.loja-campo--nome { grid-column: span 8; }
-.loja-campo--shop { grid-column: span 4; }
-.loja-campo--url { grid-column: span 8; }
-
-@media (max-width: 800px) {
-    .loja-campo--nome,
-    .loja-campo--shop,
-    .loja-campo--url { grid-column: 1 / -1; }
-}
-
-
-/* 32 — ADMINISTRAÇÃO: submenu Cadastros */
-
-.adm-submenu summary {
-    padding: 13px 12px;
-    border-radius: 8px;
-    color: #eee5df;
-    cursor: pointer;
-    font-weight: 700;
-}
-
-.adm-submenu summary:hover,
-.adm-submenu[open] > summary {
-    background: #ff784122;
-    color: #ff995f;
-}
-
-.adm-submenu__itens {
-    display: grid;
-    gap: 4px;
-    margin-left: 16px;
-}
-
-.adm-submenu__itens a,
-.adm-submenu__itens span {
-    display: block;
-    padding: 11px 12px;
-    border-radius: 8px;
-    color: #eee5df;
-    text-decoration: none;
-}
-
-.adm-submenu__itens a:hover,
-.adm-submenu__itens a.ativo {
-    background: #ff784122;
-    color: #ff995f;
-}
-
-.adm-submenu__itens span { opacity: .5; }
-.adm-submenu__itens small { display: block; font-size: 11px; }
 
 /* ==========================================================
-   33 — CADASTROS: layout compacto, padronizado e responsivo
+   CADASTROS COMPARTILHADOS — PESSOA / CLIENTE / USUÁRIO / LOJA
+   Grade única, sem sobrescritas por remendos.
    ========================================================== */
+:root {
+    --juv-bg: #171513;
+    --juv-panel: #25211f;
+    --juv-border: #ffffff24;
+    --juv-border-input: #ffffff35;
+    --juv-accent: #ff7841;
+    --juv-accent-light: #ff995f;
+    --juv-text: #ffffff;
+    --juv-muted: #eee5df;
+}
 
-/* Ocupa toda a área principal, sem reservar espaço para a lista lateral. */
-.cadastro-compacto { grid-template-columns: minmax(0, 1fr); }
-.cadastro-compacto .pessoa-card { padding: 16px 18px; }
+.pessoa-layout,
+.cadastro-compacto {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    align-items: start;
+    gap: 18px;
+    margin-top: 28px;
+    min-width: 0;
+}
 
+.pessoa-card,
+.pessoa-lista {
+    min-width: 0;
+    border: 1px solid var(--juv-border);
+    border-radius: 12px;
+    background: var(--juv-panel);
+}
 
-/* Grupos organizados verticalmente. */
-.cadastro-compacto .pessoa-form {
+.pessoa-card { padding: 18px; }
+.pessoa-lista { padding: 18px; }
+.pessoa-card h2 { margin: 0 0 14px; }
+
+/* O formulário é uma pilha de grupos; cada grupo administra sua grade. */
+.pessoa-form {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
-    align-items: start;
+    min-width: 0;
 }
 
-.cadastro-compacto .cadastro-grupo {
+.cadastro-grupo {
     display: grid;
     grid-template-columns: repeat(20, minmax(0, 1fr));
-    gap: 10px 8px;
-    align-content: start;
+    gap: 12px 10px;
     min-width: 0;
-    padding: 14px;
-    border: 1px solid #ffffff24;
+    padding: 16px;
+    border: 1px solid var(--juv-border);
     border-radius: 8px;
+    align-content: start;
 }
 
-.cadastro-compacto .cadastro-grupo > .pessoa-form__titulo {
+/* O fieldset de Pessoa precisa ter a mesma grade que o grupo. */
+.pessoa-form__fieldset {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
     grid-column: 1 / -1;
-    margin: 0 0 6px;
-    font-size: 17px;
+    gap: 12px 10px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 
-.cadastro-compacto .cadastro-grupo > .pessoa-form__divisor { display: none; }
-.cadastro-compacto .cadastro-grupo > div { min-width: 0; }
+.pessoa-form__fieldset:disabled { opacity: .75; }
+.cadastro-grupo > *,
+.pessoa-form__fieldset > * { min-width: 0; }
 
-/* Padrão único de todos os campos dos cadastros. */
-.cadastro-compacto .pessoa-form label {
+.pessoa-form__titulo {
+    grid-column: 1 / -1;
+    margin: 0 0 4px !important;
+    color: var(--juv-accent-light);
+    font-size: 17px !important;
+    font-weight: 700;
+}
+
+.pessoa-form__divisor {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 4px 0;
+    border: 0;
+    border-top: 1px solid var(--juv-accent);
+}
+
+.pessoa-form label {
     display: block;
     margin-bottom: 5px;
     font-size: 12px;
     font-weight: 700;
 }
 
-.cadastro-compacto .pessoa-form input,
-.cadastro-compacto .pessoa-form select {
+.pessoa-form input:not([type="hidden"]),
+.pessoa-form select,
+.pessoa-form textarea {
+    display: block;
     width: 100%;
-    height: 36px;
-    padding: 6px 9px;
-    border: 1px solid #ffffff35;
+    min-width: 0;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid var(--juv-border-input);
     border-radius: 7px;
-    background: #171513;
-    color: #fff;
+    background: var(--juv-bg);
+    color: var(--juv-text);
     font: inherit;
     font-size: 13px;
 }
 
+.pessoa-form textarea { resize: vertical; }
+.pessoa-form input:focus-visible,
+.pessoa-form select:focus-visible,
+.pessoa-form textarea:focus-visible {
+    outline: 2px solid var(--juv-accent);
+    outline-offset: 2px;
+}
 
-.cadastro-compacto {
+.pessoa-form__fieldset:disabled input,
+.pessoa-form__fieldset:disabled select { cursor: not-allowed; }
+
+/* Pessoa: linhas de 20 colunas, também dentro de fieldset. */
+.pessoa-campo--tipo { grid-column: span 4; }
+.pessoa-campo--nome { grid-column: span 10; }
+.pessoa-campo--documento { grid-column: span 6; }
+.pessoa-campo--telefone { grid-column: span 7; }
+.pessoa-campo--email { grid-column: span 13; }
+.pessoa-campo--endereco { grid-column: span 12; }
+.pessoa-campo--numero { grid-column: span 3; }
+.pessoa-campo--complemento { grid-column: span 5; }
+.pessoa-campo--bairro { grid-column: span 7; }
+.pessoa-campo--cidade { grid-column: span 7; }
+.pessoa-campo--uf { grid-column: span 2; }
+.pessoa-campo--cep { grid-column: span 4; }
+
+/* Cliente e loja. */
+.cliente-campo--responsavel { grid-column: span 12; }
+.cliente-campo--contato { grid-column: span 4; }
+.cliente-campo--ativo { grid-column: span 4; }
+.cliente-campo--cadastro { grid-column: span 6; }
+.loja-campo--nome { grid-column: span 12; }
+.loja-campo--shop { grid-column: span 8; }
+.loja-campo--url { grid-column: 1 / -1; }
+
+/* Usuários: o título é irmão da grade, não um item interno. */
+.cadastro-grupo:has(.juv-usuario) { display: block; }
+.juv-usuario {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 260px;
-    gap: 18px;
-    align-items: start;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 20px;
+    min-width: 0;
 }
-
-/* Pessoa: duas linhas completas. */
-.cadastro-compacto .pessoa-campo--tipo { grid-column: span 4; }
-.cadastro-compacto .pessoa-campo--nome { grid-column: span 10; }
-.cadastro-compacto .pessoa-campo--documento { grid-column: span 6; }
-.cadastro-compacto .pessoa-campo--telefone { grid-column: span 7; }
-.cadastro-compacto .pessoa-campo--email { grid-column: span 13; }
-
-/* Endereço: duas linhas completas. */
-.cadastro-compacto .pessoa-campo--endereco { grid-column: span 12; }
-.cadastro-compacto .pessoa-campo--numero { grid-column: span 3; }
-.cadastro-compacto .pessoa-campo--complemento { grid-column: span 5; }
-.cadastro-compacto .pessoa-campo--bairro { grid-column: span 7; }
-.cadastro-compacto .pessoa-campo--cidade { grid-column: span 7; }
-.cadastro-compacto .pessoa-campo--uf { grid-column: span 2; }
-.cadastro-compacto .pessoa-campo--cep { grid-column: span 4; }
-
-/* Cliente e Loja: campos proporcionais, sem vazios na linha. */
-.cadastro-compacto .cliente-campo--responsavel { grid-column: span 20; }
-.cadastro-compacto .cliente-campo--contato { grid-column: span 10; }
-.cadastro-compacto .cliente-campo--ativo { grid-column: span 10; }
-.cadastro-compacto .loja-campo--nome { grid-column: span 12; }
-.cadastro-compacto .loja-campo--shop { grid-column: span 8; }
-.cadastro-compacto .loja-campo--url { grid-column: span 20; }
-
-
-@media (max-width: 800px) {
-    .cadastro-compacto {
-        grid-template-columns: minmax(0, 1fr) 260px;
-    }
-    .cadastro-compacto .cadastro-grupo > * { grid-column: 1 / -1; }
-}
-
-/* Lista de cadastros à direita */
-
-.cadastro-lista ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    max-height: 600px;
-    overflow-y: auto;
-}
-
-.cadastro-lista li {
-    padding: 10px 6px;
-    border-bottom: 1px solid #ffffff18;
+.juv-usuario__campo { min-width: 0; }
+.juv-usuario__leitura {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid var(--juv-border-input);
+    border-radius: 7px;
+    background: var(--juv-bg);
     font-size: 13px;
 }
-
-.cadastro-lista li:last-child {
-    border-bottom: 0;
+.juv-usuario__aviso {
+    grid-column: 1 / -1;
+    padding: 12px 14px;
+    border-left: 3px solid var(--juv-accent);
+    border-radius: 6px;
+    background: #ff784112;
+    color: var(--juv-muted);
+    font-size: 13px;
 }
+.juv-usuario__campo a { color: var(--juv-accent-light); }
 
-@media (max-width: 1100px) {
-    .cadastro-compacto {
-        grid-template-columns: 1fr;
-    }
+/* Ações do cadastro. */
+.pessoa-botoes,
+.pessoa-form__acoes,
+.pessoa-tabela__acoes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
 }
-
-.cadastro-compacto .cliente-campo--contato { grid-column: span 7; }
-.cadastro-compacto .cliente-campo--ativo { grid-column: span 7; }
-.cadastro-compacto .cliente-campo--cadastro { grid-column: span 6; }
-
-
-.cadastro-lista li a {
-    display: block;
-    padding: 8px 6px;
-    color: inherit;
+.pessoa-botoes form { margin: 0; }
+.pessoa-botao,
+.pessoa-form__acoes > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 9px 16px;
+    border: 1px solid var(--juv-border-input);
+    border-radius: 8px;
+    background: var(--juv-bg);
+    color: var(--juv-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
     text-decoration: none;
+    cursor: pointer;
 }
-
-.cadastro-lista li a:hover {
-    color: #e8a44d;
-    background: #ffffff10;
+.pessoa-botao--salvar,
+.pessoa-form__acoes > button {
+    border-color: var(--juv-accent);
+    background: var(--juv-accent);
+    color: var(--juv-bg);
 }
+.pessoa-botao--excluir { border-color: #d96666; color: #ff9999; }
+.pessoa-botao:hover:not(:disabled) { filter: brightness(1.15); }
+.pessoa-botao:disabled { opacity: .4; cursor: not-allowed; }
+.pessoa-selecionar,
+.pessoa-form__acoes a,
+.pessoa-tabela__acoes a { color: var(--juv-accent-light); text-decoration: none; }
+.atendimento-tabela tr.pessoa-selecionada { background: #ff78411a; }
 
+/* Lista lateral. */
+.pessoa-lista .pessoa-form__titulo { margin-bottom: 12px !important; }
+.pessoa-lista ul { list-style: none; margin: 0; padding: 0; max-height: 600px; overflow-y: auto; }
+.pessoa-lista li { border-bottom: 1px solid #ffffff18; font-size: 13px; overflow-wrap: anywhere; }
+.pessoa-lista li:last-child { border-bottom: 0; }
+.pessoa-lista li a { display: block; padding: 11px 6px; color: inherit; text-decoration: none; }
+.pessoa-lista li a:hover { color: var(--juv-accent-light); background: #ffffff10; }
+.pessoa-lista label { display: block; margin-bottom: 12px; color: var(--juv-accent-light); font-weight: 700; }
+.pessoa-lista select { width: 100%; padding: 8px; border: 1px solid var(--juv-border-input); border-radius: 8px; background: var(--juv-bg); color: #fff; font: inherit; font-size: 13px; }
 
+/* Menu administrativo de cadastros. */
+.adm-submenu summary { padding: 13px 12px; border-radius: 8px; color: var(--juv-muted); cursor: pointer; font-weight: 700; }
+.adm-submenu summary:hover,
+.adm-submenu[open] > summary { background: #ff784122; color: var(--juv-accent-light); }
+.adm-submenu__itens { display: grid; gap: 4px; margin-left: 16px; }
+.adm-submenu__itens a,
+.adm-submenu__itens span { display: block; padding: 11px 12px; border-radius: 8px; color: var(--juv-muted); text-decoration: none; }
+.adm-submenu__itens a:hover,
+.adm-submenu__itens a.ativo { background: #ff784122; color: var(--juv-accent-light); }
+.adm-submenu__itens span { opacity: .5; }
+.adm-submenu__itens small { display: block; font-size: 11px; }
 
-
-/* -- ---------------------------------------- 
- JUV-026 - Banner flutuante 
- ------------------------------------------  -->*/
+/* Layout fluido em telas intermediárias e pequenas. */
+@media (max-width: 1100px) {
+    .pessoa-layout, .cadastro-compacto { grid-template-columns: minmax(0, 1fr); }
+    .pessoa-lista ul { max-height: 300px; }
+}
+@media (max-width: 760px) {
+    .cadastro-grupo,
+    .pessoa-form__fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cadastro-grupo > div[class*="-campo--"],
+    .pessoa-form__fieldset > div[class*="pessoa-campo--"] { grid-column: span 1; }
+    .cadastro-grupo .pessoa-campo--nome,
+    .cadastro-grupo .pessoa-campo--endereco,
+    .pessoa-form__fieldset .pessoa-campo--nome,
+    .pessoa-form__fieldset .pessoa-campo--endereco,
+    .cadastro-grupo .loja-campo--url { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) {
+    .pessoa-card, .pessoa-lista { padding: 14px; }
+    .cadastro-grupo { padding: 12px; }
+    .cadastro-grupo,
+    .pessoa-form__fieldset,
+    .juv-usuario { grid-template-columns: minmax(0, 1fr); }
+    .cadastro-grupo > div[class*="-campo--"],
+    .pessoa-form__fieldset > div[class*="pessoa-campo--"] { grid-column: 1 / -1; }
+}
 
 /* JUV-026 - Modal promocional */
 
@@ -1846,3 +1430,4 @@ h1 {
         font-size: 46px;
     }
 }
+
