@@ -3,20 +3,26 @@
 
 <h2 class="pessoa-form__titulo">Dados da Loja</h2>
 
-<div class="loja-campo--nome">
-    <label for="nm_loja">Nome da loja</label>
-    <input id="nm_loja" name="nm_loja" type="text" maxlength="150"
-           value="{{ loja.get('nm_loja') or '' }}">
-</div>
+<div class="loja-form__grid">
 
-<div class="loja-campo--shop">
-    <label for="shop_id">Shop ID</label>
-    <input id="shop_id" name="shop_id" type="number" min="1"
-           value="{{ loja.get('shop_id') or '' }}">
-</div>
+    <div class="loja-campo--nome">
+        <label for="nm_loja">Nome da loja</label>
+        <input id="nm_loja" name="nm_loja" type="text"
+               maxlength="150"
+               value="{{ loja.get('nm_loja') or '' }}">
+    </div>
 
-<div class="loja-campo--url">
-    <label for="url_loja">URL da loja</label>
-    <input id="url_loja" name="url_loja" type="url" maxlength="500"
-           value="{{ loja.get('url_loja') or '' }}">
+    <div class="loja-campo--shop">
+        <label for="shop_id">Shop ID</label>
+        <input id="shop_id" name="shop_id" type="number" min="1"
+               value="{{ loja.get('shop_id') or '' }}">
+    </div>
+
+    <div class="loja-campo--url">
+        <label for="url_loja">URL da loja</label>
+        <input id="url_loja" name="url_loja" type="url"
+               maxlength="500"
+               value="{{ loja.get('url_loja') or '' }}">
+    </div>
+
 </div>

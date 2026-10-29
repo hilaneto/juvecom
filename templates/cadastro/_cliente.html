@@ -3,30 +3,42 @@
 
 <h2 class="pessoa-form__titulo">Dados do Cliente</h2>
 
-<div class="cliente-campo--responsavel">
-    <label for="nm_responsavel">Responsável</label>
-    <input id="nm_responsavel" name="nm_responsavel" type="text"
-           maxlength="150" value="{{ cliente.get('nm_responsavel') or '' }}">
+<div class="cliente-form__grid">
+
+    <div class="cliente-campo--responsavel">
+        <label for="nm_responsavel">Responsável</label>
+        <input id="nm_responsavel" name="nm_responsavel"
+               type="text" maxlength="150"
+               value="{{ cliente.get('nm_responsavel') or '' }}">
+    </div>
+
+    <div class="cliente-campo--contato">
+        <label for="cd_contato">Código do contato</label>
+        <input id="cd_contato" name="cd_contato"
+               type="number" min="1"
+               value="{{ cliente.get('cd_contato') or '' }}">
+    </div>
+
+    <div class="cliente-campo--ativo">
+        <label for="fl_ativo">Situação</label>
+        <select id="fl_ativo" name="fl_ativo">
+            <option value="1"
+                {% if cliente.get('fl_ativo', True) in (True, '1', 1) %}selected{% endif %}>
+                Ativo
+            </option>
+            <option value="0"
+                {% if cliente.get('fl_ativo') in (False, '0', 0) %}selected{% endif %}>
+                Inativo
+            </option>
+        </select>
+    </div>
+
+    <div class="cliente-campo--cadastro">
+        <label for="dt_cadastro">Data de cadastro</label>
+        <input id="dt_cadastro" name="dt_cadastro"
+               type="date"
+               value="{{ cliente.get('dt_cadastro') or hoje }}"
+               required>
+    </div>
+
 </div>
-
-<div class="cliente-campo--contato">
-    <label for="cd_contato">Código do contato</label>
-    <input id="cd_contato" name="cd_contato" type="number" min="1"
-           value="{{ cliente.get('cd_contato') or '' }}">
-</div>
-
-<div class="cliente-campo--ativo">
-    <label for="fl_ativo">Situação</label>
-    <select id="fl_ativo" name="fl_ativo">
-        <option value="1" {% if cliente.get('fl_ativo', True) in (True, '1', 1) %}selected{% endif %}>Ativo</option>
-        <option value="0" {% if cliente.get('fl_ativo') in (False, '0', 0) %}selected{% endif %}>Inativo</option>
-    </select>
-</div>
-
-
-<div class="cliente-campo--cadastro">
-    <label for="dt_cadastro">Data de cadastro</label>
-    <input type="date" id="dt_cadastro" name="dt_cadastro"
-           value="{{ cliente.get('dt_cadastro') or hoje }}" required>
-</div>
-

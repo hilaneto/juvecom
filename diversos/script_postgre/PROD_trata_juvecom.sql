@@ -75,7 +75,7 @@ select * from tb_pessoa;
 select * from tb_cliente;
 
 select * from tb_pessoa a inner join tb_cliente b
-on a.cd_pessoa = b.cd_pessoa 
+on a.cd_pessoa = b.cd_pessoa
 
 
 select * from tb_pessoa a inner join tb_cliente b
