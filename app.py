@@ -12,6 +12,8 @@ from models.contato_conversa import ContatoConversa
 from models.cadastro_cliente import CadastroCliente
 from models.cadastro_usuario import CadastroUsuario
 from models.cliente import Cliente
+from models.minha_conta import MinhaConta
+from models.minhas_lojas import MinhasLojas
 from zoneinfo import ZoneInfo
 
 load_dotenv()
@@ -142,6 +144,29 @@ def login():
 @acesso_administrativo
 def adm():
     return redirect(url_for("adm_contato"))
+
+
+
+@app.route("/cliente/lojas")
+@login_obrigatorio
+def cliente_lojas():
+
+    if session["cd_nivel"] != 5:
+        abort(403)
+
+    resultado = MinhasLojas.consultar(
+        session["cd_usuario"]
+    )
+
+    if not resultado["sucesso"]:
+        abort(403)
+
+    return render_template(
+        "cliente/lojas.html",
+        lojas=resultado["lojas"],
+        total_lojas=resultado["total_lojas"],
+        total_ativas=resultado["total_ativas"]
+    )
 
 
 @app.route("/adm/contatos", methods=["GET", "POST"])
@@ -504,6 +529,29 @@ def cliente_inicio():
         abort(403)
     return render_template("cliente/inicio.html")
 
+
+
+@app.route("/cliente/conta")
+@login_obrigatorio
+def cliente_conta():
+
+    if session["cd_nivel"] != 5:
+        abort(403)
+
+    resultado = MinhaConta.consultar(
+        session["cd_usuario"]
+    )
+
+    if not resultado["sucesso"]:
+        abort(403)
+
+    return render_template(
+        "cliente/conta.html",
+        cd_cliente=resultado["cd_cliente"],
+        dados=resultado["dados"],
+        cliente=resultado["cliente"],
+        usuario=resultado["usuario"]
+    )
 
 
 @app.route("/adm/clientes", methods=["GET", "POST"])

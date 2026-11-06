@@ -38,14 +38,18 @@
                     <span class="cliente-menu__icone" aria-hidden="true">▧</span>
                     <span>Meus Contratos</span><small>Em breve</small>
                 </span>
-                <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
+                <a class="cliente-menu__item {% if request.endpoint == 'cliente_lojas' %}cliente-menu__item--ativo{% endif %}"
+                   href="{{ url_for('cliente_lojas') }}"
+                   {% if request.endpoint == 'cliente_lojas' %}aria-current="page"{% endif %}>
                     <span class="cliente-menu__icone" aria-hidden="true">▦</span>
-                    <span>Minhas Lojas</span><small>Em breve</small>
-                </span>
-                <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
+                    <span>Minhas Lojas</span>
+                </a>
+                <a class="cliente-menu__item {% if request.endpoint == 'cliente_conta' %}cliente-menu__item--ativo{% endif %}"
+                   href="{{ url_for('cliente_conta') }}"
+                   {% if request.endpoint == 'cliente_conta' %}aria-current="page"{% endif %}>
                     <span class="cliente-menu__icone" aria-hidden="true">◎</span>
-                    <span>Minha Conta</span><small>Em breve</small>
-                </span>
+                    <span>Minha Conta</span>
+                </a>
                 <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
                     <span class="cliente-menu__icone" aria-hidden="true">◇</span>
                     <span>Suporte</span><small>Em breve</small>

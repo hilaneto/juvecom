@@ -1,0 +1,75 @@
+{% extends "cliente/base.html" %}
+{% block title %}Minhas Lojas | Área do Cliente — Juvaecom{% endblock %}
+{% block breadcrumb %}Minhas Lojas{% endblock %}
+
+{% block conteudo %}
+<section class="cliente-lojas" aria-labelledby="titulo-minhas-lojas">
+    <header class="cliente-lojas__cabecalho">
+        <div>
+            <p class="cliente-eyebrow">CADASTROS VINCULADOS</p>
+            <h1 id="titulo-minhas-lojas">Minhas Lojas</h1>
+            <p>Consulte as lojas vinculadas ao seu cadastro na Juvaecom.</p>
+        </div>
+        <div class="cliente-lojas__resumo" aria-label="Resumo das lojas">
+            <div>
+                <strong>{{ total_lojas }}</strong>
+                <span>{{ 'Loja cadastrada' if total_lojas == 1 else 'Lojas cadastradas' }}</span>
+            </div>
+            <div>
+                <strong>{{ total_ativas }}</strong>
+                <span>{{ 'Loja ativa' if total_ativas == 1 else 'Lojas ativas' }}</span>
+            </div>
+        </div>
+    </header>
+
+    {% if lojas %}
+    <div class="cliente-lojas__grade">
+        {% for loja in lojas %}
+        <article class="cliente-lojas__cartao" aria-labelledby="loja-{{ loja.cd_loja }}">
+            <div class="cliente-lojas__cartao-topo">
+                <div>
+                    <p class="cliente-lojas__identificacao">LOJA {{ '%02d' | format(loop.index) }}</p>
+                    <h2 id="loja-{{ loja.cd_loja }}">{{ loja.nm_loja }}</h2>
+                </div>
+                {% if loja.fl_ativo %}
+                    <span class="cliente-lojas__status cliente-lojas__status--ativa">Ativa</span>
+                {% else %}
+                    <span class="cliente-lojas__status cliente-lojas__status--inativa">Inativa</span>
+                {% endif %}
+            </div>
+
+            <dl class="cliente-lojas__detalhes">
+                <div>
+                    <dt>Código da loja</dt>
+                    <dd>{{ loja.cd_loja }}</dd>
+                </div>
+                <div>
+                    <dt>Shop ID</dt>
+                    <dd>{{ loja.shop_id if loja.shop_id is not none and loja.shop_id != '' else 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-lojas__detalhe-largo">
+                    <dt>Endereço da loja</dt>
+                    <dd>
+                        {% if loja.url_loja %}
+                            <a href="{{ loja.url_loja }}" target="_blank" rel="noopener noreferrer" class="cliente-lojas__link">
+                                {{ loja.url_loja }}
+                            </a>
+                        {% else %}
+                            Não informado
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+        <div class="cliente-lojas__vazio">
+            <h2>Nenhuma loja vinculada</h2>
+            <p>Seu cadastro ainda não possui lojas registradas. Entre em contato com a equipe Juvaecom se precisar de ajuda.</p>
+        </div>
+    {% endif %}
+
+    <p class="cliente-lojas__nota">As informações são somente para consulta. Alterações cadastrais são realizadas pela equipe Juvaecom.</p>
+</section>
+{% endblock %}

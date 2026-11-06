@@ -1,0 +1,124 @@
+{% extends "cliente/base.html" %}
+{% block title %}Minha Conta | Área do Cliente — Juvaecom{% endblock %}
+{% block breadcrumb %}Minha Conta{% endblock %}
+
+{% block conteudo %}
+<section class="cliente-conta" aria-labelledby="titulo-minha-conta">
+    <div class="cliente-conta__cabecalho">
+        <div>
+            <p class="cliente-eyebrow">CADASTRO E ACESSO</p>
+            <h1 id="titulo-minha-conta">Minha Conta</h1>
+            <p>Consulte seus dados cadastrais e as informações da sua conta Juvaecom.</p>
+        </div>
+        <a class="cliente-conta__acao" href="{{ url_for('trocar_senha') }}">
+            Alterar senha
+        </a>
+    </div>
+
+    <div class="cliente-conta__grade">
+        <section class="cliente-conta__cartao" aria-labelledby="titulo-dados-pessoais">
+            <h2 id="titulo-dados-pessoais">Dados da Pessoa</h2>
+            <dl class="cliente-conta__campos">
+                <div class="cliente-conta__campo cliente-conta__campo--largo">
+                    <dt>Nome / Razão social</dt>
+                    <dd>{{ dados.get('nm_pessoa') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Tipo de pessoa</dt>
+                    <dd>{% if dados.get('tp_pessoa') == 'F' %}Pessoa física{% elif dados.get('tp_pessoa') == 'J' %}Pessoa jurídica{% else %}Não informado{% endif %}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>CPF / CNPJ</dt>
+                    <dd>{{ dados.get('cpf_cnpj') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Telefone</dt>
+                    <dd>{{ dados.get('telefone') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>E-mail</dt>
+                    <dd>{{ dados.get('email') or 'Não informado' }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="cliente-conta__cartao" aria-labelledby="titulo-endereco">
+            <h2 id="titulo-endereco">Endereço</h2>
+            <dl class="cliente-conta__campos">
+                <div class="cliente-conta__campo cliente-conta__campo--largo">
+                    <dt>Logradouro</dt>
+                    <dd>{{ dados.get('endereco') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Número</dt>
+                    <dd>{{ dados.get('numero') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Complemento</dt>
+                    <dd>{{ dados.get('complemento') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Bairro</dt>
+                    <dd>{{ dados.get('bairro') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>CEP</dt>
+                    <dd>{{ dados.get('cep') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Cidade</dt>
+                    <dd>{{ dados.get('cidade') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>UF</dt>
+                    <dd>{{ dados.get('uf') or 'Não informado' }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="cliente-conta__cartao" aria-labelledby="titulo-dados-cliente">
+            <h2 id="titulo-dados-cliente">Dados do Cliente</h2>
+            <dl class="cliente-conta__campos">
+                <div class="cliente-conta__campo">
+                    <dt>Código do cliente</dt>
+                    <dd>{{ cd_cliente }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Situação</dt>
+                    <dd><span class="cliente-conta__situacao">Ativo</span></dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Responsável comercial</dt>
+                    <dd>{{ cliente.get('nm_responsavel') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Data de cadastro</dt>
+                    <dd>{{ cliente.get('dt_cadastro') or 'Não informado' }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="cliente-conta__cartao" aria-labelledby="titulo-dados-acesso">
+            <h2 id="titulo-dados-acesso">Dados de Acesso</h2>
+            <dl class="cliente-conta__campos">
+                <div class="cliente-conta__campo">
+                    <dt>Login</dt>
+                    <dd>{{ usuario.get('login') or 'Não informado' }}</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Nível de acesso</dt>
+                    <dd>5 — Cliente</dd>
+                </div>
+                <div class="cliente-conta__campo">
+                    <dt>Situação do usuário</dt>
+                    <dd><span class="cliente-conta__situacao">Ativo</span></dd>
+                </div>
+            </dl>
+            <p class="cliente-conta__aviso">
+                A atualização de dados cadastrais e login ainda é realizada pela equipe Juvaecom.
+                Você já pode alterar sua própria senha no botão acima.
+            </p>
+        </section>
+    </div>
+</section>
+{% endblock %}

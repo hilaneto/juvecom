@@ -306,3 +306,218 @@ a.cliente-menu__item:hover,
     .cliente-modulos__grade { grid-template-columns: minmax(0, 1fr); }
     .cliente-lateral__rodape { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* MINHA CONTA — consulta cadastral exclusiva do cliente */
+.cliente-conta { width: 100%; min-width: 0; }
+.cliente-conta__cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+.cliente-conta__cabecalho h1 {
+    max-width: none;
+    margin: 0 0 10px;
+    font-size: clamp(25px, 3vw, 32px);
+    line-height: 1.2;
+    letter-spacing: -.02em;
+}
+.cliente-conta__cabecalho > div > p:last-child {
+    margin: 0;
+    color: var(--cliente-neutro);
+    font-size: 13px;
+    line-height: 1.5;
+}
+.cliente-conta__acao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: var(--cliente-laranja);
+    color: var(--cliente-fundo);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+.cliente-conta__acao:hover { filter: brightness(1.12); }
+.cliente-conta__grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+.cliente-conta__cartao {
+    min-width: 0;
+    padding: 25px;
+    border: 1px solid var(--cliente-borda);
+    border-radius: 13px;
+    background: var(--cliente-painel);
+}
+.cliente-conta__cartao h2 {
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ff78418c;
+    color: var(--cliente-laranja-claro);
+    font-size: 17px;
+}
+.cliente-conta__campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 20px;
+    margin: 0;
+}
+.cliente-conta__campo { min-width: 0; }
+.cliente-conta__campo--largo { grid-column: 1 / -1; }
+.cliente-conta__campo dt {
+    margin-bottom: 7px;
+    color: var(--cliente-neutro);
+    font-size: 12px;
+}
+.cliente-conta__campo dd {
+    margin: 0;
+    color: var(--cliente-texto);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+.cliente-conta__situacao { color: #88caa4; }
+.cliente-conta__aviso {
+    margin: 25px 0 0;
+    padding: 12px;
+    border-left: 3px solid var(--cliente-laranja);
+    border-radius: 6px;
+    background: #ff784110;
+    color: var(--cliente-suave);
+    font-size: 12px;
+    line-height: 1.6;
+}
+@media (max-width: 1100px) {
+    .cliente-conta__grade { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+    .cliente-conta__cartao { padding: 17px; }
+    .cliente-conta__campos { grid-template-columns: minmax(0, 1fr); }
+    .cliente-conta__campo--largo { grid-column: auto; }
+}
+
+
+/* MINHAS LOJAS — consulta restrita a lojas do cliente autenticado */
+.cliente-lojas { width: 100%; min-width: 0; }
+.cliente-lojas__cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 26px;
+}
+.cliente-lojas__cabecalho h1 {
+    max-width: none;
+    margin: 0 0 10px;
+    font-size: clamp(25px, 3vw, 32px);
+    letter-spacing: -.02em;
+    line-height: 1.2;
+}
+.cliente-lojas__cabecalho > div:first-child > p:last-child {
+    margin: 0;
+    color: var(--cliente-neutro);
+    font-size: 13px;
+    line-height: 1.5;
+}
+.cliente-lojas__resumo { display: flex; flex-wrap: wrap; gap: 12px; }
+.cliente-lojas__resumo > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 125px;
+    gap: 5px;
+    padding: 12px 16px;
+    background: var(--cliente-painel);
+    border: 1px solid var(--cliente-borda);
+    border-radius: 10px;
+}
+.cliente-lojas__resumo strong { color: var(--cliente-laranja-claro); font-size: 22px; }
+.cliente-lojas__resumo span { color: var(--cliente-neutro); font-size: 11px; }
+.cliente-lojas__grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+.cliente-lojas__cartao {
+    min-width: 0;
+    padding: 25px;
+    background: var(--cliente-painel);
+    border: 1px solid var(--cliente-borda);
+    border-radius: 13px;
+}
+.cliente-lojas__cartao-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ff78418c;
+}
+.cliente-lojas__identificacao {
+    margin: 0 0 7px;
+    color: var(--cliente-neutro);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+}
+.cliente-lojas__cartao h2 {
+    margin: 0;
+    color: var(--cliente-laranja-claro);
+    font-size: 19px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.cliente-lojas__status {
+    display: inline-block;
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    border: 1px solid transparent;
+}
+.cliente-lojas__status--ativa { background: #66b98b20; border-color: #66b98b44; color: #88caa4; }
+.cliente-lojas__status--inativa { background: #ffffff12; border-color: #ffffff24; color: var(--cliente-neutro); }
+.cliente-lojas__detalhes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin: 0;
+}
+.cliente-lojas__detalhes > div { min-width: 0; }
+.cliente-lojas__detalhe-largo { grid-column: 1 / -1; }
+.cliente-lojas__detalhes dt { margin: 0 0 7px; color: var(--cliente-neutro); font-size: 12px; }
+.cliente-lojas__detalhes dd {
+    margin: 0;
+    color: var(--cliente-texto);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+.cliente-lojas__link { color: var(--cliente-laranja-claro); text-underline-offset: 3px; }
+.cliente-lojas__link:hover { color: #ffc19c; }
+.cliente-lojas__vazio {
+    padding: 40px 30px;
+    border: 1px solid var(--cliente-borda);
+    border-radius: 13px;
+    background: var(--cliente-painel);
+}
+.cliente-lojas__vazio h2 { margin: 0 0 12px; font-size: 19px; color: var(--cliente-laranja-claro); }
+.cliente-lojas__vazio p { margin: 0; color: var(--cliente-suave); font-size: 13px; line-height: 1.5; }
+.cliente-lojas__nota { margin: 23px 0 0; color: var(--cliente-neutro); font-size: 12px; line-height: 1.5; }
+@media (max-width: 1100px) {
+    .cliente-lojas__grade { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 500px) {
+    .cliente-lojas__cartao { padding: 17px; }
+    .cliente-lojas__detalhes { grid-template-columns: minmax(0, 1fr); }
+    .cliente-lojas__detalhe-largo { grid-column: auto; }
+    .cliente-lojas__status { align-self: flex-start; }
+}

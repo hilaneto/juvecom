@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>{% block title %}Área do Cliente | Juvaecom{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cliente.css') }}">
+</head>
+<body class="cliente-app">
+    <div class="cliente-layout">
+
+        <aside class="cliente-lateral">
+            <a class="cliente-marca" href="{{ url_for('cliente_inicio') }}">
+                Juva<span>ecom</span>
+            </a>
+            <p class="cliente-lateral__titulo">Área do Cliente</p>
+
+            <nav class="cliente-menu" aria-label="Menu da Área do Cliente">
+                <a class="cliente-menu__item {% if request.endpoint == 'cliente_inicio' %}cliente-menu__item--ativo{% endif %}"
+                   href="{{ url_for('cliente_inicio') }}"
+                   {% if request.endpoint == 'cliente_inicio' %}aria-current="page"{% endif %}>
+                    <span class="cliente-menu__icone" aria-hidden="true">⌂</span>
+                    <span>Início</span>
+                </a>
+
+                {# Módulos futuros: não apontar para endpoints ainda inexistentes. #}
+                <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
+                    <span class="cliente-menu__icone" aria-hidden="true">▣</span>
+                    <span>Produtos</span><small>Em breve</small>
+                </span>
+                <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
+                    <span class="cliente-menu__icone" aria-hidden="true">▤</span>
+                    <span>Calculadora Shopee</span><small>Em breve</small>
+                </span>
+                <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
+                    <span class="cliente-menu__icone" aria-hidden="true">▧</span>
+                    <span>Meus Contratos</span><small>Em breve</small>
+                </span>
+                <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
+                    <span class="cliente-menu__icone" aria-hidden="true">▦</span>
+                    <span>Minhas Lojas</span><small>Em breve</small>
+                </span>
+                <a class="cliente-menu__item {% if request.endpoint == 'cliente_conta' %}cliente-menu__item--ativo{% endif %}"
+                   href="{{ url_for('cliente_conta') }}"
+                   {% if request.endpoint == 'cliente_conta' %}aria-current="page"{% endif %}>
+                    <span class="cliente-menu__icone" aria-hidden="true">◎</span>
+                    <span>Minha Conta</span>
+                </a>
+                <span class="cliente-menu__item cliente-menu__item--futuro" aria-disabled="true">
+                    <span class="cliente-menu__icone" aria-hidden="true">◇</span>
+                    <span>Suporte</span><small>Em breve</small>
+                </span>
+            </nav>
+
+            <div class="cliente-lateral__rodape">
+                <p class="cliente-lateral__seguranca">Área de acesso restrito</p>
+                <form method="post" action="{{ url_for('logout') }}">
+                    <input type="hidden" name="csrf_token" value="{{ session.get('csrf_token', '') }}">
+                    <button class="cliente-sair" type="submit">Sair da conta</button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="cliente-corpo">
+            <header class="cliente-topo">
+                <div class="cliente-topo__local">
+                    <span>Área do Cliente</span>
+                    <span aria-hidden="true">/</span>
+                    <strong>{% block breadcrumb %}Início{% endblock %}</strong>
+                </div>
+                <div class="cliente-topo__acoes">
+                    <span class="cliente-topo__usuario">
+                        <span class="cliente-topo__avatar" aria-hidden="true">●</span>
+                        <span>{{ session.get('login', 'Cliente') }}</span>
+                    </span>
+                    <a class="cliente-topo__site" href="{{ url_for('home') }}">Ver site</a>
+                </div>
+            </header>
+
+            <main class="cliente-principal" id="conteudo">
+                {% block conteudo %}{% endblock %}
+            </main>
+
+            <footer class="cliente-rodape">
+                © 2026 Juvaecom · Área do Cliente
+            </footer>
+        </div>
+    </div>
+</body>
+</html>

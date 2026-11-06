@@ -378,7 +378,7 @@ select * from tb_pessoa;
 
 select * from tb_cliente
 
-select * from tb_usuario;
+select * from tb_usuario; 	
 
 
 
