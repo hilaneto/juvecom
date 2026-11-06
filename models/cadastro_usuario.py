@@ -4,6 +4,7 @@ from database.conexao import conectar, db
 from models.pessoa import Pessoa
 from models.usuario import Usuario, UsuarioView, NivelOpcao
 from suporte.validacao import somente_numeros
+from models.cliente import Cliente
 
 
 class CadastroUsuario:
@@ -35,31 +36,73 @@ class CadastroUsuario:
                     if not documento:
                         raise ValueError("Informe o CPF/CNPJ.")
 
-                    existente = Pessoa.get_or_none(Pessoa.cpf_cnpj == documento)
+                    try:
+                        nivel_solicitado = int(usuario.get("cd_nivel"))
+                    except (ValueError, TypeError):
+                        raise ValueError("Nível de usuário inválido.")
+
+                    # Buscar a pessoa antes de validar o cliente
+                    existente = Pessoa.get_or_none(
+                        Pessoa.cpf_cnpj == documento
+                    )
+
+                    # Validação exclusiva para usuários clientes
+                    if nivel_solicitado == 5:
+                        if existente is None:
+                            raise ValueError(
+                                "Cadastre primeiro o cliente antes de criar seu usuário."
+                            )
+
+                        cliente = Cliente.get_or_none(
+                            (Cliente.cd_pessoa == existente.cd_pessoa) &
+                            (Cliente.fl_ativo == True)
+                        )
+
+                        if cliente is None:
+                            raise ValueError(
+                                "A pessoa informada não possui cliente ativo."
+                            )
+
                     if existente is None:
-                        resultado = CadastroUsuario._exigir_sucesso(Pessoa.incluir(pessoa))
+                        resultado = CadastroUsuario._exigir_sucesso(
+                            Pessoa.incluir(pessoa)
+                        )
                         cd_pessoa = resultado["cd_pessoa"]
                     else:
                         if not existente.fl_ativo:
                             raise ValueError("A pessoa vinculada está inativa.")
-                        if existente.tp_pessoa != (pessoa.get("tp_pessoa") or "").strip().upper():
-                            raise ValueError("Tipo de pessoa incompatível com o CPF/CNPJ.")
+
+                        if existente.tp_pessoa != (
+                            pessoa.get("tp_pessoa") or ""
+                        ).strip().upper():
+                            raise ValueError(
+                                "Tipo de pessoa incompatível com o CPF/CNPJ."
+                            )
+
                         cd_pessoa = existente.cd_pessoa
 
                     if Usuario.get_or_none(Usuario.cd_pessoa == cd_pessoa):
-                        raise ValueError("Essa pessoa já possui usuário cadastrado.")
+                        raise ValueError(
+                            "Essa pessoa já possui usuário cadastrado."
+                        )
 
                     resultado = CadastroUsuario._exigir_sucesso(
                         Usuario.salvar_autorizado(cd_operador, {
                             "documento_pessoa": documento,
                             "login": usuario.get("login", ""),
-                            "cd_nivel": usuario.get("cd_nivel", ""),
+                            "cd_nivel": nivel_solicitado,
                         })
                     )
-                    return {"sucesso": True, "cd_pessoa": cd_pessoa,
-                            "cd_usuario": resultado.get("cd_usuario")}
+
+                    return {
+                        "sucesso": True,
+                        "cd_pessoa": cd_pessoa,
+                        "cd_usuario": resultado.get("cd_usuario")
+                    }
+
         except (ValueError, TypeError, IntegrityError) as erro:
             return {"sucesso": False, "erro": str(erro)}
+
 
     @staticmethod
     def listar():
@@ -94,6 +137,7 @@ class CadastroUsuario:
             }
             return {"sucesso": True, "dados": dados, "usuario": usuario}
 
+
     @staticmethod
     def atualizar(cd_operador, cd_usuario, pessoa, usuario):
         try:
@@ -103,35 +147,92 @@ class CadastroUsuario:
                     if operador is None:
                         raise ValueError("Operador não autorizado.")
 
-                    conta = Usuario.get_or_none(Usuario.cd_usuario == cd_usuario)
+                    conta = Usuario.get_or_none(
+                        Usuario.cd_usuario == cd_usuario
+                    )
+
                     if conta is None:
                         raise ValueError("Usuário não encontrado.")
 
+                    # Operador Master
                     if operador.cd_nivel == 0:
+                        try:
+                            novo_nivel = int(
+                                usuario.get("cd_nivel", conta.cd_nivel)
+                            )
+                        except (ValueError, TypeError):
+                            raise ValueError("Nível de usuário inválido.")
+
+                        # Validar vínculo com cliente ativo
+                        if novo_nivel == 5:
+                            cliente = Cliente.get_or_none(
+                                (Cliente.cd_pessoa == conta.cd_pessoa) &
+                                (Cliente.fl_ativo == True)
+                            )
+
+                            if cliente is None:
+                                raise ValueError(
+                                    "Para atribuir o nível Cliente, "
+                                    "a pessoa precisa possuir um cliente ativo."
+                                )
+
+                        # Atualizar dados da Pessoa
                         dados_pessoa = dict(pessoa)
                         dados_pessoa["cd_pessoa"] = conta.cd_pessoa
-                        CadastroUsuario._exigir_sucesso(Pessoa.atualizar(dados_pessoa))
+
+                        CadastroUsuario._exigir_sucesso(
+                            Pessoa.atualizar(dados_pessoa)
+                        )
+
+                        # Preparar alterações do Usuário
                         alteracoes = {"cd_usuario": cd_usuario}
+
                         for campo in ("login", "cd_nivel", "fl_ativo"):
                             if campo in usuario:
                                 alteracoes[campo] = usuario[campo]
-                    elif operador.cd_nivel == 1 and cd_usuario != cd_operador and conta.cd_nivel in (2, 3, 4):
+
+                    # Operador nível Superior
+                    elif (
+                        operador.cd_nivel == 1
+                        and cd_usuario != cd_operador
+                        and conta.cd_nivel in (2, 3, 4)
+                    ):
                         if "fl_ativo" not in usuario:
-                            raise ValueError("Informe a situação do usuário.")
-                        # Nível 1 não modifica Pessoa, login ou nível de acesso.
+                            raise ValueError(
+                                "Informe a situação do usuário."
+                            )
+
+                        # Superior não modifica Pessoa, login ou nível
                         alteracoes = {
                             "cd_usuario": cd_usuario,
                             "fl_ativo": usuario["fl_ativo"],
                         }
-                    else:
-                        raise ValueError("Sem permissão para alterar este cadastro. Use Alterar minha senha.")
 
+                    else:
+                        raise ValueError(
+                            "Sem permissão para alterar este cadastro. "
+                            "Use Alterar minha senha."
+                        )
+
+                    # Salvar alterações do Usuário
                     CadastroUsuario._exigir_sucesso(
-                        Usuario.salvar_autorizado(cd_operador, alteracoes)
+                        Usuario.salvar_autorizado(
+                            cd_operador,
+                            alteracoes
+                        )
                     )
-                    return {"sucesso": True, "cd_usuario": cd_usuario}
+
+                    return {
+                        "sucesso": True,
+                        "cd_usuario": cd_usuario
+                    }
+
         except (ValueError, TypeError, IntegrityError) as erro:
-            return {"sucesso": False, "erro": str(erro)}
+            return {
+                "sucesso": False,
+                "erro": str(erro)
+            }
+
 
     @staticmethod
     def niveis():

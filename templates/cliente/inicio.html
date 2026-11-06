@@ -1,0 +1,72 @@
+{% extends "cliente/base.html" %}
+{% block title %}Início | Área do Cliente — Juvaecom{% endblock %}
+{% block breadcrumb %}Início{% endblock %}
+
+{% block conteudo %}
+    <section class="cliente-boas-vindas" aria-labelledby="cliente-boas-vindas-titulo">
+        <p class="cliente-eyebrow">PAINEL DO CLIENTE</p>
+        <h1 id="cliente-boas-vindas-titulo">Bem-vindo(a) à Juvaecom!</h1>
+        <p>
+            Sua autenticação foi realizada com sucesso.
+            Este é o espaço reservado para acompanhar os serviços
+            e recursos da sua loja.
+        </p>
+        <div class="cliente-boas-vindas__estado">
+            <span class="cliente-ponto" aria-hidden="true"></span>
+            Acesso autenticado
+        </div>
+    </section>
+
+    <section class="cliente-modulos" aria-labelledby="cliente-modulos-titulo">
+        <div class="cliente-secao__cabecalho">
+            <div>
+                <h2 id="cliente-modulos-titulo">Funcionalidades da plataforma</h2>
+                <p>Estamos preparando os módulos que estarão disponíveis neste painel.</p>
+            </div>
+        </div>
+
+        <div class="cliente-modulos__grade">
+            <article class="cliente-modulo">
+                <span class="cliente-modulo__icone" aria-hidden="true">▣</span>
+                <h3>Produtos</h3>
+                <p>Consulte e acompanhe os produtos da sua loja.</p>
+                <span class="cliente-modulo__status">Em desenvolvimento</span>
+            </article>
+
+            <article class="cliente-modulo">
+                <span class="cliente-modulo__icone" aria-hidden="true">▤</span>
+                <h3>Calculadora Shopee</h3>
+                <p>Simule custos, taxas e margens de venda.</p>
+                <span class="cliente-modulo__status">Integração futura</span>
+            </article>
+
+            <article class="cliente-modulo">
+                <span class="cliente-modulo__icone" aria-hidden="true">▧</span>
+                <h3>Meus Contratos</h3>
+                <p>Consulte as informações dos serviços contratados.</p>
+                <span class="cliente-modulo__status">Em desenvolvimento</span>
+            </article>
+
+            <article class="cliente-modulo">
+                <span class="cliente-modulo__icone" aria-hidden="true">▦</span>
+                <h3>Minhas Lojas</h3>
+                <p>Acompanhe as lojas vinculadas ao seu cadastro.</p>
+                <span class="cliente-modulo__status">Em desenvolvimento</span>
+            </article>
+
+            <article class="cliente-modulo">
+                <span class="cliente-modulo__icone" aria-hidden="true">◎</span>
+                <h3>Minha Conta</h3>
+                <p>Consulte e gerencie seus dados de acesso.</p>
+                <span class="cliente-modulo__status">Em desenvolvimento</span>
+            </article>
+
+            <article class="cliente-modulo">
+                <span class="cliente-modulo__icone" aria-hidden="true">◇</span>
+                <h3>Suporte</h3>
+                <p>Entre em contato e acompanhe suas solicitações.</p>
+                <span class="cliente-modulo__status">Em desenvolvimento</span>
+            </article>
+        </div>
+    </section>
+{% endblock %}

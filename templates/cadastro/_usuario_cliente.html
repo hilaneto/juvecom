@@ -1,0 +1,87 @@
+{# Parcial carregado apenas no formulário de Clientes. #}
+{% set conta_cliente = usuario|default({}, true) %}
+{% set tem_usuario = conta_cliente.get('cd_usuario') is not none %}
+{% set master = session.get('cd_nivel') == 0 %}
+
+<div class="usuario-cliente">
+    
+    <hr class="pessoa-form__divisor">
+    <h2 class="pessoa-form__titulo">Dados do Usuário</h2>
+
+    {% if tem_usuario %}
+        <p class="usuario-cliente__aviso">
+            Usuário vinculado ao cliente: <strong>{{ conta_cliente.cd_usuario }}</strong>.
+        </p>
+    {% else %}
+        <p class="usuario-cliente__aviso">Este cliente ainda não possui usuário de acesso.</p>
+    {% endif %}
+
+    {% if master %}
+        <label class="usuario-cliente__opcao" for="gerenciar_usuario">
+            <input type="checkbox"
+                id="gerenciar_usuario"
+                name="gerenciar_usuario"
+                value="1"
+                {% if tem_usuario or conta_cliente.get('gerenciar_usuario') %}checked{% endif %}>
+
+            <span>
+                {{ 'Atualizar dados de acesso' if tem_usuario else 'Criar usuário de acesso' }}
+            </span>
+        </label>
+
+
+        <div class="usuario-cliente__grade{% if not tem_usuario %} usuario-cliente__grade--novo{% endif %}">
+            <div class="usuario-cliente__campo">
+                <label for="usuario_login">Login</label>
+                <input type="text" id="usuario_login" name="usuario_login" maxlength="100"
+                       value="{{ conta_cliente.get('login', '') }}" autocomplete="off"
+                       data-usuario-editavel>
+            </div>
+
+            <div class="usuario-cliente__campo">
+                <label for="usuario_nivel">Nível de acesso</label>
+                <input type="text" id="usuario_nivel" value="5 - Cliente" readonly disabled>
+            </div>
+
+            {% if tem_usuario %}
+                <div class="usuario-cliente__campo">
+                    <label for="usuario_fl_ativo">Situação</label>
+                    <select id="usuario_fl_ativo" name="usuario_fl_ativo" data-usuario-editavel>
+                        <option value="1" {% if conta_cliente.get('fl_ativo') %}selected{% endif %}>Ativo</option>
+                        <option value="0" {% if not conta_cliente.get('fl_ativo') %}selected{% endif %}>Inativo</option>
+                    </select>
+                </div>
+            {% endif %}
+        </div>
+
+        <small class="usuario-cliente__nota">
+            Marque a opção para criar ou modificar o acesso. Sem marcar, salvar o cliente não altera o usuário.
+            A senha inicial exige alteração no primeiro acesso.
+        </small>
+
+        <script>
+            (function () {
+                const checkbox = document.getElementById('gerenciar_usuario');
+                const login = document.getElementById('usuario_login');
+                const editaveis = document.querySelectorAll('[data-usuario-editavel]');
+                if (!checkbox || !login) return;
+
+                function atualizarCampos() {
+                    editaveis.forEach(campo => { campo.disabled = !checkbox.checked; });
+                    login.required = checkbox.checked;
+                }
+
+                checkbox.addEventListener('change', atualizarCampos);
+                atualizarCampos();
+            })();
+        </script>
+    {% else %}
+        <p class="usuario-cliente__aviso">Somente o Master pode criar ou modificar usuários de clientes.</p>
+        {% if tem_usuario %}
+            <p class="usuario-cliente__aviso">
+                Login: <strong>{{ conta_cliente.get('login', '') }}</strong>
+                — Situação: {{ 'Ativo' if conta_cliente.get('fl_ativo') else 'Inativo' }}
+            </p>
+        {% endif %}
+    {% endif %}
+</div>

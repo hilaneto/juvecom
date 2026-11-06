@@ -1,19 +1,17 @@
-
+from peewee import IntegrityError
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
-
-from peewee import IntegrityError
-
 from database.conexao import db, conectar
 from models.pessoa import Pessoa
 from models.cliente import Cliente
 from models.loja import Loja
+from models.usuario import Usuario
 
 
 class CadastroCliente:
 
     @staticmethod
-    def incluir(pessoa: dict, cliente: dict, lojas=None):
+    def incluir(pessoa: dict, cliente: dict, lojas=None, usuario=None, cd_operador=None):
         try:
             if not isinstance(pessoa, dict) or not isinstance(cliente, dict):
                 raise ValueError("Informe os dados da pessoa e do cliente.")
@@ -44,29 +42,20 @@ class CadastroCliente:
                         registro = encontrados[0]
 
                         if registro.tp_pessoa != tipo.strip().upper():
-                            raise ValueError(
-                                "CPF/CNPJ incompatível com o tipo de pessoa."
-                            )
-
+                            raise ValueError("CPF/CNPJ incompatível com o tipo de pessoa.")
                         cd_pessoa = registro.cd_pessoa
 
                     else:
                         resultado = Pessoa.incluir(pessoa)
-
                         if not resultado["sucesso"]:
                             raise ValueError(resultado["erro"])
-
                         cd_pessoa = resultado["cd_pessoa"]
 
                     # 2. Impedir duplicidade de Cliente
-                    existente = Cliente.get_or_none(
-                        Cliente.cd_pessoa == cd_pessoa
-                    )
+                    existente = Cliente.get_or_none(Cliente.cd_pessoa == cd_pessoa)
 
                     if existente is not None:
-                        raise ValueError(
-                            "Esta pessoa já possui cadastro de Cliente."
-                        )
+                        raise ValueError("Esta pessoa já possui cadastro de Cliente.")
 
                     # 3. Cadastrar Cliente
                     resultado = Cliente.incluir({
@@ -99,12 +88,11 @@ class CadastroCliente:
 
                         quantidade_lojas += 1
 
-            return {
-                "sucesso": True,
-                "cd_pessoa": cd_pessoa,
-                "cd_cliente": cd_cliente,
-                "lojas": quantidade_lojas
-            }
+                    # 5. Cadastrar usuário, quando solicitado
+                    cd_usuario = CadastroCliente._salvar_usuario(cd_operador, cd_pessoa, usuario)
+
+
+            return {"sucesso": True, "cd_pessoa": cd_pessoa, "cd_cliente": cd_cliente, "lojas": quantidade_lojas, "cd_usuario": cd_usuario}
 
         except (ValueError, TypeError) as erro:
             return {"sucesso": False, "erro": str(erro)}
@@ -209,29 +197,38 @@ class CadastroCliente:
                 )
             ]
 
+            # 5. Consultar usuário vinculado ao Cliente
+            conta = Usuario.get_or_none(
+                Usuario.cd_pessoa == cadastro.cd_pessoa
+            )
+
+            usuario = {
+                "cd_usuario": conta.cd_usuario if conta else None,
+                "login": conta.login if conta else "",
+                "cd_nivel": conta.cd_nivel if conta else 5,
+                "fl_ativo": conta.fl_ativo if conta else False
+            }
+
+
             return {
                 "sucesso": True,
                 "dados": dados,
                 "cliente": cliente,
                 "loja": lojas[0] if lojas else {},
-                "lojas": lojas
-            }
+                "lojas": lojas,
+                "usuario": usuario
+            }        
+
 
     @staticmethod
-    def atualizar(
-        cd_cliente: int,
-        pessoa: dict,
-        cliente: dict,
-        lojas=None
-    ):
+    def atualizar(cd_cliente: int, pessoa: dict, cliente: dict, lojas=None, usuario=None, cd_operador=None):
+
         try:
             with conectar():
                 with db.atomic():
 
                     # 1. Localizar Cliente
-                    encontrados = Cliente.buscar(
-                        cd_cliente=cd_cliente
-                    )
+                    encontrados = Cliente.buscar(cd_cliente=cd_cliente)
 
                     if not encontrados:
                         raise ValueError("Cliente não encontrado.")
@@ -239,22 +236,14 @@ class CadastroCliente:
                     cadastro = encontrados[0]
 
                     # 2. Atualizar Pessoa vinculada
-                    pessoa = {
-                        **pessoa,
-                        "cd_pessoa": cadastro.cd_pessoa
-                    }
-
+                    pessoa = {**pessoa, "cd_pessoa": cadastro.cd_pessoa}
                     resultado = Pessoa.atualizar(pessoa)
 
                     if not resultado["sucesso"]:
                         raise ValueError(resultado["erro"])
 
                     # 3. Atualizar Cliente
-                    cliente = {
-                        **cliente,
-                        "cd_cliente": cd_cliente
-                    }
-
+                    cliente = {**cliente, "cd_cliente": cd_cliente}
                     resultado = Cliente.atualizar(cliente)
 
                     if not resultado["sucesso"]:
@@ -262,43 +251,100 @@ class CadastroCliente:
 
                     # 4. Atualizar ou incluir Lojas
                     for loja in lojas or []:
-
                         codigo = loja.get("cd_loja")
 
-                        if codigo not in (None, ""):                            
-                            resultado = Loja.atualizar({
-                                **loja,
-                                "cd_cliente": cd_cliente
-                            })
+                        if codigo not in (None, ""):
+                            resultado = Loja.atualizar({**loja, "cd_cliente": cd_cliente})
                         else:
-                            if not any(
-                                loja.get(campo) not in (None, "")
-                                for campo in (
-                                    "nm_loja",
-                                    "shop_id",
-                                    "url_loja"
-                                )
-                            ):
-                                continue
+                            if not any(loja.get(campo) not in (None, "")
+                                       for campo in ("nm_loja", "shop_id", "url_loja")):
+                                 continue
 
-                            resultado = Loja.incluir({
-                                **loja,
-                                "cd_cliente": cd_cliente
-                            })
+                            resultado = Loja.incluir({**loja, "cd_cliente": cd_cliente})
 
                         if not resultado["sucesso"]:
                             raise ValueError(resultado["erro"])
 
-            return {
-                "sucesso": True,
-                "cd_cliente": cd_cliente
-            }
+                    # 5. Criar ou atualizar Usuário
+                    cd_usuario = CadastroCliente._salvar_usuario(cd_operador, cadastro.cd_pessoa, usuario)
+
+                return {"sucesso": True, "cd_cliente": cd_cliente, "cd_usuario": cd_usuario}
 
         except (ValueError, TypeError) as erro:
             return {"sucesso": False, "erro": str(erro)}
 
         except IntegrityError:
-            return {
-                "sucesso": False,
-                "erro": "Não foi possível atualizar o cadastro do Cliente."
+            return {"sucesso": False, "erro": "Não foi possível atualizar o cadastro do Cliente."}
+
+
+    @staticmethod
+    def _salvar_usuario(cd_operador, cd_pessoa, usuario):
+        # Cadastro de usuário não solicitado
+        if usuario is None:
+            return None
+
+        if not isinstance(usuario, dict):
+            raise ValueError("Dados do usuário inválidos.")
+
+        # Somente Master administra acessos
+        operador = Usuario.get_or_none(
+            (Usuario.cd_usuario == cd_operador) &
+            (Usuario.cd_nivel == 0) &
+            (Usuario.fl_ativo == True)
+        )
+
+        if operador is None:
+            raise ValueError(
+                "Somente Master pode administrar usuários clientes."
+            )
+
+        # Verificar vínculo com cliente ativo
+        if not Usuario._cliente_ativo(cd_pessoa):
+            raise ValueError(
+                "A pessoa precisa possuir um cliente ativo."
+            )
+
+        pessoa = Pessoa.get_or_none(
+            Pessoa.cd_pessoa == cd_pessoa
+        )
+
+        # Identificar usuário existente pela Pessoa
+        existente = Usuario.get_or_none(
+            Usuario.cd_pessoa == cd_pessoa
+        )
+
+        if existente is None:
+            # Criar usuário cliente
+            dados = {
+                "documento_pessoa": pessoa.cpf_cnpj,
+                "login": usuario.get("login", ""),
+                "cd_nivel": 5
             }
+
+        else:
+            if existente.cd_nivel != 5:
+                raise ValueError(
+                    "Esta pessoa já possui um usuário "
+                    "com outro nível de acesso."
+                )
+
+            # Atualizar usuário cliente
+            dados = {
+                "cd_usuario": existente.cd_usuario,
+                "cd_nivel": 5
+            }
+
+            if "login" in usuario:
+                dados["login"] = usuario["login"]
+
+            if "fl_ativo" in usuario:
+                dados["fl_ativo"] = usuario["fl_ativo"]
+
+        resultado = Usuario.salvar_autorizado(
+            cd_operador, dados
+        )
+
+        if not resultado["sucesso"]:
+            raise ValueError(resultado["erro"])
+
+        return resultado["cd_usuario"]

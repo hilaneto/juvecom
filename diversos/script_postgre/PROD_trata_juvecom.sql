@@ -77,12 +77,28 @@ select * from tb_cliente;
 select * from tb_pessoa a inner join tb_cliente b
 on a.cd_pessoa = b.cd_pessoa
 
+select 34*600
+
 
 select * from tb_pessoa a inner join tb_cliente b
 on a.cd_pessoa = b.cd_pessoa
 inner join tb_loja c
 on b.cd_cliente = c.cd_cliente
 
+where cpf_cnpj = '48463520057'
+
+select * from tb_pessoa
+where cpf_cnpj = '48463520057'
+
+
+select * delete from tb_pessoa
+where cd_pessoa = 21
+
+select * from tb_cliente
+where cd_pessoa = 21
+
+select * from tb_loja
+where cd_cliente = 8
 
 -- tb_usuario ------------------------------------------------
 
@@ -93,10 +109,25 @@ select * from tb_usuario;
 select * from tb_pessoa a inner join tb_usuario b
 on a.cd_pessoa = b.cd_pessoa
 
-
 -- -----------------------------
 select * from tb_pessoa_relacao;
 
+
+-- Área de Clientes -------------------------------------------
+
+SELECT
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'tb_usuario'
+ORDER BY ordinal_position;
+
+select * from tb_usuario;
+
+select * from tb_usuario_nivel;
 
 
 

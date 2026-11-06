@@ -1,4 +1,3 @@
-
 {% extends "adm_base.html" %}
 
 {% block title %}{{ titulo }} | Juvecom{% endblock %}
@@ -87,10 +86,6 @@
                    name="csrf_token"
                    value="{{ session['csrf_token'] }}">
 
-            <input type="hidden"
-                name="cd_usuario"
-                value="{{ selecionado if selecionado is not none else '' }}">                   
-
             <!-- IDENTIFICADORES -->
 
             {% if tipo_cadastro == 'cliente' %}
@@ -133,6 +128,11 @@
 
                 <section class="cadastro-grupo">
                     {% include "cadastro/_loja.html" %}
+                </section>
+
+                <!-- NOVO: DADOS DE ACESSO DO CLIENTE -->
+                <section class="cadastro-grupo cadastro-grupo--usuario">
+                    {% include "cadastro/_usuario_cliente.html" %}
                 </section>
 
             {% elif tipo_cadastro == 'usuario' %}

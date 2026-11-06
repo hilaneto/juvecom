@@ -1,33 +1,104 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Juvaecom | Gestão de lojas Shopee</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/juvaecom.css') }}">
 </head>
+
 <body>
+
+    <!-- =========================================
+         MENU PRINCIPAL
+         ========================================= -->
     <nav class="menu-principal" aria-label="Menu principal">
-        <a class="menu-principal__marca" href="{{ url_for('home') }}">
+
+        <a class="menu-principal__marca"
+           href="{{ url_for('home') }}">
             Juva<span>ecom</span>
         </a>
 
         <div class="menu-principal__links">
+
             <a href="{{ url_for('plano') }}">Planos</a>
             <a href="{{ url_for('contato') }}">Contato</a>
-            <a href="{{ url_for('adm') }}">Área administrativa</a>
+
+            {% if session.get('cd_usuario') is not none %}
+
+                <!-- CLIENTE: NÍVEL 5 -->
+                {% if session.get('cd_nivel') == 5 %}
+
+                    <a href="{{ url_for('cliente_inicio') }}">
+                        Área do Cliente
+                    </a>
+
+                <!-- USUÁRIOS ADMINISTRATIVOS -->
+                {% else %}
+
+                    <a href="{{ url_for('adm') }}">
+                        Área administrativa
+                    </a>
+
+                {% endif %}
+
+                <!-- ENCERRAR SESSÃO -->
+                <form class="menu-principal__sair"
+                      method="post"
+                      action="{{ url_for('logout') }}">
+
+                    <input type="hidden"
+                           name="csrf_token"
+                           value="{{ session.get('csrf_token', '') }}">
+
+                    <button type="submit">Sair</button>
+
+                </form>
+
+            {% else %}
+
+                <!-- VISITANTE NÃO AUTENTICADO -->
+                <a href="{{ url_for('login') }}">
+                    Entrar
+                </a>
+
+            {% endif %}
+
         </div>
+
     </nav>
 
+
+    <!-- =========================================
+         CONTEÚDO PRINCIPAL DA HOME
+         ========================================= -->
     <main class="home">
+
+        <!-- IMAGEM DE FUNDO -->
         <div class="home__imagem" aria-hidden="true">
-            <img src="{{ url_for('static', filename='img/juvaecom.jpg') }}" alt="">
+
+            <img src="{{ url_for('static', filename='img/juvaecom.jpg') }}"
+                 alt="">
+
         </div>
 
-        <div class="home__conteudo">
-            <div class="home__categoria">Gestão de lojas Shopee</div>
 
-            <h1>O próximo nível da sua loja <span>começa agora.</span></h1>
+        <!-- APRESENTAÇÃO -->
+        <div class="home__conteudo">
+
+            <div class="home__categoria">
+                Gestão de lojas Shopee
+            </div>
+
+            <h1>
+                O próximo nível da sua loja
+                <span>começa agora.</span>
+            </h1>
 
             <p class="home__descricao">
                 Anúncios bem apresentados, campanhas acompanhadas de perto
@@ -35,27 +106,45 @@
                 para sua loja evoluir.
             </p>
 
-            <a class="home__botao" href="{{ url_for('plano') }}">
+            <a class="home__botao"
+               href="{{ url_for('plano') }}">
                 Conheça nossos planos
             </a>
-          
+
+
+            <!-- INSTAGRAM -->
             <a class="home__instagram"
-            href="https://www.instagram.com/juvaecom/"
-            target="_blank" rel="noopener noreferrer">
+               href="https://www.instagram.com/juvaecom/"
+               target="_blank"
+               rel="noopener noreferrer">
+
                 <img src="{{ url_for('static', filename='img/instagram.png') }}"
-                    alt="" width="30" height="30">
+                     alt=""
+                     width="30"
+                     height="30">
+
                 <span>@juvaecom</span>
+
             </a>
 
         </div>
+
     </main>
 
+
+    <!-- =========================================
+         RODAPÉ
+         ========================================= -->
     <footer class="home__credito">
+
         <span>
             © 2026 | Desenvolvido por JHAN Dados e Tecnologia ·
             CNPJ 52.268.829/0001-73 ·
-            <a href="mailto:jhandados@gmail.com">jhandados@gmail.com</a>
+            <a href="mailto:jhandados@gmail.com">
+                jhandados@gmail.com
+            </a>
         </span>
+
     </footer>
 
 </body>

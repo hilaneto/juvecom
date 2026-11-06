@@ -14,14 +14,14 @@ from models.cadastro_usuario import CadastroUsuario
 from models.cliente import Cliente
 from zoneinfo import ZoneInfo
 
-
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 
 app.config.update(
-    PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
+    SESSION_REFRESH_EACH_REQUEST=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "False") == "True"
@@ -36,13 +36,12 @@ def login_obrigatorio(funcao):
             session.clear()
             return redirect(url_for("login"))
 
-        usuarios = Usuario.buscar(cd_usuario=cd_usuario, fl_ativo=True)
+        usuario = Usuario.validar_sessao(cd_usuario)
 
-        if not usuarios:
+        if usuario is None:
             session.clear()
             return redirect(url_for("login"))
 
-        usuario = usuarios[0]
         session["cd_nivel"] = usuario.cd_nivel
         session["login"] = usuario.login
 
@@ -53,6 +52,16 @@ def login_obrigatorio(funcao):
         return funcao(*args, **kwargs)
 
     return protegida
+
+
+def acesso_administrativo(funcao):
+    @wraps(funcao)
+    def protegida(*args, **kwargs):
+        if session.get("cd_nivel") not in (0, 1, 2, 3, 4):
+            abort(403)
+        return funcao(*args, **kwargs)
+    return protegida
+
 
 
 def validar_csrf():
@@ -111,7 +120,13 @@ def login():
             session["csrf_token"] = secrets.token_urlsafe(32)
             session.permanent = True
 
-            destino = "trocar_senha" if resultado["status"] == 2 else "adm"
+            if resultado["status"] == 2:
+                destino = "trocar_senha"
+            elif usuario.cd_nivel == 5:
+                destino = "cliente_inicio"
+            else:
+                destino = "adm"
+
             return redirect(url_for(destino))
 
         erro = "Login ou senha inválidos."
@@ -124,12 +139,14 @@ def login():
 
 @app.route("/adm")
 @login_obrigatorio
+@acesso_administrativo
 def adm():
     return redirect(url_for("adm_contato"))
 
 
 @app.route("/adm/contatos", methods=["GET", "POST"])
 @login_obrigatorio
+@acesso_administrativo
 def adm_contato():
     erro = None
     dados = {}
@@ -215,6 +232,7 @@ def adm_contato():
 
 @app.route("/adm/usuarios", methods=["GET", "POST"])
 @login_obrigatorio
+@acesso_administrativo
 def adm_usuario():
     cd_operador = session["cd_usuario"]
     nivel = session["cd_nivel"]
@@ -441,7 +459,10 @@ def trocar_senha():
 
         if resultado["sucesso"]:
             session["csrf_token"] = secrets.token_urlsafe(32)
-            return redirect(url_for("adm"))
+            destino = "cliente_inicio" if session["cd_nivel"] == 5 else "adm"
+            return redirect(url_for(destino))
+
+
 
         erro = resultado["erro"]
 
@@ -461,6 +482,7 @@ def logout():
 
 @app.route("/adm/usuarios/<int:cd_usuario>/resetar-senha", methods=["POST"])
 @login_obrigatorio
+@acesso_administrativo
 def resetar_senha_usuario(cd_usuario):
     validar_csrf()
 
@@ -475,112 +497,270 @@ def resetar_senha_usuario(cd_usuario):
     return redirect(url_for("adm_usuario", senha_resetada=1))
 
 
+@app.route("/cliente")
+@login_obrigatorio
+def cliente_inicio():
+    if session["cd_nivel"] != 5:
+        abort(403)
+    return render_template("cliente/inicio.html")
+
+
+
 @app.route("/adm/clientes", methods=["GET", "POST"])
 @login_obrigatorio
+@acesso_administrativo
 def adm_cliente():
+
+    # Permissão para acessar o cadastro de clientes
     if session["cd_nivel"] not in (0, 1):
         abort(403)
 
-    hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date().isoformat()
+    hoje = datetime.now(
+        ZoneInfo("America/Sao_Paulo")
+    ).date().isoformat()
 
-    dados, loja = {}, {}
+    # Inicialização dos dados do formulário
+    dados = {}
     cliente = {"dt_cadastro": hoje}
+    loja = {}
     lojas = []
+    usuario = {}
+
     erro = None
     selecionado = None
 
-    # Inclusão de cliente
+    # ======================================================
+    # POST - INCLUSÃO, ALTERAÇÃO E EXCLUSÃO
+    # ======================================================
     if request.method == "POST":
+
         validar_csrf()
+
         formulario = request.form.to_dict()
 
         acao = formulario.get("acao", "salvar")
         cd_cliente = formulario.get("cd_cliente", "").strip()
 
+        # --------------------------------------------------
+        # EXCLUSÃO LÓGICA DO CLIENTE
+        # --------------------------------------------------
         if acao == "excluir":
+
             if not cd_cliente.isdigit():
                 erro = "Código do cliente não informado."
+
             else:
                 resultado = Cliente.excluir(int(cd_cliente))
 
                 if resultado["sucesso"]:
-                    return redirect(url_for("adm_cliente", excluido=1))
+                    return redirect(
+                        url_for("adm_cliente", excluido=1)
+                    )
 
                 erro = resultado["erro"]
                 selecionado = int(cd_cliente)
 
+        # --------------------------------------------------
+        # INCLUSÃO OU ALTERAÇÃO DO CLIENTE
+        # --------------------------------------------------
         elif acao == "salvar":
+
+            # Dados de acesso do cliente
+            usuario = {
+                "login": formulario.get(
+                    "usuario_login", ""
+                ).strip(),
+
+                "fl_ativo": (
+                    formulario.get("usuario_fl_ativo", "1") == "1"
+                ),
+
+                "gerenciar_usuario": (
+                    formulario.get("gerenciar_usuario") == "1"
+                )
+            }
+
+            # O usuário é opcional.
+            # Somente o Master pode criar ou alterar acesso.
+            dados_usuario = None
+
+            if usuario["gerenciar_usuario"]:
+
+                if session["cd_nivel"] != 0:
+                    abort(403)
+
+                dados_usuario = {
+                    "login": usuario["login"],
+                    "fl_ativo": usuario["fl_ativo"]
+                }
+
+            # ----------------------------------------------
+            # DADOS DA PESSOA
+            # ----------------------------------------------
             dados = {
                 campo: formulario.get(campo, "")
-                for campo in ("tp_pessoa", "nm_pessoa", "cpf_cnpj", "telefone", "email")
+                for campo in (
+                    "tp_pessoa",
+                    "nm_pessoa",
+                    "cpf_cnpj",
+                    "telefone",
+                    "email"
+                )
             }
 
+            # Endereço armazenado em JSONB
             dados["dados"] = {
                 campo: formulario.get(campo, "")
-                for campo in ("endereco", "numero", "complemento", "bairro", "cep", "cidade", "uf")
+                for campo in (
+                    "endereco",
+                    "numero",
+                    "complemento",
+                    "bairro",
+                    "cep",
+                    "cidade",
+                    "uf"
+                )
             }
 
+            # ----------------------------------------------
+            # DADOS DO CLIENTE
+            # ----------------------------------------------
             cliente = {
                 campo: formulario.get(campo, "")
-                for campo in ("nm_responsavel", "cd_contato", "dt_cadastro")
+                for campo in (
+                    "nm_responsavel",
+                    "cd_contato",
+                    "dt_cadastro"
+                )
             }
 
+            # ----------------------------------------------
+            # DADOS DA LOJA
+            # ----------------------------------------------
             loja = {
                 campo: formulario.get(campo, "")
-                for campo in ("cd_loja", "nm_loja", "shop_id", "url_loja")
+                for campo in (
+                    "cd_loja",
+                    "nm_loja",
+                    "shop_id",
+                    "url_loja"
+                )
             }
 
-            lojas = [loja] if any(valor.strip() for valor in loja.values()) else []
+            lojas = (
+                [loja]
+                if any(valor.strip() for valor in loja.values())
+                else []
+            )
 
+            # ----------------------------------------------
+            # GRAVAÇÃO DO CLIENTE E USUÁRIO
+            # ----------------------------------------------
             if cd_cliente:
-                resultado = CadastroCliente.atualizar(int(cd_cliente), dados, cliente, lojas)
+
+                if not cd_cliente.isdigit():
+                    erro = "Código do cliente inválido."
+
+                else:
+                    resultado = CadastroCliente.atualizar(
+                        int(cd_cliente),
+                        dados,
+                        cliente,
+                        lojas,
+                        usuario=dados_usuario,
+                        cd_operador=session["cd_usuario"]
+                    )
+
+                    if resultado["sucesso"]:
+                        return redirect(
+                            url_for("adm_cliente", sucesso=1)
+                        )
+
+                    erro = resultado["erro"]
+                    selecionado = int(cd_cliente)
+
             else:
-                resultado = CadastroCliente.incluir(dados, cliente, lojas)
 
-            if resultado["sucesso"]:
-                return redirect(url_for("adm_cliente", sucesso=1))
+                resultado = CadastroCliente.incluir(
+                    dados,
+                    cliente,
+                    lojas,
+                    usuario=dados_usuario,
+                    cd_operador=session["cd_usuario"]
+                )
 
-            erro = resultado["erro"]
-            selecionado = int(cd_cliente) if cd_cliente else None
+                if resultado["sucesso"]:
+                    return redirect(
+                        url_for("adm_cliente", sucesso=1)
+                    )
+
+                erro = resultado["erro"]
 
         else:
             abort(400)
 
-    # Listagem exclusiva de clientes
+    # ======================================================
+    # LISTAGEM EXCLUSIVA DE CLIENTES
+    # ======================================================
     registros = CadastroCliente.listar()
 
-    # Seleção de cliente para consulta
+    # ======================================================
+    # GET - CONSULTA DO CLIENTE SELECIONADO
+    # ======================================================
     if request.method == "GET":
-        cd_cliente = request.args.get("cd_cliente", type=int)
+
+        cd_cliente = request.args.get(
+            "cd_cliente",
+            type=int
+        )
 
         if cd_cliente is not None:
+
             resultado = CadastroCliente.buscar(cd_cliente)
 
             if resultado["sucesso"]:
+
                 dados = resultado["dados"]
                 cliente = resultado["cliente"]
                 loja = resultado["loja"]
                 lojas = resultado["lojas"]
+
+                # Recupera o usuário vinculado ao cliente,
+                # quando existir.
+                usuario = resultado.get("usuario") or {}
+
                 selecionado = cd_cliente
+
             else:
                 erro = resultado["erro"]
 
+    # ======================================================
+    # RENDERIZAÇÃO DO FORMULÁRIO
+    # ======================================================
     return render_template(
         "cadastro/cadastro.html",
+
         titulo="Clientes",
         tipo_cadastro="cliente",
+
         dados=dados,
         cliente=cliente,
         loja=loja,
         lojas=lojas,
+        usuario=usuario,
+
         registros=registros,
         selecionado=selecionado,
         erro=erro,
+
         sucesso=request.args.get("sucesso") == "1",
+
         hoje=hoje,
+
         url_cadastro=url_for("adm_cliente"),
         url_novo=url_for("adm_cliente")
     )
+
 
 
 @app.errorhandler(OperationalError)
@@ -591,6 +771,16 @@ def erro_conexao_banco(erro):
             "Se estava salvando dados, confira se foram gravados antes de tentar novamente.<br>"
             "Por favor, atualize/recarregue esta página.",503)
 
+# if __name__ == "__main__":
+#     print(app.url_map)
+#     app.run(host="0.0.0.0", port=5155, debug=True)
+
+
 if __name__ == "__main__":
     print(app.url_map)
-    app.run(host="0.0.0.0", port=5155, debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=5155,
+        debug=True,
+        use_reloader=False
+    )    

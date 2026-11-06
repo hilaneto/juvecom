@@ -21,6 +21,44 @@ class Usuario(Model):
         table_name = "tb_usuario"
 
 
+
+    @staticmethod
+    def _cliente_ativo(cd_pessoa):
+        from models.cliente import Cliente
+
+        pessoa_ativa = Pessoa.select().where(
+            (Pessoa.cd_pessoa == cd_pessoa) &
+            (Pessoa.fl_ativo == True)
+        ).exists()
+
+        if not pessoa_ativa:
+            return False
+
+        return Cliente.select().where(
+            (Cliente.cd_pessoa == cd_pessoa) &
+            (Cliente.fl_ativo == True)
+        ).exists()
+
+
+
+    @staticmethod
+    def validar_sessao(cd_usuario):
+        with conectar():
+            usuario = Usuario.get_or_none(
+                (Usuario.cd_usuario == cd_usuario) &
+                (Usuario.fl_ativo == True))
+
+            if usuario is None:
+                return None
+
+            # Verificar situação do cliente
+            if usuario.cd_nivel == 5:
+                if not Usuario._cliente_ativo(usuario.cd_pessoa):
+                    return None
+
+            return usuario
+
+
     @staticmethod
     def buscar(cd_usuario=None, fl_ativo=None):
         with conectar():
@@ -44,14 +82,33 @@ class Usuario(Model):
             return {"status": 0, "usuario": None}
 
         with conectar():
-            usuario = Usuario.get_or_none((Usuario.login == login.strip()) & (Usuario.fl_ativo == True))
+            usuario = Usuario.get_or_none(
+                (Usuario.login == login.strip()) &
+                (Usuario.fl_ativo == True)
+            )
 
-            if usuario is None or not check_password_hash(usuario.senha_hash, senha):
+            if usuario is None or not check_password_hash(
+                usuario.senha_hash, senha
+            ):
                 return {"status": 0, "usuario": None}
 
-            status = 2 if check_password_hash(usuario.senha_hash, SENHA_INICIAL) else 1
+            # Validar vínculo quando o usuário for Cliente
+            if usuario.cd_nivel == 5:
+                if not Usuario._cliente_ativo(usuario.cd_pessoa):
+                    return {"status": 0, "usuario": None}
+
+            # Verificar necessidade de troca da senha inicial
+            status = (
+                2 if check_password_hash(
+                    usuario.senha_hash, SENHA_INICIAL
+                ) else 1
+            )
 
         return {"status": status, "usuario": usuario}
+
+
+
+    
 
     @staticmethod
     def precisa_trocar_senha(cd_usuario):
@@ -219,6 +276,27 @@ class Usuario(Model):
 
                             if not continua_master and quantidade <= 1:
                                 return {"sucesso": False, "erro": "É necessário manter pelo menos um Master ativo."}
+
+
+                    # Validar vínculo na inclusão, mudança para nível 5
+                    # ou reativação de usuário cliente
+                    nivel_final = campos.get("cd_nivel", None if novo else usuario.cd_nivel)
+                    cd_pessoa_final = campos.get("cd_pessoa", None if novo else usuario.cd_pessoa)
+
+                    validar_cliente = (
+                        novo
+                        or (usuario is not None
+                            and usuario.cd_nivel != 5
+                            and nivel_final == 5)
+
+                        or (usuario is not None
+                            and usuario.cd_nivel == 5
+                            and campos.get("fl_ativo") is True))
+
+                    if nivel_final == 5 and validar_cliente:
+                        if not Usuario._cliente_ativo(cd_pessoa_final):
+                            return {"sucesso": False, "erro": "O usuário precisa estar vinculado a um cliente ativo."}
+
 
                     if not campos:
                         return {"sucesso": False, "erro": "Informe um campo para atualizar."}

@@ -1023,7 +1023,8 @@ h1 {
 }
 
 /* ==========================================================
-
+   HOME — Instagram e créditos
+   ========================================================== */
 /* Instagram na home: ícone e nome do perfil */
 .home__instagram {
     display: inline-flex;
@@ -1450,5 +1451,137 @@ h1 {
     }
     .promo-modal h2 {
         font-size: 46px;
+    }
+}
+
+
+/* ==========================================================
+   CADASTRO DE CLIENTES — DADOS DO USUÁRIO
+   Regras isoladas; não alterar a grade dos outros blocos.
+   ========================================================== */
+.pessoa-form > .cadastro-grupo--usuario {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.cadastro-grupo--usuario > .usuario-cliente {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
+.usuario-cliente .pessoa-form__titulo {
+    display: block;
+    margin: 0 0 14px !important;
+}
+
+.usuario-cliente__aviso {
+    display: block;
+    width: 100%;
+    margin: 0 0 14px;
+    color: var(--juv-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.pessoa-form .usuario-cliente .usuario-cliente__opcao {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 0 18px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.pessoa-form .usuario-cliente .usuario-cliente__opcao input[type="checkbox"] {
+    display: inline-block;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    accent-color: var(--juv-accent);
+}
+
+.usuario-cliente__opcao span {
+    width: auto;
+    min-width: 0;
+    white-space: normal;
+}
+
+.usuario-cliente__grade {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.usuario-cliente__grade--novo {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.usuario-cliente__campo {
+    min-width: 0;
+}
+
+.pessoa-form .usuario-cliente__campo label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pessoa-form .usuario-cliente__campo input,
+.pessoa-form .usuario-cliente__campo select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid var(--juv-border-input);
+    border-radius: 7px;
+    background: var(--juv-bg);
+    color: var(--juv-text);
+    font: inherit;
+    font-size: 13px;
+}
+
+.usuario-cliente__campo input:disabled,
+.usuario-cliente__campo select:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+}
+
+.usuario-cliente__nota {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    color: var(--juv-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+    .usuario-cliente__grade,
+    .usuario-cliente__grade--novo {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .usuario-cliente__grade,
+    .usuario-cliente__grade--novo {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
