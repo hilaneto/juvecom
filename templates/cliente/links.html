@@ -1,119 +1,267 @@
-{# templates/cliente/links.html — conteúdo da página administrativa #}
+
+{% extends "adm_base.html" %}
+
+{% block title %}Gerar Link | Juvaecom{% endblock %}
+
+{% block conteudo %}
+
+<p class="home__categoria">Clientes | Gerar Link</p>
+
+<section class="pessoa-card cliente-links">
+
+    <h2 class="pessoa-form__titulo">
+        Gerar Link de Cadastro
+    </h2>
+
+    <p>
+        Gere um link exclusivo para enviar ao futuro cliente
+        pelo WhatsApp. O link é válido por 7 dias ou até
+        a conclusão do cadastro.
+    </p>
+
+    <!-- GERAR LINK -->
+    <form method="POST"
+          action="{{ url_for('adm_cliente_links') }}">
+
+        <input type="hidden"
+               name="csrf_token"
+               value="{{ session['csrf_token'] }}">
+
+        <div class="pessoa-botoes">
+            <button type="submit"
+                    class="pessoa-botao pessoa-botao--salvar">
+                Gerar Link
+            </button>
+        </div>
+
+    </form>
+
+    <!-- MENSAGEM DE ERRO -->
+    {% if erro %}
+        <div class="contato-aviso contato-aviso--erro"
+             role="alert">
+            {{ erro }}
+        </div>
+    {% endif %}
+
+    <!-- LINK RECÉM-GERADO -->
+    {% if url_gerada %}
+
+        <div class="contato-aviso contato-aviso--sucesso"
+             role="status">
+
+            <strong>Link gerado com sucesso!</strong>
+
+            <div class="cliente-links__linha">
+
+                <input type="text"
+                       id="linkGerado"
+                       value="{{ url_gerada }}"
+                       readonly>
+
+                <button type="button"
+                        class="pessoa-botao"
+                        data-link="{{ url_gerada }}"
+                        onclick="copiarTexto(this.dataset.link)">
+                    Copiar
+                </button>
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+    <hr class="pessoa-form__divisor">
+
+    <!-- HISTÓRICO -->
+    <h2 class="pessoa-form__titulo">
+        Links gerados
+    </h2>
+
+    <div class="cliente-links__tabela">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Link</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for link in links %}
+
+                    {% set url = base_url ~ '/cadastro/' ~ link.token %}
+
+                    <tr>
+                        <td>{{ link.cd_link }}</td>
+
+                        <td>
+                            <div class="cliente-links__linha">
+
+                                <input type="text"
+                                       value="{{ url }}"
+                                       title="{{ url }}"
+                                       readonly>
+
+                                <button type="button"
+                                        class="pessoa-botao"
+                                        data-link="{{ url }}"
+                                        onclick="copiarTexto(this.dataset.link)">
+                                    Copiar
+                                </button>
+
+                            </div>
+                        </td>
+
+                        <td>
+                            {{ link.dt_criacao.strftime('%d/%m/%Y') }}
+                        </td>
+
+                        <td>
+                            {{ link.dt_criacao.strftime('%H:%M') }}
+                        </td>
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="4">
+                            Nenhum link gerado.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+        </table>
+
+    </div>
+
+    <p id="mensagem-copia"
+       role="status"
+       aria-live="polite"></p>
+
+</section>
+
 <style>
-  .links-cadastro { max-width: 1100px; width: 100%; }
-  .links-cadastro h2 { margin: 0 0 0.5rem; }
-  .links-cadastro p { margin: 0 0 1rem; }
-  .links-cadastro__form { margin: 1rem 0; }
-  .links-cadastro__botao {
-    display: inline-block; padding: 0.65rem 1rem; border: 1px solid #6d7784;
-    border-radius: 6px; background: #3b6ba5; color: #fff;
-    font: inherit; cursor: pointer;
-  }
-  .links-cadastro__botao--copiar { background: transparent; color: inherit; }
-  .links-cadastro__botao:hover { filter: brightness(1.13); }
-  .links-cadastro__aviso { padding: 0.85rem; margin: 1rem 0; border: 1px solid #6d7784; border-radius: 6px; }
-  .links-cadastro__aviso--erro { border-color: #c35c5c; }
-  .links-cadastro__aviso--sucesso { border-color: #4b9c72; }
-  .links-cadastro__tabela-wrapper { width: 100%; overflow-x: auto; }
-  .links-cadastro__tabela { width: 100%; border-collapse: collapse; }
-  .links-cadastro__tabela th, .links-cadastro__tabela td {
-    padding: 0.6rem 0.5rem; text-align: left; border-bottom: 1px solid #75757555;
-  }
-  .links-cadastro__tabela th { white-space: nowrap; }
-  .links-cadastro__campo-link { display: flex; gap: 0.5rem; align-items: center; min-width: 220px; }
-  .links-cadastro__input { flex: 1; width: 100%; min-width: 0; padding: 0.6rem;
-    border: 1px solid #777; border-radius: 6px; background: transparent; color: inherit; font: inherit; }
-  .links-cadastro__mensagem { min-height: 1.2rem; margin-top: 0.5rem; }
-  @media (max-width: 650px) {
-    .links-cadastro__campo-link { min-width: 300px; }
-    .links-cadastro__botao { padding: 0.55rem 0.75rem; }
-  }
+    .cliente-links {
+        max-width: 1100px;
+    }
+
+    .cliente-links__linha {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .cliente-links__linha input {
+        flex: 1;
+        min-width: 0;
+        padding: 9px;
+        border: 1px solid #999;
+        border-radius: 5px;
+        background: transparent;
+        color: inherit;
+    }
+
+    .cliente-links__linha button {
+        flex-shrink: 0;
+    }
+
+    .cliente-links__tabela {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .cliente-links__tabela table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .cliente-links__tabela th,
+    .cliente-links__tabela td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #8884;
+    }
+
+    .cliente-links__tabela th:nth-child(2) {
+        width: 65%;
+    }
+
+    .cliente-links__tabela td .cliente-links__linha {
+        margin-top: 0;
+    }
+
+    #mensagem-copia {
+        margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+        .cliente-links__linha {
+            flex-wrap: wrap;
+        }
+
+        .cliente-links__linha input {
+            flex-basis: 100%;
+        }
+    }
 </style>
 
-<main class="links-cadastro">
-  <h2>Gerar Link de Cadastro</h2>
-  <p>Gere um link exclusivo para enviar ao futuro cliente pelo WhatsApp. O link é válido por 7 dias ou até a conclusão do cadastro.</p>
-
-  <form class="links-cadastro__form" method="post" action="{{ url_for('adm_cliente_links') }}">
-    <input type="hidden" name="csrf_token" value="{{ session.get('csrf_token', '') }}">
-    <button type="submit" class="links-cadastro__botao">Gerar Link</button>
-  </form>
-
-  {% if erro %}
-    <div class="links-cadastro__aviso links-cadastro__aviso--erro" role="alert">{{ erro }}</div>
-  {% endif %}
-
-  {% if url_gerada %}
-    <div class="links-cadastro__aviso links-cadastro__aviso--sucesso" role="status">
-      <strong>Link gerado com sucesso!</strong>
-      <div class="links-cadastro__campo-link" style="margin-top: 0.7rem">
-        <input id="link-gerado" class="links-cadastro__input" type="text" value="{{ url_gerada }}" readonly aria-label="Link recém-gerado">
-        <button type="button" class="links-cadastro__botao links-cadastro__botao--copiar" onclick="copiarCampo(document.getElementById('link-gerado'))">Copiar</button>
-      </div>
-    </div>
-  {% endif %}
-
-  <h3>Links gerados</h3>
-  <div class="links-cadastro__tabela-wrapper">
-    <table class="links-cadastro__tabela">
-      <thead>
-        <tr><th>Código</th><th>Link</th><th>Data</th><th>Horário</th></tr>
-      </thead>
-      <tbody>
-      {% for link in links %}
-        {% set url = base_url ~ '/cadastro/' ~ link.token %}
-        <tr>
-          <td>{{ link.cd_link }}</td>
-          <td>
-            <div class="links-cadastro__campo-link">
-              <input class="links-cadastro__input" type="text" value="{{ url }}" readonly aria-label="Link {{ link.cd_link }}">
-              <button type="button" class="links-cadastro__botao links-cadastro__botao--copiar" onclick="copiarCampo(this.previousElementSibling)">Copiar</button>
-            </div>
-          </td>
-          <td>{{ link.dt_criacao.strftime('%d/%m/%Y') }}</td>
-          <td>{{ link.dt_criacao.strftime('%H:%M') }}</td>
-        </tr>
-      {% else %}
-        <tr><td colspan="4">Nenhum link gerado.</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <p id="links-cadastro-feedback" class="links-cadastro__mensagem" role="status" aria-live="polite"></p>
-</main>
-
 <script>
-  async function copiarCampo(campo) {
-    const texto = campo.value;
-    const feedback = document.getElementById('links-cadastro-feedback');
+async function copiarTexto(texto) {
 
-    if (navigator.clipboard && window.isSecureContext) {
-      try {
-        await navigator.clipboard.writeText(texto);
-        feedback.textContent = 'Link copiado com sucesso!';
-        return;
-      } catch (erro) {
-        // Usar a seleção do campo como alternativa.
-      }
+    const mensagem = document.getElementById(
+        "mensagem-copia"
+    );
+
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(texto);
+
+            mensagem.textContent = "Link copiado com sucesso!";
+            return;
+        }
+    } catch (erro) {
+        console.warn("Clipboard indisponível:", erro);
     }
+
+    // Alternativa para ambiente DEV em HTTP
+    const campo = document.createElement("textarea");
+
+    campo.value = texto;
+    campo.style.position = "fixed";
+    campo.style.left = "-9999px";
+
+    document.body.appendChild(campo);
 
     campo.focus();
     campo.select();
-    campo.setSelectionRange(0, campo.value.length);
 
     let copiado = false;
+
     try {
-      copiado = document.execCommand('copy');
+        copiado = document.execCommand("copy");
     } catch (erro) {
-      copiado = false;
+        copiado = false;
     }
 
+    document.body.removeChild(campo);
+
     if (copiado) {
-      feedback.textContent = 'Link copiado com sucesso!';
-      campo.setSelectionRange(0, 0);
-      campo.blur();
+        mensagem.textContent = "Link copiado com sucesso!";
     } else {
-      feedback.textContent = 'A cópia automática foi bloqueada. O link está selecionado: pressione Ctrl+C.';
+        mensagem.textContent =
+            "Não foi possível copiar automaticamente. " +
+            "Selecione o endereço e utilize Ctrl+C.";
     }
-  }
+}
 </script>
+
+{% endblock %}
