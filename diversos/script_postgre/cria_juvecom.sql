@@ -111,6 +111,26 @@ PRIMARY KEY (cd_pessoa, cd_relacao));
 
 -- As relações de pessoas devem ser cadastradas após criar as pessoas.
 
+
+-- ============================================================
+-- tb_cliente_status - drop table tb_cliente_status cascade
+-- ============================================================
+CREATE TABLE public.tb_cliente_status (
+cd_status SMALLINT PRIMARY KEY,
+nm_status VARCHAR(30) NOT NULL UNIQUE,
+ds_status VARCHAR(200) NOT NULL);
+
+
+INSERT INTO public.tb_cliente_status
+    (cd_status, nm_status, ds_status)
+VALUES (1, 'Pendente', 'Recebido, aguardando conferência ou em análise'),
+       (2, 'Aprovado', 'Dados conferidos, corrigidos e confirmados pelo analista'),
+       (3, 'Confirmado', 'Cliente acessou o site e definiu sua senha'),
+       (4, 'Reprovado', 'Cadastro encerrado sem aprovação')
+ON CONFLICT (cd_status) DO NOTHING;
+
+
+
 -- ============================================================
 -- tb_cliente - drop table tb_cliente cascade
 -- ============================================================
@@ -118,10 +138,13 @@ CREATE TABLE tb_cliente (
 cd_cliente BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 cd_pessoa BIGINT NOT NULL UNIQUE REFERENCES tb_pessoa(cd_pessoa),
 nm_responsavel VARCHAR(150),
-fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
 cd_contato BIGINT UNIQUE REFERENCES tb_contato(cd_contato),
+cd_status SMALLINT NOT NULL DEFAULT 2 REFERENCES tb_cliente_status(cd_status),
+fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
+
+select * from tb_cliente_status;
 
 --TRUNCATE TABLE tb_pessoa RESTART IDENTITY CASCADE;
 
@@ -445,6 +468,20 @@ fl_sucesso boolean NOT NULL DEFAULT true,
 ip_acesso inet,
 dt_evento timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
+
+-- ============================================================
+-- tb_cliente_link
+-- ============================================================
+CREATE TABLE public.tb_cliente_link (
+cd_link BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+token varchar(100) NOT NULL UNIQUE,
+cd_usuario BIGINT NOT NULL REFERENCES public.tb_usuario(cd_usuario),
+cd_cliente BIGINT REFERENCES public.tb_cliente(cd_cliente),
+dt_criacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_validade TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '7 days'),
+dt_utilizacao TIMESTAMPTZ,
+CONSTRAINT ck_cliente_link_validade CHECK (dt_validade > dt_criacao),
+CONSTRAINT ck_cliente_link_utilizacao CHECK ((dt_utilizacao IS NULL) = (cd_cliente IS NULL)));
 
 
 -- ===========================================================

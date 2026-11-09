@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, abort, redirect, render_template, request, session, url_for
+from flask import Flask, abort, redirect, render_template, request, session, url_for, current_app
 from peewee import OperationalError
 import secrets
 from datetime import date, datetime, timedelta
@@ -14,6 +14,9 @@ from models.cadastro_usuario import CadastroUsuario
 from models.cliente import Cliente
 from models.minha_conta import MinhaConta
 from models.minhas_lojas import MinhasLojas
+from models.cliente_link import ClienteLink
+
+
 from zoneinfo import ZoneInfo
 
 load_dotenv()
@@ -28,6 +31,8 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "False") == "True"
 )
+
+app.config["PUBLIC_BASE_URL"] = "https://juvaecom.com.br"
 
 def login_obrigatorio(funcao):
     @wraps(funcao)
@@ -487,15 +492,93 @@ def trocar_senha():
             destino = "cliente_inicio" if session["cd_nivel"] == 5 else "adm"
             return redirect(url_for(destino))
 
-
-
         erro = resultado["erro"]
 
     return render_template(
         "trocar_senha.html",
         obrigatoria=obrigatoria,
+        erro=erro)
+
+
+@app.route("/cadastro/<token>", methods=["GET", "POST"])
+def cadastro_publico(token):
+
+    if ClienteLink.validar(token) is None:
+        return render_template(
+            "cadastro/link_invalido.html"
+        ), 403
+
+    if request.method == "POST":
+
+        # A validação CSRF deve ocorrer antes da gravação,
+        # utilizando o mecanismo existente da aplicação.
+
+        resultado = CadastroCliente.receber_precadastro(
+            token,
+            request.form
+        )
+
+        if resultado["sucesso"]:
+            return render_template(
+                "cadastro/cadastro_sucesso.html"
+            )
+
+        return render_template(
+            "cadastro/pre_cadastro.html",
+            token=token,
+            dados=request.form.to_dict(),
+            cliente=request.form.to_dict(),
+            loja=request.form.to_dict(),
+            erro=resultado["erro"]
+        ), 400
+
+    return render_template(
+        "cadastro/pre_cadastro.html",
+        token=token,
+        dados={},
+        cliente={},
+        loja={}
+    )
+
+
+@app.route("/adm/cliente/links", methods=["GET", "POST"])
+@login_obrigatorio
+def adm_cliente_links():
+
+    url_gerada = None
+    erro = None
+
+    # Disponível tanto no GET quanto no POST
+    base_url = current_app.config["PUBLIC_BASE_URL"].rstrip("/")
+
+    if request.method == "POST":
+        try:
+            resultado = ClienteLink.gerar(
+                cd_usuario=session["cd_usuario"]
+            )
+
+            url_gerada = (
+                f"{base_url}/cadastro/"
+                f"{resultado['token']}"
+            )
+
+        except Exception:
+            current_app.logger.exception(
+                "Erro ao gerar link de cadastro"
+            )
+            erro = "Não foi possível gerar o link."
+
+    links = ClienteLink.listar()
+
+    return render_template(
+        "cliente/links.html",
+        links=links,
+        base_url=base_url,
+        url_gerada=url_gerada,
         erro=erro
     )
+
+
 
 @app.route("/logout", methods=["POST"])
 @login_obrigatorio

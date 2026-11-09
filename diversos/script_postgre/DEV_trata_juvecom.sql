@@ -413,26 +413,57 @@ GROUP BY c.cd_contrato, a.cd_pessoa, st.cd_status
 ORDER BY c.cd_contrato;
 
 
+-- tb_cliente_link
+select * from tb_pessoa;
+select * from tb_cliente;
+select * from tb_loja;
+
+select * from tb_cliente_link;
+
+select * from tb_loja
+where cd_cliente = 6
+
+SELECT l.cd_link, l.cd_cliente, p.cd_pessoa, p.nm_pessoa, p.cpf_cnpj, s.nm_status, lj.nm_loja, l.dt_utilizacao
+FROM public.tb_cliente_link l
+INNER JOIN public.tb_cliente c
+    ON c.cd_cliente = l.cd_cliente
+INNER JOIN public.tb_pessoa p
+    ON p.cd_pessoa = c.cd_pessoa
+INNER JOIN public.tb_cliente_status s
+    ON s.cd_status = c.cd_status
+LEFT JOIN public.tb_loja lj
+    ON lj.cd_cliente = c.cd_cliente
+WHERE l.dt_utilizacao IS NOT NULL
+ORDER BY l.cd_link DESC;
+
+http://127.0.0.1:5155/cadastro/5tt3YvucMXeloFjFckygxGC1Y1dc6C_udD2DexTo2Jw
+http://127.0.0.1:5155/cadastro/tHC9m0rXa77wS5VgnZVjnVMtMeCxiYPpAuxNrYqw7ic
 
 
-SELECT a.cd_pessoa, a.nm_cliente,
-       c.cd_contrato, c.vigencia,
-       b.cd_loja, b.nm_loja,
-       e.nm_plano, d.vl_plano,
-       s.servicos
-FROM tb_pessoa a
-LEFT JOIN tb_contrato c ON c.cd_pessoa = a.cd_pessoa
-LEFT JOIN tb_contrato_loja h ON h.cd_contrato = c.cd_contrato
-                            AND h.cd_pessoa = a.cd_pessoa
-LEFT JOIN tb_loja b ON b.cd_loja = h.cd_loja
-                   AND b.cd_pessoa = h.cd_pessoa
-LEFT JOIN tb_plano_contrato d ON d.cd_contrato = c.cd_contrato
-LEFT JOIN tb_plano e ON e.cd_plano = d.cd_plano
-LEFT JOIN LATERAL (
-    SELECT string_agg(g.nm_servico, ', ' ORDER BY g.cd_servico) AS servicos
-    FROM tb_plano_servico f
-    JOIN tb_servico g ON g.cd_servico = f.cd_servico
-    WHERE f.cd_plano = e.cd_plano
-) s ON true
-ORDER BY a.cd_pessoa, c.cd_contrato, b.cd_loja;
+SELECT cd_link, cd_usuario, cd_cliente, dt_criacao, dt_validade, dt_utilizacao
+FROM public.tb_cliente_link
+ORDER BY cd_link DESC;
+
+SELECT cd_link, cd_usuario, cd_cliente, dt_criacao, dt_validade, dt_utilizacao,
+    CASE WHEN dt_utilizacao IS NOT NULL THEN 'Utilizado'
+         WHEN dt_validade <= CURRENT_TIMESTAMP THEN 'Expirado'
+         ELSE 'Disponível' END AS situacao
+FROM public.tb_cliente_link
+ORDER BY cd_link DESC;
+
+
+SELECT
+    cd_link,
+    token,
+    dt_validade,
+    dt_utilizacao,
+    CURRENT_TIMESTAMP AS agora,
+    CASE
+        WHEN dt_utilizacao IS NOT NULL THEN 'Utilizado'
+        WHEN dt_validade <= CURRENT_TIMESTAMP THEN 'Expirado'
+        ELSE 'Disponível'
+    END AS situacao
+FROM public.tb_cliente_link
+WHERE cd_link = 3;
+
 

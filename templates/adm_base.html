@@ -45,6 +45,11 @@
                 <span>Contratos <small>Em construção</small></span>
                 <span>Cobranças <small>Em construção</small></span>
 
+
+                <a href="{{ url_for('adm_cliente_links') }}">
+                    Gerar Link
+                </a>
+
             </nav>
 
             <form class="adm-menu-sair" method="post" action="{{ url_for('logout') }}">

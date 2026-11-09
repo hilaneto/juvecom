@@ -1,10 +1,11 @@
-from peewee import IntegrityError
+from peewee import IntegrityError, SQL
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 from database.conexao import db, conectar
 from models.pessoa import Pessoa
 from models.cliente import Cliente
 from models.loja import Loja
+from models.cliente_link import ClienteLink
 from models.usuario import Usuario
 
 
@@ -105,6 +106,121 @@ class CadastroCliente:
                     "Verifique os documentos, contatos e Shop IDs."
                 )
             }
+
+
+
+    @staticmethod
+    def receber_precadastro(token, formulario):
+
+        if not token:
+            return {
+                "sucesso": False,
+                "erro": "Link de cadastro inválido."
+            }
+
+        # Dados da Pessoa
+        pessoa = {
+            "tp_pessoa": formulario.get("tp_pessoa", "").strip(),
+            "nm_pessoa": formulario.get("nm_pessoa", "").strip(),
+            "cpf_cnpj": formulario.get("cpf_cnpj", "").strip(),
+            "telefone": formulario.get("telefone", "").strip(),
+            "email": formulario.get("email", "").strip(),
+            "dados": {
+                campo: formulario.get(campo, "").strip()
+                for campo in (
+                    "endereco",
+                    "numero",
+                    "complemento",
+                    "bairro",
+                    "cidade",
+                    "uf",
+                    "cep"
+                )
+            }
+        }
+
+        # Dados do Cliente
+        cliente = {
+            "nm_responsavel": formulario.get(
+                "nm_responsavel", ""
+            ).strip(),
+            "cd_status": 1
+        }
+
+        # Dados da Loja
+        loja = {
+            "nm_loja": formulario.get("nm_loja", "").strip(),
+            "shop_id": formulario.get("shop_id", "").strip(),
+            "url_loja": formulario.get("url_loja", "").strip()
+        }
+
+        lojas = [loja] if any(loja.values()) else []
+
+        try:
+            with conectar():
+                with db.atomic():
+
+                    # Bloquear o link durante a gravação
+                    link = (
+                        ClienteLink.select()
+                        .where(
+                            (ClienteLink.token == token) &
+                            (ClienteLink.dt_validade > SQL(
+                                "CURRENT_TIMESTAMP"
+                            )) &
+                            (ClienteLink.dt_utilizacao.is_null(True))
+                        )
+                        .for_update()
+                        .get_or_none()
+                    )
+
+                    if link is None:
+                        raise ValueError(
+                            "Link inválido, expirado ou já utilizado."
+                        )
+
+                    # Reutilizar o cadastro existente
+                    resultado = CadastroCliente.incluir(
+                        pessoa=pessoa,
+                        cliente=cliente,
+                        lojas=lojas,
+                        usuario=None
+                    )
+
+                    if not resultado["sucesso"]:
+                        raise ValueError(resultado["erro"])
+
+                    cd_cliente = resultado["cd_cliente"]
+
+                    # Registrar utilização do link
+                    alterados = (
+                        ClienteLink.update(
+                            cd_cliente=cd_cliente,
+                            dt_utilizacao=SQL("CURRENT_TIMESTAMP")
+                        )
+                        .where(
+                            ClienteLink.cd_link == link.cd_link
+                        )
+                        .execute()
+                    )
+
+                    if alterados != 1:
+                        raise ValueError(
+                            "Não foi possível finalizar o cadastro."
+                        )
+
+            return {
+                "sucesso": True,
+                "cd_cliente": cd_cliente
+            }
+
+        except ValueError as erro:
+            return {
+                "sucesso": False,
+                "erro": str(erro)
+            }
+
+
 
     @staticmethod
     def listar():
