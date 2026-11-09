@@ -7,127 +7,34 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1">
 
-    <title>Cadastro de Cliente | Juvaecom</title>
+    <title>Pré-Cadastro | Juvaecom</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+    <!-- <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/juvaecom.css') }}"> -->
 
-        body {
-            margin: 0;
-            background: #f4f6f9;
-            font-family: Arial, sans-serif;
-            color: #333;
-        }
+    <link rel="stylesheet"
+        href="{{ url_for('static', filename='css/juvaecom.css', v='20261109') }}">          
 
-        .precadastro {
-            max-width: 850px;
-            margin: 40px auto;
-            padding: 30px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        }
-
-        .precadastro__titulo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .precadastro__titulo h1 {
-            margin-bottom: 8px;
-        }
-
-        .precadastro .cadastro-grupo {
-            margin-bottom: 25px;
-        }
-
-        .precadastro .pessoa-form__fieldset {
-            border: 0;
-            padding: 0;
-            margin: 0;
-        }
-
-        .precadastro .pessoa-form__titulo {
-            font-size: 18px;
-            margin: 20px 0 15px;
-        }
-
-        .precadastro .cadastro-grupo,
-        .precadastro .pessoa-form__fieldset,
-        .precadastro .loja-form__grid,
-        .precadastro .cliente-form__grid {
-            min-width: 0;
-        }
-
-        .precadastro label {
-            display: block;
-            margin: 12px 0 5px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .precadastro input,
-        .precadastro select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 15px;
-        }
-
-        .precadastro input:focus,
-        .precadastro select:focus {
-            border-color: #2c6cb0;
-            outline: 2px solid rgba(44,108,176,0.15);
-        }
-
-        .precadastro__acoes {
-            margin-top: 30px;
-            text-align: center;
-        }
-
-        .precadastro__botao {
-            padding: 12px 32px;
-            border: 0;
-            border-radius: 5px;
-            color: white;
-            background: #2467a7;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .precadastro__botao:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 600px) {
-            .precadastro {
-                margin: 12px;
-                padding: 18px;
-            }
-        }
-    </style>
 </head>
 
 <body>
 
 <main class="precadastro">
 
-    <header class="precadastro__titulo">
+    <!-- CABEÇALHO -->
+    <header class="precadastro__cabecalho">
         <h1>Juvaecom</h1>
         <p>Cadastro de novo cliente</p>
     </header>
 
-    <p>
+    <p class="precadastro__descricao">
         Preencha os dados abaixo para que nossa equipe
         possa realizar a conferência do seu cadastro.
     </p>
 
+    <!-- MENSAGENS -->
     {% if erro %}
-        <div role="alert">
+        <div class="precadastro__aviso" role="alert">
             {{ erro }}
         </div>
     {% endif %}
@@ -137,25 +44,34 @@
     {% set cliente = cliente | default({}, true) %}
     {% set loja = loja | default({}, true) %}
 
+    <!-- FORMULÁRIO -->
     <form id="pre-cadastro-form"
+          class="pessoa-form"
           method="post"
           action="{{ url_for('cadastro_publico', token=token) }}">
 
+        <input type="hidden"
+               name="csrf_token"
+               value="{{ session['csrf_token'] }}">
+
         <!-- DADOS DA PESSOA E ENDEREÇO -->
         <section class="cadastro-grupo">
-            {% include "cadastro/_pessoa.html" %}
+
+            {% include 'cadastro/_pessoa.html' %}
+
         </section>
 
         <!-- DADOS DO CLIENTE -->
         <section class="cadastro-grupo">
 
-            <h2 class="pessoa-form__titulo">
-                Dados do Cliente
-            </h2>
-
             <div class="cliente-form__grid">
 
+                <h2 class="pessoa-form__titulo">
+                    Dados do Cliente
+                </h2>
+
                 <div class="cliente-campo--responsavel">
+
                     <label for="nm_responsavel">
                         Responsável
                     </label>
@@ -166,11 +82,8 @@
                         type="text"
                         maxlength="150"
                         value="{{ cliente.get('nm_responsavel') or '' }}">
-                </div>
 
-                    <input type="hidden"
-                        name="csrf_token"
-                        value="{{ session['csrf_token'] }}">
+                </div>
 
             </div>
 
@@ -178,18 +91,30 @@
 
         <!-- DADOS DA LOJA -->
         <section class="cadastro-grupo">
-            {% include "cadastro/_loja.html" %}
+
+            {% include 'cadastro/_loja.html' %}
+
         </section>
 
+        <!-- BOTÃO DE ENVIO -->
         <div class="precadastro__acoes">
+
             <button
                 type="submit"
-                class="precadastro__botao" >
-                Enviar cadastro 
+                class="precadastro__botao">
+
+                Enviar dados cadastrais
+
             </button>
+
         </div>
 
     </form>
+
+    <!-- RODAPÉ -->
+    <footer class="precadastro__rodape">
+        Juvaecom — Cadastro de Clientes
+    </footer>
 
 </main>
 

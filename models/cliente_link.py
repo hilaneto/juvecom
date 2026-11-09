@@ -28,7 +28,7 @@ class ClienteLink(Model):
                 token=token,
                 cd_usuario=cd_usuario,
                 dt_criacao=agora,
-                dt_validade=agora + timedelta(days=7))
+                dt_validade=agora + timedelta(days=3))
 
         return {"cd_link": link.cd_link,
                 "token": token,

@@ -440,6 +440,9 @@ http://127.0.0.1:5155/cadastro/5tt3YvucMXeloFjFckygxGC1Y1dc6C_udD2DexTo2Jw
 http://127.0.0.1:5155/cadastro/tHC9m0rXa77wS5VgnZVjnVMtMeCxiYPpAuxNrYqw7ic
 
 
+https://juvaecom.jhan.com.br/cadastro/sTYZbOriTNBz2I_Do4QGuP-uLPgZ-7QFabuzsH1a6Xo
+
+
 SELECT cd_link, cd_usuario, cd_cliente, dt_criacao, dt_validade, dt_utilizacao
 FROM public.tb_cliente_link
 ORDER BY cd_link DESC;
