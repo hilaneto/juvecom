@@ -1,27 +1,27 @@
--- ============================================================
+-- ===============================================================
 -- BANCO: juvecom
 -- SCHEMA: public
 -- Revisão estrutural: 2026-10-15 | revisão estática adicional
+-- Versao: 2026-11-09 | revisao do esquema validado em 2026-10-15
+-- ===============================================================
+
+-- ===============================================================
 -- rodar no terminal
 -- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom_validado.sql
 -- local/servidor: scp cria_juvecom.sql dev:/tmp/cria_juvecom.sql && ssh -t dev 'psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f /tmp/cria_juvecom.sql'
--- ============================================================
+-- ===============================================================
 
 
--- ATENÇÃO: usar apenas em banco novo/vazio. Não é script de migração.
--- Cadastros pessoais e credenciais iniciais foram removidos por segurança.
--- Execução via psql (usa \gexec e \connect).
--- Se o banco juvecom já existir com tabelas, a criação falhará sem apagá-las.
--- Cria o banco juvecom
--- Cria somente se ainda não existir; não apaga dados de uma instalação existente.
-SELECT 'CREATE DATABASE juvecom' WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'juvecom')\gexec
+DROP DATABASE IF EXISTS juvecom;
 
--- Conectar ao banco juvecom antes de executar o restante.
+SELECT 'CREATE DATABASE juvecom'
+WHERE NOT EXISTS (
+    SELECT 1 FROM pg_database WHERE datname = 'juvecom'
+)\gexec
+
 \connect juvecom
 
 BEGIN;
-
-
 
 
 -- ============================================================
@@ -86,49 +86,19 @@ CONSTRAINT ck_pessoa_dados_uf CHECK (NOT (dados ? 'uf') OR (jsonb_typeof(dados -
 
 
 -- ============================================================
--- tb_relacao - drop table tb_relacao cascade
+-- tb_cliente_status: etapas do cadastro JUV-026
 -- ============================================================
-CREATE TABLE tb_relacao (
-    cd_relacao smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nm_relacao varchar(50) NOT NULL UNIQUE,
-    dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT ck_relacao_nome CHECK (btrim(nm_relacao) <> '')
+CREATE TABLE tb_cliente_status (
+    cd_status SMALLINT PRIMARY KEY,
+    nm_status VARCHAR(30) NOT NULL UNIQUE,
+    ds_status VARCHAR(200) NOT NULL
 );
 
--- ---------------------------------------------------------------
-INSERT INTO tb_relacao (nm_relacao)
-VALUES ('Cliente'), ('Colaborador'), ('Fornecedor');
-
-
--- ============================================================
--- tb_pessoa_relacao - drop table tb_pessoa_relacao cascade
--- ============================================================
-CREATE TABLE tb_pessoa_relacao (
-cd_pessoa bigint NOT NULL REFERENCES tb_pessoa (cd_pessoa),
-cd_relacao smallint NOT NULL REFERENCES tb_relacao (cd_relacao),
-dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-PRIMARY KEY (cd_pessoa, cd_relacao));
-
--- As relações de pessoas devem ser cadastradas após criar as pessoas.
-
-
--- ============================================================
--- tb_cliente_status - drop table tb_cliente_status cascade
--- ============================================================
-CREATE TABLE public.tb_cliente_status (
-cd_status SMALLINT PRIMARY KEY,
-nm_status VARCHAR(30) NOT NULL UNIQUE,
-ds_status VARCHAR(200) NOT NULL);
-
-
-INSERT INTO public.tb_cliente_status
-    (cd_status, nm_status, ds_status)
-VALUES (1, 'Pendente', 'Recebido, aguardando conferência ou em análise'),
-       (2, 'Aprovado', 'Dados conferidos, corrigidos e confirmados pelo analista'),
-       (3, 'Confirmado', 'Cliente acessou o site e definiu sua senha'),
-       (4, 'Reprovado', 'Cadastro encerrado sem aprovação')
-ON CONFLICT (cd_status) DO NOTHING;
-
+INSERT INTO tb_cliente_status (cd_status, nm_status, ds_status) VALUES
+    (1, 'Pendente', 'Recebido, aguardando conferência ou em análise'),
+    (2, 'Aprovado', 'Dados conferidos, corrigidos e confirmados pelo analista'),
+    (3, 'Confirmado', 'Cliente acessou o site e definiu sua senha'),
+    (4, 'Reprovado', 'Cadastro encerrado sem aprovação');
 
 
 -- ============================================================
@@ -138,15 +108,12 @@ CREATE TABLE tb_cliente (
 cd_cliente BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 cd_pessoa BIGINT NOT NULL UNIQUE REFERENCES tb_pessoa(cd_pessoa),
 nm_responsavel VARCHAR(150),
-cd_contato BIGINT UNIQUE REFERENCES tb_contato(cd_contato),
 cd_status SMALLINT NOT NULL DEFAULT 2 REFERENCES tb_cliente_status(cd_status),
 fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
+cd_contato BIGINT UNIQUE REFERENCES tb_contato(cd_contato),
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
-select * from tb_cliente_status;
-
---TRUNCATE TABLE tb_pessoa RESTART IDENTITY CASCADE;
 
 -- ============================================================
 -- tb_loja - drop table tb_loja cascade
@@ -405,6 +372,7 @@ INSERT INTO tb_usuario_nivel (nm_nivel) values ('superior');
 INSERT INTO tb_usuario_nivel (nm_nivel) values ('médio');
 INSERT INTO tb_usuario_nivel (nm_nivel) values ('intermediário');
 INSERT INTO tb_usuario_nivel (nm_nivel) values ('limitado');
+INSERT INTO tb_usuario_nivel (nm_nivel) values ('cliente'); -- cd_nivel = 5
 
 
 -- ============================================================
@@ -422,6 +390,35 @@ CONSTRAINT ck_usuario_login CHECK (btrim(login) <> ''),
 CONSTRAINT ck_usuario_senha CHECK (btrim(senha_hash) <> ''));
 
 -- Cadastre usuários e gere hashes de senha na aplicação; não inclua credenciais fixas no DDL.
+
+
+-- ============================================================
+-- tb_cliente_link: convite exclusivo de pre-cadastro JUV-026
+--   Disponivel: dt_utilizacao nula, dt_validade > agora
+--   Utilizado  : dt_utilizacao preenchida e cd_cliente associado
+--   Expirado  : dt_utilizacao nula, dt_validade <= agora
+--   Status e calculado na aplicacao; nao fica duplicado no banco.
+-- ============================================================
+CREATE TABLE public.tb_cliente_link (
+cd_link BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+token VARCHAR(100) NOT NULL UNIQUE,
+cd_usuario BIGINT NOT NULL REFERENCES public.tb_usuario(cd_usuario),
+cd_cliente BIGINT REFERENCES public.tb_cliente(cd_cliente),
+dt_criacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+dt_validade TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '7 days'),
+dt_utilizacao TIMESTAMPTZ,
+CONSTRAINT ck_cliente_link_validade CHECK (dt_validade > dt_criacao),
+CONSTRAINT ck_cliente_link_uso CHECK ((dt_utilizacao IS NULL) = (cd_cliente IS NULL)));
+
+CREATE INDEX ix_cliente_link_usuario
+ON public.tb_cliente_link (cd_usuario);
+
+CREATE INDEX ix_cliente_link_cliente
+ON public.tb_cliente_link (cd_cliente);
+
+CREATE INDEX ix_cliente_link_validade_pendente
+ON public.tb_cliente_link (dt_validade)
+WHERE dt_utilizacao IS NULL;
 
 
 -- ==============================================================
@@ -468,20 +465,6 @@ fl_sucesso boolean NOT NULL DEFAULT true,
 ip_acesso inet,
 dt_evento timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
-
--- ============================================================
--- tb_cliente_link
--- ============================================================
-CREATE TABLE public.tb_cliente_link (
-cd_link BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-token varchar(100) NOT NULL UNIQUE,
-cd_usuario BIGINT NOT NULL REFERENCES public.tb_usuario(cd_usuario),
-cd_cliente BIGINT REFERENCES public.tb_cliente(cd_cliente),
-dt_criacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-dt_validade TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '7 days'),
-dt_utilizacao TIMESTAMPTZ,
-CONSTRAINT ck_cliente_link_validade CHECK (dt_validade > dt_criacao),
-CONSTRAINT ck_cliente_link_utilizacao CHECK ((dt_utilizacao IS NULL) = (cd_cliente IS NULL)));
 
 
 -- ===========================================================

@@ -543,6 +543,7 @@ def cadastro_publico(token):
 
 @app.route("/adm/cliente/links", methods=["GET", "POST"])
 @login_obrigatorio
+@acesso_administrativo
 def adm_cliente_links():
 
     url_gerada = None
@@ -587,6 +588,8 @@ def logout():
     session.clear()
 
     return redirect(url_for("login"))
+
+
 
 @app.route("/adm/usuarios/<int:cd_usuario>/resetar-senha", methods=["POST"])
 @login_obrigatorio

@@ -13,12 +13,10 @@ select * from tb_encargo_atraso;
 select * from tb_desconto_loja;
 select * from tb_usuario_nivel;
 select * from tb_evento_log;
-select * from tb_relacao;
 select * from tb_plano_servico;
 
 -- -----------------------------------------------
 select * from tb_pessoa;
-select * from tb_pessoa_relacao;
 select * from tb_cliente;
 select * from tb_loja;
 select * from tb_contrato;
@@ -48,7 +46,6 @@ select * from tb_contato_status;
 INSERT into tb_contato
 (cd_status, nm_contato, celular, email, mensagem)
 VALUES(1, 'Juvenal Pereira de Souza', '11 98738-5695', 'variedadesjps@gmail.com', 'TESTE');
-
 
 
 -- --------------------------------------------------
@@ -100,6 +97,7 @@ where cd_pessoa = 21
 select * from tb_loja
 where cd_cliente = 8
 
+
 -- tb_usuario ------------------------------------------------
 
 select * from tb_pessoa;
@@ -109,8 +107,6 @@ select * from tb_usuario;
 select * from tb_pessoa a inner join tb_usuario b
 on a.cd_pessoa = b.cd_pessoa
 
--- -----------------------------
-select * from tb_pessoa_relacao;
 
 
 -- Área de Clientes -------------------------------------------
@@ -129,7 +125,7 @@ select * from tb_usuario;
 
 select * from tb_usuario_nivel;
 
-
+select * from tb_cliente_link;
 
 -- tb_contrato_documento --------
 SELECT cd_modelo, octet_length(arquivo_pdf) AS tamanho_bytes, dt_atualizacao

@@ -1,8 +1,8 @@
 import secrets
-import hashlib
 from datetime import datetime, timedelta, timezone
-from peewee import Model, BigIntegerField, CharField, DateTimeField
+from peewee import BigIntegerField, Case, CharField, DateTimeField, Model, SQL
 from database.conexao import db, conectar
+
 
 class ClienteLink(Model):
     cd_link = BigIntegerField(primary_key=True)
@@ -18,8 +18,15 @@ class ClienteLink(Model):
         table_name = "tb_cliente_link"
 
     @staticmethod
-    def gerar(cd_usuario):
+    def consulta_disponivel(token):
+        return ClienteLink.select().where(
+            (ClienteLink.token == token) &
+            (ClienteLink.dt_validade > SQL("CURRENT_TIMESTAMP")) &
+            ClienteLink.dt_utilizacao.is_null(True)
+        )
 
+    @staticmethod
+    def gerar(cd_usuario):
         token = secrets.token_urlsafe(32)
         agora = datetime.now(timezone.utc)
 
@@ -28,35 +35,33 @@ class ClienteLink(Model):
                 token=token,
                 cd_usuario=cd_usuario,
                 dt_criacao=agora,
-                dt_validade=agora + timedelta(days=3))
+                dt_validade=agora + timedelta(days=7)
+            )
 
-        return {"cd_link": link.cd_link,
-                "token": token,
-                "dt_validade": link.dt_validade
-                }
+        return {
+            "cd_link": link.cd_link,
+            "token": token,
+            "dt_validade": link.dt_validade
+        }
 
     @staticmethod
     def validar(token):
-
         if not token:
             return None
 
         with conectar():
-            link = ClienteLink.get_or_none(
-                (ClienteLink.token == token) &
-                (ClienteLink.dt_validade > datetime.now(timezone.utc)) &
-                (ClienteLink.dt_utilizacao.is_null(True)))
-            return link
+            return ClienteLink.consulta_disponivel(token).get_or_none()
 
     @staticmethod
     def listar():
-        """Retorna os links gerados."""
+        situacao = Case(None, (
+            (ClienteLink.dt_utilizacao.is_null(False), "Utilizado"),
+            (ClienteLink.dt_validade <= SQL("CURRENT_TIMESTAMP"), "Expirado"),
+        ), "Disponível").alias("situacao")
 
         with conectar():
-            registros = list(
-                ClienteLink.select()
+            return list(
+                ClienteLink.select(ClienteLink, situacao)
                 .order_by(ClienteLink.cd_link.desc())
                 .dicts()
             )
-
-        return registros

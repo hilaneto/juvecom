@@ -161,23 +161,12 @@ class CadastroCliente:
                 with db.atomic():
 
                     # Bloquear o link durante a gravação
-                    link = (
-                        ClienteLink.select()
-                        .where(
-                            (ClienteLink.token == token) &
-                            (ClienteLink.dt_validade > SQL(
-                                "CURRENT_TIMESTAMP"
-                            )) &
-                            (ClienteLink.dt_utilizacao.is_null(True))
-                        )
-                        .for_update()
-                        .get_or_none()
-                    )
+                    link = (ClienteLink.consulta_disponivel(token)
+                            .for_update()
+                            .get_or_none())
 
                     if link is None:
-                        raise ValueError(
-                            "Link inválido, expirado ou já utilizado."
-                        )
+                        raise ValueError("Link inválido, expirado ou já utilizado.")
 
                     # Reutilizar o cadastro existente
                     resultado = CadastroCliente.incluir(

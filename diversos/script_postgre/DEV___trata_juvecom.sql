@@ -372,7 +372,7 @@ FROM tb_loja l
 LEFT JOIN tb_contrato_loja cl ON cl.cd_loja = l.cd_loja
 WHERE cl.cd_loja IS NULL;
 
-select * from tb_usuario_nivel
+select * from tb_cliente_status;
 
 select * from tb_pessoa;
 
@@ -414,11 +414,24 @@ ORDER BY c.cd_contrato;
 
 
 -- tb_cliente_link
-select * from tb_pessoa;
-select * from tb_cliente;
+select * from tb_pessoa where cd_pessoa =36;
+select * from tb_cliente where cd_pessoa =36;
 select * from tb_loja;
 
 select * from tb_cliente_link;
+
+http://127.0.0.1:5155/cadastro/5tt3YvucMXeloFjFckygxGC1Y1dc6C_udD2DexTo2Jw
+http://127.0.0.1:5155/cadastro/tHC9m0rXa77wS5VgnZVjnVMtMeCxiYPpAuxNrYqw7ic
+
+https://juvaecom.jhan.com.br/cadastro/sTYZbOriTNBz2I_Do4QGuP-uLPgZ-7QFabuzsH1a6Xo
+
+https://juvaecom.jhan.com.br/cadastro/4gGl8XpUbnxj3HO186EFH-6U4R3-KFGG_fd90gYWZ2s
+http://127.0.0.1:5155/cadastro/4gGl8XpUbnxj3HO186EFH-6U4R3-KFGG_fd90gYWZ2s
+
+http://127.0.0.1:5155/cadastro/tHC9m0rXa77wS5VgnZVjnVMtMeCxiYPpAuxNrYqw7ic
+
+http://127.0.0.1:5155/cadastro/4gGl8XpUbnxj3HO186EFH-6U4R3-KFGG_fd90gYWZ2s
+
 
 select * from tb_loja
 where cd_cliente = 6
@@ -436,11 +449,6 @@ LEFT JOIN public.tb_loja lj
 WHERE l.dt_utilizacao IS NOT NULL
 ORDER BY l.cd_link DESC;
 
-http://127.0.0.1:5155/cadastro/5tt3YvucMXeloFjFckygxGC1Y1dc6C_udD2DexTo2Jw
-http://127.0.0.1:5155/cadastro/tHC9m0rXa77wS5VgnZVjnVMtMeCxiYPpAuxNrYqw7ic
-
-
-https://juvaecom.jhan.com.br/cadastro/sTYZbOriTNBz2I_Do4QGuP-uLPgZ-7QFabuzsH1a6Xo
 
 
 SELECT cd_link, cd_usuario, cd_cliente, dt_criacao, dt_validade, dt_utilizacao

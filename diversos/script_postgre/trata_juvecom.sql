@@ -12,7 +12,6 @@ select * from tb_encargo_atraso;
 select * from tb_desconto_loja;
 select * from tb_usuario_nivel;
 select * from tb_evento_log;
-select * from tb_relacao;
 select * from tb_plano_servico;
 
 -- -----------------------------------------------
@@ -32,8 +31,6 @@ select * from tb_contrato_loja;
 select * from tb_pessoa;
 select * from tb_cliente;
 select * from tb_loja;
-select * from tb_pessoa_relacao;
-select * from tb_relacao;
 
 -- -------------------------------------
 select * from tb_contrato;
@@ -41,11 +38,9 @@ select * from tb_contrato_documento;
 select * from tb_contrato_modelo;
 -- -------------------------------------
 
-select * from tb_pessoa
-select * from tb_cliente
-
+select * from tb_pessoa;
+select * from tb_cliente;
 select * from tb_usuario_nivel;
-
 
 
 select * from vw_cobranca_inadimplentes;
@@ -58,7 +53,7 @@ select * from vw_usuario;
 select * from tb_pessoa a inner join tb_usuario b
 on a.cd_pessoa = b.cd_pessoa
 
-
+select * from tb_cliente_link;
 
 -- Pessoa ------------------------------------
 -- --------------------------------------------------------------------------------------------------------------------------------------------------------
