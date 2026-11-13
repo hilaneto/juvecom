@@ -26,7 +26,6 @@ select * from vw_cobranca_vencidos;
 select * from tb_logusuario;
 select * from tb_contrato_loja;
 
-
 -- -------------------------------------
 select * from tb_pessoa;
 select * from tb_cliente;
@@ -49,11 +48,59 @@ select * from vw_usuario;
 
 -- ===================================================================================================================
 
+select * from tb_cliente;
+select * from tb_contrato;
+select * from tb_cliente_link;
 
-select * from tb_pessoa a inner join tb_usuario b
+SELECT count(*) FROM public.tb_contrato WHERE cd_status = 3;
+
+SELECT pg_postmaster_start_time() AS inicio_instancia,
+       current_user AS usuario,
+       count(*) AS contratos_ativos
+FROM public.tb_contrato
+WHERE cd_status = 3;
+
+SELECT c.cd_contrato, c.cd_cliente, c.cd_status,
+       cl.fl_ativo AS cliente_habilitado,
+       p.fl_ativo AS pessoa_habilitada
+FROM public.tb_contrato AS c
+JOIN public.tb_cliente AS cl ON cl.cd_cliente = c.cd_cliente
+JOIN public.tb_pessoa AS p ON p.cd_pessoa = cl.cd_pessoa
+WHERE c.cd_status = 3
+ORDER BY c.cd_cliente;
+
+
+select * from tb_cliente
+where cd_status = 3
+
+
+UPDATE public.tb_cliente
+SET cd_status = 3
+WHERE cd_status = 2
+
+
+select * from tb_pessoa a inner join tb_cliente b
 on a.cd_pessoa = b.cd_pessoa
+left join tb_loja c
+on b.cd_cliente = c.cd_cliente
+left join tb_contrato d
+on b.cd_cliente = d.cd_cliente
+where a.cpf_cnpj = '31726058093';
 
 select * from tb_cliente_link;
+
+bf981eccd4d868c603db10ef48888e8e6ab83805c568255b2d2fbd16a2cde417
+https://juvaecom.jhan.com.br/cadastro/bf981eccd4d868c603db10ef48888e8e6ab83805c568255b2d2fbd16a2cde417
+https://juvaecom.com.br/cadastro/9emGEzwjv4yIwJNSmksHnkEz53-v5e8G23IbUCRtgOM
+https://juvaecom.jhan.com.br/cadastro/xcLkS8rw_USN708XMsHOLuvWc6DRuNSC7-9UfZkFlT0
+https://juvaecom.jhan.com.br/cadastro/yOXFCGU3n49RC5FUHMt1cifLLfydmqVV-5tRjvvBi8M
+https://juvaecom.jhan.com.br/cadastro/WxJ5SKdr3hrnIiABtGv1vaXULz7f-u6yLQjvkl3_t9A
+
+https://juvaecom.jhan.com.br/cadastro/Id39CRFjjWhgVmTSX_ovOEbaQi7gd83FYeUPw0ZeeNw
+
+SELECT cd_contrato, cd_status
+FROM public.tb_contrato
+WHERE cd_cliente = 42;
 
 -- Pessoa ------------------------------------
 -- --------------------------------------------------------------------------------------------------------------------------------------------------------

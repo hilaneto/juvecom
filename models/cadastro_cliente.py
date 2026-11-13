@@ -212,23 +212,36 @@ class CadastroCliente:
 
 
     @staticmethod
-    def listar():
+    def listar(cd_status=None):
         with conectar():
             consulta = (
-                Cliente.select(
-                    Cliente.cd_cliente,
-                    Pessoa.nm_pessoa
-                )
-                .join(
-                    Pessoa,
-                    on=(Cliente.cd_pessoa == Pessoa.cd_pessoa)
-                )
-                .where(
-                    (Cliente.fl_ativo == True) &
-                    (Pessoa.fl_ativo == True)
-                )
-                .order_by(Pessoa.nm_pessoa)
+                Cliente.select(Cliente.cd_cliente, Pessoa.nm_pessoa)
+                .join(Pessoa, on=(Cliente.cd_pessoa == Pessoa.cd_pessoa))
+                .where((Cliente.fl_ativo == True) & (Pessoa.fl_ativo == True))
+                .order_by(Pessoa.nm_pessoa, Cliente.cd_cliente)
             )
+
+            if cd_status == 1:
+                consulta = consulta.where(
+                    Cliente.cd_cliente.in_(SQL("""(
+                        SELECT l.cd_cliente
+                        FROM public.tb_cliente_link AS l
+                        WHERE l.dt_utilizacao IS NOT NULL
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM public.tb_contrato AS c
+                              WHERE c.cd_cliente = l.cd_cliente
+                          )
+                    )"""))
+                )
+            elif cd_status is not None:
+                consulta = consulta.where(
+                    Cliente.cd_cliente.in_(SQL("""(
+                        SELECT c.cd_cliente
+                        FROM public.tb_contrato AS c
+                        WHERE c.cd_status = %s
+                    )""", (cd_status,)))
+                )
 
             return list(consulta.dicts())
 
@@ -323,7 +336,6 @@ class CadastroCliente:
                 "lojas": lojas,
                 "usuario": usuario
             }        
-
 
     @staticmethod
     def atualizar(cd_cliente: int, pessoa: dict, cliente: dict, lojas=None, usuario=None, cd_operador=None):

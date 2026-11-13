@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, abort, redirect, render_template, request, session, url_for, current_app
+from flask import Flask, abort, redirect, render_template, request, session, url_for, current_app, send_file
 from peewee import OperationalError
 import secrets
 from datetime import date, datetime, timedelta
@@ -15,8 +15,8 @@ from models.cliente import Cliente
 from models.minha_conta import MinhaConta
 from models.minhas_lojas import MinhasLojas
 from models.cliente_link import ClienteLink
-
-
+from models.cadastro_contrato import CadastroContrato
+from io import BytesIO
 from zoneinfo import ZoneInfo
 
 load_dotenv()
@@ -287,11 +287,6 @@ def adm_usuario():
         codigo_recebido = formulario.get("cd_usuario", "").strip()
 
 
-        print("DEBUG USUARIO:",
-              "cd_usuario =", repr(codigo_recebido),
-              "acao =", formulario.get("acao"),
-              flush=True
-            )
 
         try:
             cd_usuario = (
@@ -649,6 +644,19 @@ def adm_cliente():
     if session["cd_nivel"] not in (0, 1):
         abort(403)
 
+    filtros_status = (
+        (1, "Pendente"),
+        (2, "Assinatura"),
+        (3, "Ativo"),
+        (4, "Inadimplente"),
+        (5, "Vencido"),
+        (6, "Cancelado"),
+    )
+
+    status_lista = request.args.get("status", type=int)
+    if status_lista not in dict(filtros_status):
+        status_lista = None
+
     hoje = datetime.now(
         ZoneInfo("America/Sao_Paulo")
     ).date().isoformat()
@@ -688,7 +696,7 @@ def adm_cliente():
 
                 if resultado["sucesso"]:
                     return redirect(
-                        url_for("adm_cliente", excluido=1)
+                        url_for("adm_cliente", excluido=1, status=status_lista)
                     )
 
                 erro = resultado["erro"]
@@ -807,7 +815,7 @@ def adm_cliente():
 
                     if resultado["sucesso"]:
                         return redirect(
-                            url_for("adm_cliente", sucesso=1)
+                            url_for("adm_cliente", sucesso=1, status=status_lista)
                         )
 
                     erro = resultado["erro"]
@@ -825,7 +833,7 @@ def adm_cliente():
 
                 if resultado["sucesso"]:
                     return redirect(
-                        url_for("adm_cliente", sucesso=1)
+                        url_for("adm_cliente", sucesso=1, status=status_lista)
                     )
 
                 erro = resultado["erro"]
@@ -836,7 +844,7 @@ def adm_cliente():
     # ======================================================
     # LISTAGEM EXCLUSIVA DE CLIENTES
     # ======================================================
-    registros = CadastroCliente.listar()
+    registros = CadastroCliente.listar(status_lista)
 
     # ======================================================
     # GET - CONSULTA DO CLIENTE SELECIONADO
@@ -891,11 +899,78 @@ def adm_cliente():
 
         hoje=hoje,
 
-        url_cadastro=url_for("adm_cliente"),
-        url_novo=url_for("adm_cliente")
+        filtros_status=filtros_status,
+        status_lista=status_lista,
+        url_cadastro=url_for("adm_cliente", status=status_lista),
+        url_novo=url_for("adm_cliente"),        
     )
 
 
+@app.route("/adm/contratos", methods=["GET", "POST"])
+@app.route("/adm/clientes/<int:cd_cliente>/contratos/novo", methods=["GET", "POST"], endpoint="adm_contrato_novo")
+@login_obrigatorio
+@acesso_administrativo
+def adm_contrato(cd_cliente=None):
+    if session["cd_nivel"] not in (0, 1):
+        abort(403)
+
+    vindo_cliente = cd_cliente is not None
+    cd_contrato = None if vindo_cliente else request.args.get("cd_contrato", type=int)
+    if not vindo_cliente and cd_contrato is None:
+        cd_cliente = request.args.get("cd_cliente", type=int)
+
+    confirmar = vindo_cliente and request.args.get("confirmar_dados") == "1"
+    erro = None
+    formulario = None
+    if request.method == "POST":
+        validar_csrf()
+        acao = request.form.get("acao")
+        try:
+            if acao == "salvar":
+                formulario = request.form
+                cd_contrato = CadastroContrato.salvar(
+                    cd_cliente, formulario, cd_contrato=cd_contrato, confirmar=confirmar
+                )
+            elif acao == "excluir" and cd_contrato is not None:
+                CadastroContrato.cancelar(cd_contrato, request.form.get("motivo", ""))
+            elif acao == "confirmar_assinatura" and cd_contrato is not None:
+                CadastroContrato.confirmar_assinatura(cd_contrato)
+            else:
+                abort(400)
+        except ValueError as exc:
+            erro = str(exc)
+        else:
+            return redirect(url_for("adm_contrato", cd_contrato=cd_contrato))
+
+    tela = CadastroContrato.tela(cd_cliente=cd_cliente, cd_contrato=cd_contrato)
+    if tela is None:
+        abort(404)
+
+    return render_template(
+        "cadastro/contratos.html", **tela, erro=erro, formulario=formulario,
+        confirmar=confirmar, vindo_cliente=vindo_cliente,
+        motivo=request.form.get("motivo", "")
+    )
+
+
+@app.route("/adm/contratos/<int:cd_contrato>/download", methods=["GET"])
+@login_obrigatorio
+@acesso_administrativo
+def adm_contrato_download(cd_contrato):
+    if session["cd_nivel"] not in (0, 1):
+        abort(403)
+
+    pdf = CadastroContrato.gerar_pdf(cd_contrato)
+
+    if pdf is None:
+        abort(404)
+
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"contrato_{cd_contrato}.pdf"
+    )
 
 @app.errorhandler(OperationalError)
 def erro_conexao_banco(erro):
@@ -905,16 +980,11 @@ def erro_conexao_banco(erro):
             "Se estava salvando dados, confira se foram gravados antes de tentar novamente.<br>"
             "Por favor, atualize/recarregue esta página.",503)
 
-# if __name__ == "__main__":
-#     print(app.url_map)
-#     app.run(host="0.0.0.0", port=5155, debug=True)
-
-
 if __name__ == "__main__":
     print(app.url_map)
     app.run(
         host="0.0.0.0",
         port=5155,
-        debug=True,
+        debug=False,
         use_reloader=False
     )    

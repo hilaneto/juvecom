@@ -169,6 +169,20 @@
 
             {% endif %}
 
+            {% if tipo_cadastro == 'cliente' and status_lista == 1 and selecionado %}
+                {% set ids_pendentes = registros | map(attribute='cd_cliente') | list %}
+
+                {% if selecionado in ids_pendentes %}
+                    <a class="pessoa-botao pessoa-botao--salvar"
+                    href="{{ url_for('adm_contrato_novo',
+                                        cd_cliente=selecionado,
+                                        confirmar_dados=1) }}">
+                        Confirmar Dados
+                    </a>
+                {% endif %}
+            {% endif %}
+
+
             <!-- NOVO -->
 
             {% if pode_novo %}
@@ -247,6 +261,20 @@
             ({{ registros|length }})
         </h2>
 
+
+        {% if tipo_cadastro == 'cliente' %}
+            <nav class="cliente-filtros" aria-label="Filtrar clientes por status">
+                {% for codigo, rotulo in filtros_status %}
+                    {% set ativo = codigo == status_lista %}
+                    <a class="pessoa-botao{% if ativo %} pessoa-botao--salvar{% endif %}"
+                    href="{{ url_for('adm_cliente', status=none if ativo else codigo) }}"
+                    {% if ativo %}aria-current="true"{% endif %}>
+                        {{ rotulo }}
+                    </a>
+                {% endfor %}
+            </nav>
+        {% endif %}
+
         {% if registros %}
 
             <ul>
@@ -273,25 +301,22 @@
                                 {{ registro.nm_pessoa }}
                             {% endif %}
 
-                        {% elif tipo_cadastro == 'cliente' %}
+                            {% elif tipo_cadastro == 'cliente' %}
 
-                            <a href="{{ url_for(
-                                'adm_cliente',
-                                cd_cliente=registro.cd_cliente
-                            ) }}">
-                                {{ registro.nm_pessoa }}
-                            </a>
+                                <a href="{{ url_for('adm_cliente',
+                                                    cd_cliente=registro.cd_cliente,
+                                                    status=status_lista) }}">
+                                    {{ registro.nm_pessoa }}
+                                </a>
 
-                        {% elif tipo_cadastro == 'fornecedor' %}
+                            {% elif tipo_cadastro == 'fornecedor' %}
 
-                            <a href="{{ url_for(
-                                'adm_fornecedor',
-                                cd_fornecedor=registro.cd_fornecedor
-                            ) }}">
-                                {{ registro.nm_pessoa }}
-                            </a>
+                                <a href="{{ url_for('adm_fornecedor',
+                                                    cd_fornecedor=registro.cd_fornecedor) }}">
+                                    {{ registro.nm_pessoa }}
+                                </a>
 
-                        {% endif %}
+                            {% endif %}
 
                     </li>
 

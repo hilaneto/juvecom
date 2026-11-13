@@ -227,12 +227,12 @@ ds_status varchar(200) NOT NULL);
 
 -- -------------------------------------------------------------
 INSERT INTO tb_contrato_status (nm_status, ds_status) VALUES
-('pendente', 'Contrato emitido e aguardando assinatura'),
+('pendente', 'Cadastro aguardando validação dos dados'),
+('assinatura', 'Contrato emitido e aguardando assinatura'),
 ('ativo', 'Contrato assinado e em vigência'),
-('vencido', 'Contrato que atingiu o fim da vigência'),
-('suspenso', 'Contrato com restrição que impede sua execução'),
-('cancelado',  'Contrato cancelado e mantido para histórico'),
-('inadimplente', 'Contrato suspenso por falta de pagamento');
+('inadimplente', 'Contrato suspenso por falta de pagamento'),
+('vencido',  'Contrato que atingiu o fim da vigência'),
+('cancelado', 'Contrato cancelado e mantido para histórico');
 
 
 -- ============================================================
@@ -252,6 +252,7 @@ vl_desconto_manual NUMERIC(12,2) NOT NULL DEFAULT 0,
 vl_acrescimo NUMERIC(12,2) NOT NULL DEFAULT 0,
 vl_contrato NUMERIC(12,2) NOT NULL,
 ds_contrato VARCHAR(500),
+ds_observacao text,
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT uq_contrato_cliente_contrato UNIQUE (cd_cliente, cd_contrato),
@@ -262,6 +263,7 @@ AND vl_contrato = vl_bruto - vl_desconto_lojas - vl_desconto_manual + vl_acresci
 -- --------------------------------------------------------------------
 CREATE INDEX ix_contrato_vigencia ON tb_contrato USING gist (vigencia);
 CREATE INDEX ix_contrato_cliente ON tb_contrato (cd_cliente);
+
 
 
 -- ============================================================

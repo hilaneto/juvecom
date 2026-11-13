@@ -13,6 +13,8 @@ dependencies = [
     "peewee>=4.5.1",
     "psycopg2>=2.9.13",
     "pymupdf>=1.28.2",
+    "pypdf>=7.1.0",
+    "weasyprint>=70.0",
 ]
 
 [dependency-groups]

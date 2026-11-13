@@ -110,18 +110,16 @@ on a.cd_pessoa = b.cd_pessoa
 
 
 -- Área de Clientes -------------------------------------------
-
-SELECT
-    column_name,
-    data_type,
-    is_nullable,
-    column_default
+SELECT column_name, data_type, character_maximum_length
 FROM information_schema.columns
 WHERE table_schema = 'public'
-  AND table_name = 'tb_usuario'
+  AND table_name = 'tb_cliente_link'
 ORDER BY ordinal_position;
 
+
 select * from tb_usuario;
+
+select * from tb_cliente;
 
 select * from tb_usuario_nivel;
 
@@ -132,6 +130,11 @@ SELECT cd_modelo, octet_length(arquivo_pdf) AS tamanho_bytes, dt_atualizacao
 FROM tb_contrato_modelo;
 
 
+select * from tb_contrato;
+
+select * from tb_pessoa a left join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa
+where cd_status = 1 
 
 
 SELECT column_name, data_type, is_nullable

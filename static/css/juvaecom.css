@@ -1938,3 +1938,133 @@ body:has(.precadastro) {
         grid-column: 1 / -1;
     }
 }
+
+
+.contrato-grupo {
+    padding: 1rem 0;
+    border-top: 1px solid rgba(255, 255, 255, .12);
+}
+
+.contrato-grupo h3 {
+    margin: 0 0 .75rem;
+    font-size: .95rem;
+}
+
+.contrato-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+    gap: .85rem 1.5rem;
+    margin: 0;
+}
+
+.contrato-grade dt {
+    margin-bottom: .25rem;
+    font-size: .8rem;
+    opacity: .8;
+}
+
+.contrato-grade dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.contrato-total dd {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.cadastro-compacto .contrato-emissao > .cadastro-grupo {
+    display: block;
+    min-width: 0;
+}
+
+.contrato-emissao .contrato-emissao__grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    gap: 12px;
+}
+
+.contrato-emissao .contrato-emissao__campo {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+}
+
+.cadastro-compacto .contrato-emissao .contrato-emissao__campo > :is(input, select, textarea) {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.cadastro-compacto .contrato-emissao .contrato-emissao__loja {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-block: 4px;
+}
+
+.cadastro-compacto .contrato-emissao .contrato-emissao__loja > input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.pessoa-form .contrato-loja {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.pessoa-form .contrato-loja input[type="checkbox"] {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    accent-color: #ff7648;
+}
+
+@page {
+    size: A4;
+    margin: 20mm 18mm 18mm;
+    background-color: #F5F8F5;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    color: #263D38;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+h1, h2, h3 {
+    color: #254F43;
+}
+
+table th {
+    background-color: #315C4C;
+    color: white;
+}
+
+table td {
+    background-color: #FFFFFF;
+}
+
+.pagina-final {
+    break-before: page;
+    page-break-before: always;
+}
+
+.assinaturas {
+    margin-top: 35px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}

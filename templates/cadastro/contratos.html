@@ -1,0 +1,205 @@
+{% extends "adm_base.html" %}
+{% block title %}Contratos | Juvecom{% endblock %}
+{% block conteudo %}
+<p class="home__categoria">Cadastro | Contratos</p>
+
+{% set editavel = not contrato or contrato.cd_status == 2 %}
+{% set cancelar = contrato and contrato.cd_status in (2, 3, 4) %}
+{% set acao_form = url_for('adm_contrato_novo', cd_cliente=cd_cliente, confirmar_dados=1 if confirmar else none)
+    if vindo_cliente else url_for('adm_contrato', cd_contrato=contrato.get('cd_contrato'), cd_cliente=cd_cliente if not contrato else none) %}
+
+<div class="pessoa-layout cadastro-compacto">
+    <section class="pessoa-card">
+        <h2 class="pessoa-form__titulo">
+            {{ 'Contrato #' ~ contrato.cd_contrato if contrato else 'Novo contrato' }}
+        </h2>
+
+        {% if erro %}
+            <div class="contato-aviso contato-aviso--erro" role="alert">{{ erro }}</div>
+        {% endif %}
+
+        {% if not contrato and not vindo_cliente %}
+            <form class="pessoa-form" method="get" action="{{ url_for('adm_contrato') }}">
+                <label for="cd_cliente">Cliente</label>
+                <select id="cd_cliente" name="cd_cliente" required onchange="this.form.submit()">
+                    <option value="">Selecione o cliente</option>
+                    {% for codigo, nome in clientes %}
+                        <option value="{{ codigo }}" {% if codigo == cd_cliente %}selected{% endif %}>{{ nome }}</option>
+                    {% endfor %}
+                </select>
+                <noscript><button class="pessoa-botao" type="submit">Carregar cliente</button></noscript>
+            </form>
+        {% endif %}
+
+        {% if cd_cliente is not none %}
+            <form id="contrato-formulario" class="pessoa-form" method="post" action="{{ acao_form }}">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
+                <section class="contrato-grupo">
+                    <h3>Dados do contrato</h3>
+                    <div class="contrato-grade">
+                        <div>
+                            <label>Cliente</label>
+                            {% for codigo, nome in clientes if codigo == cd_cliente %}
+                                <div>{{ nome }}</div>
+                            {% endfor %}
+                        </div>
+                        <div>
+                            <label for="cd_plano">Plano</label>
+                            {% if editavel %}
+                                {% set plano_escolhido = formulario.get('cd_plano', '') if formulario is not none else contrato.get('cd_plano')|string %}
+                                <select id="cd_plano" name="cd_plano" required>
+                                    <option value="">Selecione</option>
+                                    {% for codigo, nome in planos %}
+                                        <option value="{{ codigo }}" {% if codigo|string == plano_escolhido %}selected{% endif %}>{{ nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <div>{{ contrato.nm_plano }}</div>
+                            {% endif %}
+                        </div>
+                        {% if contrato %}
+                            <div><label>Status</label><div>{{ contrato.nm_status|capitalize }}</div></div>
+                        {% endif %}
+                    </div>
+                </section>
+
+                <section class="contrato-grupo">
+                    <h3>Lojas vinculadas</h3>
+                    <div class="contrato-grade">
+                        {% for codigo, nome, vinculada in lojas if editavel or vinculada %}
+                            <label class="contrato-loja">
+                                {% if editavel %}
+                                    <input type="checkbox" name="cd_loja" value="{{ codigo }}"
+                                           {% if (codigo|string in formulario.getlist('cd_loja') if formulario is not none else vinculada) %}checked{% endif %}>
+                                {% endif %}
+                                {{ nome }}
+                            </label>
+                        {% else %}
+                            <p>Nenhuma loja vinculada ou disponível.</p>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="contrato-grupo">
+                    <h3>Vigência</h3>
+                    <div class="contrato-grade">
+                        {% for campo, rotulo in (('dt_inicio', 'Início da vigência'), ('dt_fim', 'Último dia da vigência')) %}
+                            {% set data = contrato.get(campo) %}
+                            <div>
+                                <label for="{{ campo }}">{{ rotulo }}</label>
+                                {% if editavel %}
+                                    <input id="{{ campo }}" name="{{ campo }}" type="date" required
+                                           value="{{ formulario.get(campo, '') if formulario is not none else (data.isoformat() if data else '') }}">
+                                {% else %}
+                                    <div>{{ data.strftime('%d/%m/%Y') if data else 'Sem data final' }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="contrato-grupo">
+                    <h3>Valores</h3>
+                    <div class="contrato-grade">
+                        {% for campo, rotulo in (('vl_bruto', 'Valor bruto'), ('vl_desconto_lojas', 'Desconto por lojas'),
+                                                ('vl_desconto_manual', 'Desconto manual'), ('vl_acrescimo', 'Acréscimo')) %}
+                            <div>
+                                <label for="{{ campo }}">{{ rotulo }}</label>
+                                {% if editavel %}
+                                    <input id="{{ campo }}" name="{{ campo }}" type="number" step=".01" min="0"
+                                           max="9999999999.99" {% if campo == 'vl_bruto' %}required{% endif %}
+                                           value="{{ formulario.get(campo, '') if formulario is not none else contrato.get(campo, '' if campo == 'vl_bruto' else '0.00') }}">
+                                {% else %}
+                                    <div>R$ {{ contrato[campo] }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        {% if contrato %}
+                            <div><label>Valor gravado</label><div><strong>R$ {{ contrato.vl_contrato }}</strong></div></div>
+                        {% endif %}
+                    </div>
+                </section>
+
+                <section class="contrato-grupo">
+                    <h3>Detalhes</h3>
+                    <label for="ds_contrato">Descrição</label>
+                    {% if editavel %}
+                        <textarea id="ds_contrato" name="ds_contrato" maxlength="500" rows="3">{{ formulario.get('ds_contrato', '') if formulario is not none else contrato.get('ds_contrato') or '' }}</textarea>
+                    {% else %}
+                        <div>{{ contrato.ds_contrato or 'Sem descrição' }}</div>
+                    {% endif %}
+                    {% if contrato.ds_observacao %}
+                        <p><strong>Observação</strong><br>{{ contrato.ds_observacao }}</p>
+                    {% endif %}
+                </section>
+            </form>
+        {% endif %}
+
+        <div class="pessoa-botoes">
+            {% if cd_cliente is not none and editavel %}
+                <button class="pessoa-botao pessoa-botao--salvar" form="contrato-formulario"
+                        type="submit" name="acao" value="salvar">Salvar</button>
+            {% endif %}
+            <a class="pessoa-botao" href="{{ url_for('adm_contrato') }}">Novo</a>
+
+            {% if cancelar %}
+                <button class="pessoa-botao pessoa-botao--excluir" type="button"
+                        onclick="document.getElementById('cancelar-contrato').showModal()">Excluir</button>
+            {% endif %}
+
+            {% if contrato and contrato.cd_status == 2 %}
+                <form method="post" action="{{ acao_form }}">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                    <button class="pessoa-botao" type="submit" name="acao" value="confirmar_assinatura">Confirmar Assinatura</button>
+                </form>
+            {% endif %}
+
+            {% if vindo_cliente %}
+                <a class="pessoa-botao" href="{{ url_for('adm_cliente', cd_cliente=cd_cliente, status=1 if confirmar else none) }}">Voltar ao cliente</a>
+            {% endif %}
+
+
+            {% if contrato and contrato.cd_contrato %}
+                <a class="pessoa-botao"
+                href="{{ url_for('adm_contrato_download', cd_contrato=contrato.cd_contrato) }}">
+                    Baixar Contrato
+                </a>
+            {% endif %}            
+
+        </div>
+
+        {% if cancelar %}
+            <dialog id="cancelar-contrato">
+                <form method="post" action="{{ acao_form }}">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                    <label for="motivo">Motivo do cancelamento</label>
+                    <textarea id="motivo" name="motivo" required>{{ motivo }}</textarea>
+                    <div class="pessoa-botoes">
+                        <button class="pessoa-botao pessoa-botao--excluir" type="submit" name="acao" value="excluir">Cancelar contrato</button>
+                        <button class="pessoa-botao" type="button" onclick="this.closest('dialog').close()">Voltar</button>
+                    </div>
+                </form>
+            </dialog>
+        {% endif %}
+    </section>
+
+    <aside class="pessoa-lista cadastro-lista">
+        <h2 class="pessoa-form__titulo">Contratos ({{ registros|length }})</h2>
+        {% if registros %}
+            <ul>
+                {% for numero, nome, status in registros %}
+                    <li>
+                        <a href="{{ url_for('adm_contrato', cd_contrato=numero) }}"
+                           {% if contrato.cd_contrato == numero %}aria-current="page"{% endif %}>
+                            #{{ numero }} · {{ nome }} · {{ status|capitalize }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Nenhum contrato cadastrado.</p>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}
