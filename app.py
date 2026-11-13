@@ -16,6 +16,7 @@ from models.minha_conta import MinhaConta
 from models.minhas_lojas import MinhasLojas
 from models.cliente_link import ClienteLink
 from models.cadastro_contrato import CadastroContrato
+from models.dashboard_admin import DashboardAdmin
 from io import BytesIO
 from zoneinfo import ZoneInfo
 
@@ -148,8 +149,11 @@ def login():
 @login_obrigatorio
 @acesso_administrativo
 def adm():
-    return redirect(url_for("adm_contato"))
-
+    return render_template(
+        "dashboard.html",
+        resumo=DashboardAdmin.resumo(),
+        contatos=DashboardAdmin.contatos_recentes()
+    )
 
 
 @app.route("/cliente/lojas")

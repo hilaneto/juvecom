@@ -1,18 +1,21 @@
-/* JUVAECOM — CSS CONSOLIDADO
-   Refatoração do arquivo original: estilos públicos preservados,
-   formulários de cadastro reorganizados sem seletores conflitantes.
+/* JUVAECOM — CSS DO SITE (DEV/PROD)
+   Estilos públicos e administrativos. Regras de impressão/PDF ficam
+   exclusivamente em templates/contratos/contrato_pdf.html.
+   Ajustes: fonte global, login, navegação lateral e submenu Cadastros.
 */
 
 
 /* ==========================================================
-   01 â€” BASE GLOBAL: dimensÃµes, corpo da pÃ¡gina e tipografia
+   01 — BASE GLOBAL: dimensÃµes, corpo da pÃ¡gina e tipografia
    ========================================================== */
 * { box-sizing: border-box; }
 
-body { margin: 0; font-family: Arial, sans-serif; background: #171513; color: #fff; }
+body { margin: 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 1.45; background: #171513; color: #fff; }
+button, input, select, textarea { font-family: inherit; }
+
 
 /* ==========================================================
-   02 â€” HOME: imagem de fundo, sobreposiÃ§Ã£o e conteÃºdo principal
+   02 — HOME: imagem de fundo, sobreposiÃ§Ã£o e conteÃºdo principal
    ========================================================== */
 .home {
     position: relative;
@@ -89,7 +92,7 @@ h1 {
 .home__botao:hover { background: #ff995f; }
 
 /* ==========================================================
-   03 â€” HOME: navegaÃ§Ã£o superior e marca
+   03 — HOME: navegaÃ§Ã£o superior e marca
    ========================================================== */
 .menu-principal {
     position: absolute;
@@ -112,7 +115,7 @@ h1 {
 .menu-principal__links a:hover { color: #ff995f; }
 
 /* ==========================================================
-   04 â€” PLANOS ANTIGOS: compatibilidade com templates anteriores
+   04 — PLANOS ANTIGOS: compatibilidade com templates anteriores
    ========================================================== */
 .pagina-planos {
     min-height: 100vh;
@@ -160,7 +163,7 @@ h1 {
 .plano-card__valor { margin: 0; color: #ff7841; font-size: 30px; font-weight: 800; }
 
 /* ==========================================================
-   05 â€” CONTATO PÃšBLICO E LOGIN: formulÃ¡rio, campos e mensagens
+   05 — CONTATO PÃšBLICO E LOGIN: formulÃ¡rio, campos e mensagens
    ========================================================== */
 .pagina-contato {
     min-height: 100vh;
@@ -180,7 +183,7 @@ h1 {
 
 .contato-card h2 { margin: 0 0 28px; font-size: 28px; }
 .contato-card form { display: grid; gap: 12px; }
-.contato-card label { font-weight: 700; }
+.contato-card label { font-size: 14px; font-weight: 700; }
 
 .contato-card input:not([type="hidden"]),
 .contato-card textarea {
@@ -205,6 +208,7 @@ h1 {
     background: #ff7841;
     color: #171513;
     font: inherit;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
 }
@@ -214,7 +218,7 @@ h1 {
 .contato-aviso--sucesso { background: #28513b; }
 .contato-aviso--erro { margin-bottom: 18px; background: #71332c; }
 
-/* AdministraÃ§Ã£o: estilos do painel anterior (mantidos por compatibilidade) */
+/* Administração: estilos do painel anterior (mantidos por compatibilidade) */
 .adm-cabecalho { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 48px; }
 
 .adm-sair {
@@ -255,8 +259,9 @@ h1 {
 .adm-grade .contato-card p { line-height: 1.5; }
 .adm-data { margin-top: 28px; color: #b9ada6; font-size: 13px; }
 
+
 /* ==========================================================
-   07 â€” ADMINISTRAÃ‡ÃƒO: estrutura, menu lateral e Ã¡rea principal
+   07 - ADMINISTRAÇÃO: estrutura, menu lateral e área principal
    ========================================================== */
 .adm-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 100vh; }
 
@@ -269,7 +274,6 @@ h1 {
 }
 
 .adm-lateral__marca { margin: 0 12px 64px; color: #fff; font-size: 26px; font-weight: 800; text-decoration: none; }
-
 .adm-lateral__marca span { color: #ff7841; }
 
 .adm-lateral__titulo {
@@ -281,22 +285,20 @@ h1 {
     text-transform: uppercase;
 }
 
-.adm-lateral__nav { display: grid; gap: 4px; }
+.adm-lateral__nav { display: grid; gap: 4px; font-size: 14px; }
 
 .adm-lateral__nav a,
-.adm-lateral__nav > span { display: block; padding: 13px 12px; border-radius: 8px; color: #eee5df; text-decoration: none; }
+.adm-lateral__nav > span { display: block; padding: 13px 12px; border-radius: 8px; color: #eee5df; font-size: 14px; text-decoration: none; }
 
 .adm-lateral__nav a:hover,
 .adm-lateral__nav a.ativo { background: #ff784122; color: #ff995f; }
 
 .adm-lateral__nav > span { opacity: .5; }
 
-.adm-lateral__nav small { display: block; margin-top: 3px; font-size: 11px; }
+.adm-lateral__nav small { display: block; margin-top: 3px; font-size: 12px; }
 
 .adm-lateral__rodape { display: grid; gap: 16px; margin-top: auto; padding: 32px 12px 0; }
-
 .adm-lateral__rodape a { color: #eee5df; text-decoration: none; }
-
 .adm-lateral__rodape a:hover { color: #ff995f; }
 
 .adm-lateral__rodape button {
@@ -311,27 +313,9 @@ h1 {
 
 .adm-lateral__rodape button:hover { border-color: #ff7841; }
 
-.adm-principal {
-    min-width: 0;
-    padding: 22px clamp(24px, 5vw, 90px);
-    background: radial-gradient(circle at 90% 10%, #6b341f44, transparent 40%);
-}
-
-.adm-resumo {
-    max-width: 600px;
-    margin-top: 60px;
-    padding: 28px;
-    border: 1px solid #ffffff24;
-    border-radius: 16px;
-    background: #25211f;
-}
-
-.adm-resumo h2 { margin-top: 0; }
-.adm-resumo p { color: #eee5df; line-height: 1.6; }
-.adm-resumo a { color: #ff995f; font-weight: 700; text-decoration: none; }
 
 /* ==========================================================
-   08 â€” ATENDIMENTO ANTIGO: cards por prazo (compatibilidade)
+   08 — ATENDIMENTO ANTIGO: cards por prazo (compatibilidade)
    ========================================================== */
 .atendimento-grupos { display: grid; gap: 24px; margin-top: 40px; }
 
@@ -356,7 +340,7 @@ h1 {
 .atendimento-card__vazio { margin: 24px 0 0; color: #b9ada6; }
 
 /* ==========================================================
-   09 â€” TABELAS COMPARTILHADAS: utilizadas tambÃ©m na pÃ¡gina de usuÃ¡rios
+   09 — TABELAS COMPARTILHADAS: utilizadas tambÃ©m na pÃ¡gina de usuÃ¡rios
    ========================================================== */
 .atendimento-tabela-container { margin-top: 24px; overflow-x: auto; }
 
@@ -384,7 +368,7 @@ h1 {
 .atendimento-tabela__legenda { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 
 /* ==========================================================
-   10 â€” ADMINISTRAÃ‡ÃƒO: botÃ£o Sair abaixo das opÃ§Ãµes do menu
+   10 — ADMINISTRAÃ‡ÃƒO: botÃ£o Sair abaixo das opÃ§Ãµes do menu
    ========================================================== */
 .adm-lateral .adm-form-sair { margin-top: 24px; }
 
@@ -406,7 +390,7 @@ h1 {
 .adm-menu-sair button:hover { background: #ffffff08; color: #ff995f; }
 
 /* ==========================================================
-   11 â€” RESPONSIVIDADE: home, contato, administraÃ§Ã£o e planos antigos
+   11 — RESPONSIVIDADE: home, contato, administraÃ§Ã£o e planos antigos
    ========================================================== */
 @media (max-width: 1000px) {
     .planos-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -475,7 +459,7 @@ h1 {
 }
 
 /* ==========================================================
-   12 â€” PLANOS ANTIGOS: ajustes de preÃ§o e botÃ£o (compatibilidade)
+   12 — PLANOS ANTIGOS: ajustes de preÃ§o e botÃ£o (compatibilidade)
    ========================================================== */
 .plano-card__mensal {
     font-size: 14px;
@@ -498,7 +482,7 @@ h1 {
 
 
 /* ==========================================================
-   23 â€” CONTATO PÃšBLICO: indicador de vendas em marketplaces
+   23 — CONTATO PÃšBLICO: indicador de vendas em marketplaces
    ========================================================== */
 .contato-marketplace {
     display: flex;
@@ -517,7 +501,7 @@ h1 {
 
 
 /* ==========================================================
-   24 â€” PLANOS ATUAIS: vitrine, cards dinÃ¢micos, benefÃ­cios e WhatsApp
+   24 — PLANOS ATUAIS: vitrine, cards dinÃ¢micos, benefÃ­cios e WhatsApp
    ========================================================== */
 .planos-vitrine {
     min-height: 100vh;
@@ -724,7 +708,7 @@ h1 {
     }
 }
 
-/* 25 â€” PLANOS: dimensÃµes compactas aprovadas; sobrescrevem os valores acima. */
+/* 25 — PLANOS: dimensÃµes compactas aprovadas; sobrescrevem os valores acima. */
 .planos-vitrine {
     padding: 28px 20px;
 }
@@ -792,7 +776,7 @@ h1 {
 
 
 /* ==========================================================
-   26 â€” CENTRAL DE ATENDIMENTO: formulÃ¡rio, conversas e fila lateral
+   26 — CENTRAL DE ATENDIMENTO: formulÃ¡rio, conversas e fila lateral
    ========================================================== */
 .central-contato {
     display: grid;
@@ -1010,7 +994,7 @@ h1 {
 
 
 /* ==========================================================
-   27 â€” CENTRAL DE ATENDIMENTO: lista dos finalizados e divisor
+   27 — CENTRAL DE ATENDIMENTO: lista dos finalizados e divisor
    ========================================================== */
 .central-contato__fila #contato_finalizado {
     height: 190px;
@@ -1317,7 +1301,7 @@ h1 {
 .pessoa-lista select { width: 100%; padding: 8px; border: 1px solid var(--juv-border-input); border-radius: 8px; background: var(--juv-bg); color: #fff; font: inherit; font-size: 13px; }
 
 /* Menu administrativo de cadastros. */
-.adm-submenu summary { padding: 13px 12px; border-radius: 8px; color: var(--juv-muted); cursor: pointer; font-weight: 700; }
+.adm-submenu summary { padding: 13px 12px; border-radius: 8px; color: var(--juv-muted); font-size: 14px; cursor: pointer; font-weight: 700; }
 .adm-submenu summary:hover,
 .adm-submenu[open] > summary { background: #ff784122; color: var(--juv-accent-light); }
 .adm-submenu__itens { display: grid; gap: 4px; margin-left: 16px; }
@@ -1326,7 +1310,7 @@ h1 {
 .adm-submenu__itens a:hover,
 .adm-submenu__itens a.ativo { background: #ff784122; color: var(--juv-accent-light); }
 .adm-submenu__itens span { opacity: .5; }
-.adm-submenu__itens small { display: block; font-size: 11px; }
+.adm-submenu__itens small { display: block; font-size: 12px; }
 
 /* Layout fluido em telas intermediárias e pequenas. */
 @media (max-width: 1100px) {
@@ -1737,12 +1721,6 @@ body:has(.precadastro) {
    Layout equivalente ao cadastro administrativo
    ========================================================== */
 
-body:has(.precadastro) {
-    min-height: 100vh;
-    padding: 24px 16px;
-    background: var(--juv-bg);
-}
-
 .precadastro {
     width: min(100%, 1200px);
     margin: 0 auto;
@@ -2032,39 +2010,97 @@ body:has(.precadastro) {
     accent-color: #ff7648;
 }
 
-@page {
-    size: A4;
-    margin: 20mm 18mm 18mm;
-    background-color: #F5F8F5;
+
+/* JUV-027 — Dashboard Administrativo */
+
+.dashboard {
+    padding: 24px;
 }
 
-body {
-    font-family: Arial, sans-serif;
-    color: #263D38;
-    font-size: 10px;
-    line-height: 1.45;
+.dashboard__header {
+    margin-bottom: 28px;
 }
 
-h1, h2, h3 {
+.dashboard__header h1 {
+    margin: 0 0 6px;
+}
+
+.dashboard__header p {
+    color: #777;
+}
+
+.dashboard h2 {
+    margin: 30px 0 16px;
+    font-size: 20px;
+}
+
+.dashboard__cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.dashboard__cards--financeiro {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard__card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, .04);
+}
+
+.dashboard__card span {
+    font-size: 14px;
+    color: #666;
+}
+
+.dashboard__card strong {
+    font-size: 30px;
     color: #254F43;
 }
 
-table th {
-    background-color: #315C4C;
-    color: white;
+.dashboard__card small {
+    color: #888;
 }
 
-table td {
-    background-color: #FFFFFF;
+.dashboard__tabela {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e5e5e5;
 }
 
-.pagina-final {
-    break-before: page;
-    page-break-before: always;
+.dashboard__tabela table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.assinaturas {
-    margin-top: 35px;
-    break-inside: avoid;
-    page-break-inside: avoid;
+.dashboard__tabela th,
+.dashboard__tabela td {
+    padding: 14px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+@media (max-width: 1100px) {
+    .dashboard__cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard {
+        padding: 12px;
+    }
+
+    .dashboard__cards,
+    .dashboard__cards--financeiro {
+        grid-template-columns: 1fr;
+    }
 }

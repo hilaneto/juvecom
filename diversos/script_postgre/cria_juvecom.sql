@@ -522,12 +522,17 @@ AND st.nm_status <> 'cancelado';
 -- ==========================================================================
 -- vw_contatos_pendentes: Contatos pendentes
 -- ==========================================================================
-CREATE VIEW vw_contatos_pendentes AS
-SELECT c.cd_contato, c.nm_contato, c.email, c.celular, c.mensagem, c.dt_cadastro, 
-CURRENT_DATE - c.dt_cadastro::date AS dias_aguardando
-FROM tb_contato c
-JOIN tb_contato_status st ON st.cd_status = c.cd_status
-WHERE st.nm_status = 'aguardando';
+CREATE VIEW public.vw_contatos_pendentes AS
+SELECT
+    c.cd_contato,
+    c.nm_contato,
+    c.email,
+    c.celular,
+    c.mensagem,
+    c.dt_cadastro,
+    CURRENT_DATE - c.dt_cadastro::date AS dias_aguardando
+FROM public.tb_contato c
+WHERE c.cd_status IN (1, 2);
 
 
 -- ==========================================================================

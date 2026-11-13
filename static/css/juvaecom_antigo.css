@@ -255,8 +255,9 @@ h1 {
 .adm-grade .contato-card p { line-height: 1.5; }
 .adm-data { margin-top: 28px; color: #b9ada6; font-size: 13px; }
 
+
 /* ==========================================================
-   07 â€” ADMINISTRAÃ‡ÃƒO: estrutura, menu lateral e Ã¡rea principal
+   07 - ADMINISTRAÇÃO: estrutura, menu lateral e área principal
    ========================================================== */
 .adm-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 100vh; }
 
@@ -269,7 +270,6 @@ h1 {
 }
 
 .adm-lateral__marca { margin: 0 12px 64px; color: #fff; font-size: 26px; font-weight: 800; text-decoration: none; }
-
 .adm-lateral__marca span { color: #ff7841; }
 
 .adm-lateral__titulo {
@@ -284,19 +284,17 @@ h1 {
 .adm-lateral__nav { display: grid; gap: 4px; }
 
 .adm-lateral__nav a,
-.adm-lateral__nav > span { display: block; padding: 13px 12px; border-radius: 8px; color: #eee5df; text-decoration: none; }
+.adm-lateral__nav > span { display: block; padding: 13px 12px; border-radius: 8px; color: #eee5df; font-size: 14px; text-decoration: none; }
 
 .adm-lateral__nav a:hover,
 .adm-lateral__nav a.ativo { background: #ff784122; color: #ff995f; }
 
 .adm-lateral__nav > span { opacity: .5; }
 
-.adm-lateral__nav small { display: block; margin-top: 3px; font-size: 11px; }
+.adm-lateral__nav small { display: block; margin-top: 3px; font-size: 12px; }
 
 .adm-lateral__rodape { display: grid; gap: 16px; margin-top: auto; padding: 32px 12px 0; }
-
 .adm-lateral__rodape a { color: #eee5df; text-decoration: none; }
-
 .adm-lateral__rodape a:hover { color: #ff995f; }
 
 .adm-lateral__rodape button {
@@ -311,24 +309,6 @@ h1 {
 
 .adm-lateral__rodape button:hover { border-color: #ff7841; }
 
-.adm-principal {
-    min-width: 0;
-    padding: 22px clamp(24px, 5vw, 90px);
-    background: radial-gradient(circle at 90% 10%, #6b341f44, transparent 40%);
-}
-
-.adm-resumo {
-    max-width: 600px;
-    margin-top: 60px;
-    padding: 28px;
-    border: 1px solid #ffffff24;
-    border-radius: 16px;
-    background: #25211f;
-}
-
-.adm-resumo h2 { margin-top: 0; }
-.adm-resumo p { color: #eee5df; line-height: 1.6; }
-.adm-resumo a { color: #ff995f; font-weight: 700; text-decoration: none; }
 
 /* ==========================================================
    08 â€” ATENDIMENTO ANTIGO: cards por prazo (compatibilidade)
@@ -1586,26 +1566,485 @@ h1 {
     }
 }
 
-/* Pré-cadastro de clientes */
-
-.precadastro {
-    max-width: 980px;
-    margin: 30px auto;
-    padding: 32px;
+/* ==========================================================
+   28 — PRÉ-CADASTRO PÚBLICO (JUV-026)
+   Estilos isolados para não alterar o cadastro administrativo.
+   ========================================================== */
+body:has(.precadastro) {
+    min-height: 100vh;
+    padding: 24px 16px;
+    background: var(--juv-bg);
 }
 
+.precadastro {
+    width: min(100%, 980px);
+    margin: 0 auto;
+    padding: 32px;
+    border: 1px solid var(--juv-border);
+    border-radius: 12px;
+    background: var(--juv-panel);
+    color: var(--juv-text);
+}
+
+.precadastro__cabecalho { text-align: center; margin-bottom: 26px; }
+.precadastro__cabecalho h1 {
+    max-width: none;
+    margin: 0 0 10px;
+    color: var(--juv-text);
+    font-size: 30px;
+    letter-spacing: normal;
+}
+.precadastro__cabecalho p,
+.precadastro__rodape { color: var(--juv-muted); }
+.precadastro__descricao { margin: 0 0 24px; line-height: 1.6; }
+.precadastro .cadastro-grupo { margin-bottom: 18px; }
+
+/* Reutiliza os parciais de Pessoa e Loja, com grade pública própria. */
+.precadastro .cadastro-grupo,
 .precadastro .pessoa-form__fieldset,
 .precadastro .cliente-form__grid,
 .precadastro .loja-form__grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px 20px;
+    width: 100%;
+    min-width: 0;
 }
+.precadastro .pessoa-form__fieldset {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.precadastro .cliente-form__grid,
+.precadastro .loja-form__grid { grid-column: 1 / -1; }
+
+/* Neutraliza as extensões de 20 colunas do formulário administrativo. */
+.precadastro .pessoa-form__fieldset > div[class*="pessoa-campo--"],
+.precadastro .cliente-form__grid > div,
+.precadastro .loja-form__grid > div {
+    grid-column: auto;
+    grid-row: auto;
+    min-width: 0;
+}
+.precadastro .pessoa-form__fieldset > .pessoa-campo--nome,
+.precadastro .pessoa-form__fieldset > .pessoa-campo--endereco,
+.precadastro .cliente-form__grid > .cliente-campo--responsavel,
+.precadastro .loja-form__grid > .loja-campo--nome,
+.precadastro .loja-form__grid > .loja-campo--url {
+    grid-column: 1 / -1;
+}
+.precadastro .pessoa-form__titulo,
+.precadastro .pessoa-form__divisor {
+    grid-column: 1 / -1;
+}
+.precadastro .pessoa-form__titulo {
+    margin: 4px 0 0 !important;
+    color: var(--juv-accent-light);
+    font-size: 17px !important;
+}
+.precadastro label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 700;
+}
+.precadastro input:not([type="hidden"]),
+.precadastro select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 9px 11px;
+    border: 1px solid var(--juv-border-input);
+    border-radius: 7px;
+    background: var(--juv-bg);
+    color: var(--juv-text);
+    font: inherit;
+    font-size: 14px;
+}
+.precadastro input:focus-visible,
+.precadastro select:focus-visible {
+    outline: 2px solid var(--juv-accent);
+    outline-offset: 2px;
+}
+.precadastro__acoes {
+    display: flex;
+    justify-content: center;
+    margin-top: 28px;
+}
+.precadastro__botao {
+    width: min(100%, 320px);
+    padding: 13px 20px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--juv-accent);
+    color: var(--juv-bg);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+.precadastro__botao:hover { background: var(--juv-accent-light); }
+.precadastro__aviso {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #71332c;
+    color: #fff;
+}
+.precadastro__rodape { margin-top: 28px; text-align: center; font-size: 12px; }
 
 @media (max-width: 650px) {
+    body:has(.precadastro) { padding: 10px; }
+    .precadastro { padding: 18px 14px; }
+    .precadastro__cabecalho h1 { font-size: 25px; }
+    .precadastro .cadastro-grupo,
     .precadastro .pessoa-form__fieldset,
     .precadastro .cliente-form__grid,
     .precadastro .loja-form__grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
+    .precadastro .pessoa-form__fieldset > div[class*="pessoa-campo--"],
+    .precadastro .cliente-form__grid > div,
+    .precadastro .loja-form__grid > div {
+        grid-column: 1 / -1;
+    }
+}
+
+
+/* ==========================================================
+   28 — PRÉ-CADASTRO PÚBLICO (JUV-026)
+   Layout equivalente ao cadastro administrativo
+   ========================================================== */
+
+body:has(.precadastro) {
+    min-height: 100vh;
+    padding: 24px 16px;
+    background: var(--juv-bg);
+}
+
+.precadastro {
+    width: min(100%, 1200px);
+    margin: 0 auto;
+    padding: 24px;
+    border: 1px solid var(--juv-border);
+    border-radius: 12px;
+    background: var(--juv-panel);
+    color: var(--juv-text);
+}
+
+.precadastro__cabecalho {
+    text-align: center;
+    margin-bottom: 26px;
+}
+
+.precadastro__cabecalho h1 {
+    max-width: none;
+    margin: 0 0 10px;
+    color: var(--juv-text);
+    font-size: 30px;
+}
+
+.precadastro__cabecalho p,
+.precadastro__rodape {
+    color: var(--juv-muted);
+}
+
+.precadastro__descricao {
+    margin: 0 0 24px;
+    line-height: 1.6;
+}
+
+/* Grupos iguais aos do cadastro administrativo */
+
+.precadastro .cadastro-grupo {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 12px 10px;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 14px;
+    padding: 16px;
+    border: 1px solid var(--juv-border);
+    border-radius: 8px;
+    align-content: start;
+}
+
+/* Dados da Pessoa: grade de 20 colunas */
+
+.precadastro .pessoa-form__fieldset {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    grid-column: 1 / -1;
+    gap: 12px 10px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.precadastro .pessoa-campo--tipo         { grid-column: span 4; }
+.precadastro .pessoa-campo--nome         { grid-column: span 10; }
+.precadastro .pessoa-campo--documento    { grid-column: span 6; }
+
+.precadastro .pessoa-campo--telefone     { grid-column: span 7; }
+.precadastro .pessoa-campo--email        { grid-column: span 13; }
+
+.precadastro .pessoa-campo--endereco     { grid-column: span 12; }
+.precadastro .pessoa-campo--numero       { grid-column: span 3; }
+.precadastro .pessoa-campo--complemento  { grid-column: span 5; }
+
+.precadastro .pessoa-campo--bairro       { grid-column: span 7; }
+.precadastro .pessoa-campo--cidade       { grid-column: span 7; }
+.precadastro .pessoa-campo--uf           { grid-column: span 2; }
+.precadastro .pessoa-campo--cep          { grid-column: span 4; }
+
+
+/* ==========================================================
+   JUV-026 — AJUSTE DAS COLUNAS DO PRÉ-CADASTRO
+   ========================================================== */
+
+/* Pessoa e Endereço — mesma grade administrativa */
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 12px 10px;
+    width: 100%;
+}
+
+/* Primeira linha */
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--tipo {
+    grid-column: span 4;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--nome {
+    grid-column: span 10;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--documento {
+    grid-column: span 6;
+}
+
+/* Segunda linha */
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--telefone {
+    grid-column: span 7;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--email {
+    grid-column: span 13;
+}
+
+/* Endereço — primeira linha */
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--endereco {
+    grid-column: span 12;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--numero {
+    grid-column: span 3;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--complemento {
+    grid-column: span 5;
+}
+
+/* Endereço — segunda linha */
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--bairro {
+    grid-column: span 7;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--cidade {
+    grid-column: span 7;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--uf {
+    grid-column: span 2;
+}
+
+.precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--cep {
+    grid-column: span 4;
+}
+
+/* Loja — três campos lado a lado */
+
+.precadastro #pre-cadastro-form .loja-form__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 5fr);
+    gap: 12px;
+    width: 100%;
+}
+
+.precadastro #pre-cadastro-form .loja-form__grid > .loja-campo--nome,
+.precadastro #pre-cadastro-form .loja-form__grid > .loja-campo--shop,
+.precadastro #pre-cadastro-form .loja-form__grid > .loja-campo--url {
+    grid-column: auto;
+    grid-row: auto;
+}
+
+/* Responsividade */
+
+@media (max-width: 900px) {
+    .precadastro #pre-cadastro-form .pessoa-form__fieldset {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .precadastro #pre-cadastro-form .pessoa-form__fieldset > div[class*="pessoa-campo--"] {
+        grid-column: span 1;
+    }
+
+    .precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--nome,
+    .precadastro #pre-cadastro-form .pessoa-form__fieldset > .pessoa-campo--endereco {
+        grid-column: 1 / -1;
+    }
+
+    .precadastro #pre-cadastro-form .loja-form__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .precadastro #pre-cadastro-form .loja-form__grid > .loja-campo--url {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 600px) {
+    .precadastro #pre-cadastro-form .pessoa-form__fieldset,
+    .precadastro #pre-cadastro-form .loja-form__grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .precadastro #pre-cadastro-form .pessoa-form__fieldset > div[class*="pessoa-campo--"],
+    .precadastro #pre-cadastro-form .loja-form__grid > div {
+        grid-column: 1 / -1;
+    }
+}
+
+
+.contrato-grupo {
+    padding: 1rem 0;
+    border-top: 1px solid rgba(255, 255, 255, .12);
+}
+
+.contrato-grupo h3 {
+    margin: 0 0 .75rem;
+    font-size: .95rem;
+}
+
+.contrato-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+    gap: .85rem 1.5rem;
+    margin: 0;
+}
+
+.contrato-grade dt {
+    margin-bottom: .25rem;
+    font-size: .8rem;
+    opacity: .8;
+}
+
+.contrato-grade dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.contrato-total dd {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.cadastro-compacto .contrato-emissao > .cadastro-grupo {
+    display: block;
+    min-width: 0;
+}
+
+.contrato-emissao .contrato-emissao__grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    gap: 12px;
+}
+
+.contrato-emissao .contrato-emissao__campo {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+}
+
+.cadastro-compacto .contrato-emissao .contrato-emissao__campo > :is(input, select, textarea) {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.cadastro-compacto .contrato-emissao .contrato-emissao__loja {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-block: 4px;
+}
+
+.cadastro-compacto .contrato-emissao .contrato-emissao__loja > input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.pessoa-form .contrato-loja {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.pessoa-form .contrato-loja input[type="checkbox"] {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    accent-color: #ff7648;
+}
+
+@page {
+    size: A4;
+    margin: 20mm 18mm 18mm;
+    background-color: #F5F8F5;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    color: #263D38;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+h1, h2, h3 {
+    color: #254F43;
+}
+
+table th {
+    background-color: #315C4C;
+    color: white;
+}
+
+table td {
+    background-color: #FFFFFF;
+}
+
+.pagina-final {
+    break-before: page;
+    page-break-before: always;
+}
+
+.assinaturas {
+    margin-top: 35px;
+    break-inside: avoid;
+    page-break-inside: avoid;
 }

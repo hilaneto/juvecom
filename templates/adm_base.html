@@ -16,9 +16,7 @@
             <nav class="adm-lateral__nav" aria-label="Menu administrativo">
                 <a href="{{ url_for('adm') }}"
                    {% if request.endpoint == 'adm' %}class="ativo" aria-current="page"{% endif %}> Home </a>
-                <a href="{{ url_for('adm_contato') }}"
-                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}> Contatos pendentes </a>
-
+                   
                 <!-- CADASTROS -->
                 <details class="adm-submenu"
                         {% if request.endpoint in ('adm_cliente', 'adm_usuario', 'adm_colaborador', 'adm_fornecedor') %}open{% endif %}>
@@ -51,6 +49,10 @@
                 {% endif %}
 
                 <span>Cobranças <small>Em construção</small></span>
+
+
+                <a href="{{ url_for('adm_contato') }}"
+                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}> Contatos pendentes </a>
 
 
                 <a href="{{ url_for('adm_cliente_links') }}">
