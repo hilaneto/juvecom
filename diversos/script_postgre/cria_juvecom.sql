@@ -547,6 +547,38 @@ on a.cd_nivel  = c.cd_nivel;
 
 
 -- ==========================================================================
+-- vw_dashboard_admin: drop view vw_dashboard_admin - Usuarios
+-- ==========================================================================
+CREATE VIEW public.vw_dashboard_admin AS
+SELECT
+    (SELECT COUNT(*) FROM public.tb_cliente WHERE fl_ativo = TRUE) AS clientes_ativos,
+
+    (SELECT COUNT(*) FROM public.tb_contrato c
+     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
+     WHERE LOWER(s.nm_status) = 'ativo') AS contratos_ativos,
+
+    (SELECT COALESCE(SUM(c.vl_bruto), 0)
+     FROM public.tb_contrato c
+     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
+     WHERE LOWER(s.nm_status) = 'ativo') AS valor_contratos_ativos,
+
+    (SELECT COUNT(*) FROM public.vw_contatos_pendentes) AS contatos_pendentes,
+
+    (SELECT COUNT(*) FROM public.vw_cobranca_proximos) AS parcelas_proximas,
+    (SELECT COUNT(*) FROM public.vw_cobranca_vencidos) AS parcelas_vencidas,
+    (SELECT COUNT(*) FROM public.vw_cobranca_inadimplentes) AS parcelas_inadimplentes,
+
+    (SELECT COALESCE(SUM(vl_a_pagar), 0)
+     FROM public.vw_cobranca_proximos) AS valor_proximos,
+
+    (SELECT COALESCE(SUM(vl_original), 0)
+     FROM public.vw_cobranca_vencidos) AS valor_vencidos,
+
+    (SELECT COALESCE(SUM(vl_original + vl_multa + vl_juros), 0)
+     FROM public.vw_cobranca_inadimplentes) AS valor_inadimplencia;
+
+
+-- ==========================================================================
 -- fn_nova_versao_plano: versionamento de planos
 -- ==========================================================================
 CREATE OR REPLACE FUNCTION fn_nova_versao_plano(

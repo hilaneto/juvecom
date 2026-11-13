@@ -1,64 +1,82 @@
+
 {% extends "adm_base.html" %}
+
 {% block title %}Dashboard | Juvecom{% endblock %}
+
 {% block conteudo %}
 
-<section class="dashboard">
+<div class="dashboard">
+
     <header class="dashboard__header">
-        <div>
-            <h1>Visão Geral</h1>
-            <p>Acompanhe os principais indicadores da Juvecom.</p>
-        </div>
+        <h1>Dashboard Administrativo</h1>
+        <p>Visão geral da operação Juvecom</p>
     </header>
 
+    <!-- INDICADORES GERAIS -->
     <div class="dashboard__cards">
-        <article class="dashboard__card">
-            <span>Clientes ativos</span>
+
+        <div class="dashboard__card">
+            <span>Clientes Ativos</span>
             <strong>{{ resumo.clientes_ativos }}</strong>
-            <small>Clientes cadastrados e ativos</small>
-        </article>
+        </div>
 
-        <article class="dashboard__card">
-            <span>Contratos ativos</span>
+        <div class="dashboard__card">
+            <span>Contratos Ativos</span>
             <strong>{{ resumo.contratos_ativos }}</strong>
-            <small>Contratos em andamento</small>
-        </article>
+        </div>
 
-        <article class="dashboard__card">
-            <span>Contatos pendentes</span>
+        <div class="dashboard__card">
+            <span>Valor dos Contratos Ativos</span>
+            <strong>
+                R$ {{ "{:,.2f}".format(resumo.valor_contratos_ativos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </strong>
+        </div>
+
+        <div class="dashboard__card">
+            <span>Contatos Pendentes</span>
             <strong>{{ resumo.contatos_pendentes }}</strong>
-            <small>Aguardando atendimento</small>
-        </article>
+        </div>
 
-        <article class="dashboard__card">
-            <span>Parcelas vencidas</span>
+        <div class="dashboard__card">
+            <span>Parcelas Vencidas</span>
             <strong>{{ resumo.parcelas_vencidas }}</strong>
-            <small>Vencidas nos últimos 3 dias</small>
-        </article>
+        </div>
+
     </div>
 
-    <h2>Resumo financeiro</h2>
+    <!-- INDICADORES FINANCEIROS -->
+    <h2>Indicadores Financeiros</h2>
 
     <div class="dashboard__cards dashboard__cards--financeiro">
-        <article class="dashboard__card">
-            <span>Próximos vencimentos</span>
-            <strong>R$ {{ "%.2f"|format(resumo.valor_proximos) }}</strong>
-            <small>{{ resumo.parcelas_proximas }} parcela(s)</small>
-        </article>
 
-        <article class="dashboard__card">
-            <span>Parcelas vencidas</span>
-            <strong>R$ {{ "%.2f"|format(resumo.valor_vencidos) }}</strong>
-            <small>Últimos 3 dias</small>
-        </article>
+        <div class="dashboard__card">
+            <span>Próximos Vencimentos</span>
+            <strong>{{ resumo.parcelas_proximas }}</strong>
+            <small>
+                R$ {{ "{:,.2f}".format(resumo.valor_proximos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </small>
+        </div>
 
-        <article class="dashboard__card">
+        <div class="dashboard__card">
+            <span>Parcelas Vencidas</span>
+            <strong>{{ resumo.parcelas_vencidas }}</strong>
+            <small>
+                R$ {{ "{:,.2f}".format(resumo.valor_vencidos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </small>
+        </div>
+
+        <div class="dashboard__card">
             <span>Inadimplência</span>
-            <strong>R$ {{ "%.2f"|format(resumo.valor_inadimplencia) }}</strong>
-            <small>{{ resumo.parcelas_inadimplentes }} parcela(s), com encargos</small>
-        </article>
+            <strong>{{ resumo.parcelas_inadimplentes }}</strong>
+            <small>
+                R$ {{ "{:,.2f}".format(resumo.valor_inadimplencia or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </small>
+        </div>
+
     </div>
 
-    <h2>Últimos contatos pendentes</h2>
+    <!-- CONTATOS RECENTES -->
+    <h2>Contatos Pendentes Recentes</h2>
 
     <div class="dashboard__tabela">
         <table>
@@ -66,26 +84,29 @@
                 <tr>
                     <th>Contato</th>
                     <th>E-mail</th>
+                    <th>Celular</th>
                     <th>Cadastro</th>
-                    <th>Aguardando</th>
+                    <th>Dias aguardando</th>
                 </tr>
             </thead>
             <tbody>
                 {% for contato in contatos %}
                 <tr>
                     <td>{{ contato.nm_contato }}</td>
-                    <td>{{ contato.email }}</td>
+                    <td>{{ contato.email or '-' }}</td>
+                    <td>{{ contato.celular or '-' }}</td>
                     <td>{{ contato.dt_cadastro.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ contato.dias_aguardando }} dia(s)</td>
+                    <td>{{ contato.dias_aguardando }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4">Nenhum contato pendente.</td>
+                    <td colspan="5">Nenhum contato pendente.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</section>
+
+</div>
 
 {% endblock %}

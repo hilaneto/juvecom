@@ -102,6 +102,61 @@ SELECT cd_contrato, cd_status
 FROM public.tb_contrato
 WHERE cd_cliente = 42;
 
+
+SELECT table_name, column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name IN ('tb_contrato', 'tb_contrato_modelo', 'tb_contrato_documento')
+ORDER BY table_name, ordinal_position;
+
+SELECT * FROM tb_contrato_modelo LIMIT 3;
+
+
+
+(SELECT COALESCE(SUM(c.vl_contrato), 0)
+ FROM tb_contrato c
+ JOIN tb_contrato_status s ON s.cd_status = c.cd_status
+ WHERE LOWER(s.nm_status) = 'ativo') AS valor_contratos;
+
+
+
+   
+select * from tb_contrato;
+
+select * from vw_dashboard_admin;
+
+
+SELECT COUNT(*) FROM vw_contatos_pendentes;
+
+select * from tb_contato;
+
+SELECT * FROM tb_contato_status ORDER BY cd_status;
+
+
+SELECT viewname, definition
+FROM pg_views
+WHERE schemaname = 'public'
+  AND viewname IN ('vw_contatos_pendentes', 'vw_cobranca_proximos',
+                   'vw_cobranca_vencidos', 'vw_cobranca_inadimplentes');
+
+
+SELECT
+    p.nm_pessoa,
+    p.tp_pessoa,
+    p.cpf_cnpj,
+    p.telefone,
+    p.email,
+    p.dados->>'endereco' AS endereco,
+    p.dados->>'numero' AS numero,
+    p.dados->>'complemento' AS complemento,
+    p.dados->>'bairro' AS bairro,
+    p.dados->>'cidade' AS cidade,
+    p.dados->>'uf' AS uf,
+    p.dados->>'cep' AS cep
+FROM public.tb_pessoa p
+WHERE p.cd_pessoa = 3;
+
+
 -- Pessoa ------------------------------------
 -- --------------------------------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados, fl_ativo, dt_cadastro, dt_atualizacao) values
