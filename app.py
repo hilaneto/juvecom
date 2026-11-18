@@ -8,7 +8,6 @@ from functools import wraps
 from models.contato import Contato
 from models.plano import Plano
 from models.usuario import Usuario
-from models.contato_conversa import ContatoConversa
 from models.cadastro_cliente import CadastroCliente
 from models.cadastro_usuario import CadastroUsuario
 from models.cliente import Cliente
@@ -151,7 +150,8 @@ def login():
 def adm():
     return render_template(
         "dashboard.html",
-        resumo=DashboardAdmin.resumo(),
+        administrativo=DashboardAdmin.administrativo(),
+        financeiro=DashboardAdmin.financeiro(),
         contatos=DashboardAdmin.contatos_recentes()
     )
 
@@ -184,18 +184,15 @@ def cliente_lojas():
 def adm_contato():
     erro = None
     dados = {}
-    texto_conversa = ""
 
     if request.method == "POST":
         validar_csrf()
-
         try:
             cd_contato = int(request.form.get("cd_contato"))
         except (ValueError, TypeError):
             abort(400)
     else:
         codigo = request.args.get("editar")
-
         try:
             cd_contato = int(codigo) if codigo is not None else None
         except (ValueError, TypeError):
@@ -219,48 +216,29 @@ def adm_contato():
         dados = selecionado.__data__.copy()
 
     if request.method == "POST":
-        acao = request.form.get("acao")
-
-        if acao == "salvar":
-            dados = request.form.to_dict()
-            dados["marketplace"] = request.form.get("marketplace", "0")
-            resultado = Contato.atualizar(dados)
-
-        elif acao == "conversa":
-            texto_conversa = request.form.get("texto", "")
-            resultado = ContatoConversa.incluir(
-                cd_contato, session["cd_usuario"], texto_conversa
-            )
-
-        else:
+        if request.form.get("acao") != "salvar":
             abort(400)
 
+        dados = request.form.to_dict()
+        dados["marketplace"] = request.form.get("marketplace", "0")
+
+        resultado = Contato.atualizar(dados)
+
         if resultado["sucesso"]:
-            return redirect(url_for(
-                "adm_contato", editar=cd_contato, sucesso=acao
-            ))
+            return redirect(url_for("adm_contato", editar=cd_contato, sucesso="salvar"))
 
         erro = resultado["erro"]
-        
-    if selecionado is not None:
-        status = Contato.opcoes(cd_contato)
-        conversas = ContatoConversa.buscar(cd_contato)
-    else:
-        status = Contato.opcoes()
-        conversas = []
 
     return render_template(
         "adm_contato.html",
         fila=fila,
+        finalizados=finalizados,
         selecionado=selecionado,
         dados=dados,
-        status=status,
-        conversas=conversas,
-        texto_conversa=texto_conversa,
+        status=Contato.opcoes(),
         erro=erro,
         sucesso=request.args.get("sucesso"),
-        finalizados=finalizados,
-        hoje=date.today().isoformat(),
+        hoje=date.today().isoformat()
     )
 
 
@@ -657,9 +635,9 @@ def adm_cliente():
         (6, "Cancelado"),
     )
 
-    status_lista = request.args.get("status", type=int)
+    status_lista = request.args.get("status", default=3, type=int)
     if status_lista not in dict(filtros_status):
-        status_lista = None
+        status_lista = 3
 
     hoje = datetime.now(
         ZoneInfo("America/Sao_Paulo")

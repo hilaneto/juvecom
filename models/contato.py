@@ -1,9 +1,14 @@
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from peewee import Model, BigAutoField, CharField, TextField, BooleanField, SmallIntegerField, DateTimeField, SQL, IntegrityError
+from types import SimpleNamespace
+
+from peewee import (
+    Model, BigAutoField, CharField, TextField, BooleanField,
+    SmallIntegerField, DateTimeField, SQL, IntegrityError
+)
+
 from database.conexao import db, conectar
-from models.contato_status import ContatoStatus
 
 
 class Contato(Model):
@@ -13,7 +18,7 @@ class Contato(Model):
     email = CharField(max_length=150, null=True)
     mensagem = TextField(null=True)
     marketplace = BooleanField(default=False)
-    cd_status = SmallIntegerField()
+    cd_status = SmallIntegerField(default=1)
     dt_cadastro = DateTimeField(default=datetime.now)
     dt_atualizacao = DateTimeField(default=datetime.now)
 
@@ -40,10 +45,10 @@ class Contato(Model):
         celular = (dados.get("celular") or "").strip()
         email = (dados.get("email") or "").strip() or None
         mensagem = (dados.get("mensagem") or "").strip() or None
-        marketplace = dados.get("marketplace") in (True, "1")
+        marketplace = dados.get("marketplace") in (True, "1", "on")
 
         if not nm_contato or not celular:
-            return {"sucesso": False, "erro": "Nome e celular são campos obrigatórios."}
+            return {"sucesso": False, "erro": "Nome e celular são obrigatórios."}
 
         if len(nm_contato) > 150 or len(celular) > 20 or (email and len(email) > 150):
             return {"sucesso": False, "erro": "Um ou mais campos excedem o tamanho permitido."}
@@ -58,7 +63,12 @@ class Contato(Model):
                     marketplace=marketplace,
                     cd_status=1
                 )
-                return {"sucesso": True, "Nome": nm_contato, "cd_contato": contato.cd_contato}
+
+                return {
+                    "sucesso": True,
+                    "Nome": nm_contato,
+                    "cd_contato": contato.cd_contato
+                }
 
         except IntegrityError:
             return {"sucesso": False, "erro": "Não foi possível cadastrar o contato."}
@@ -74,12 +84,18 @@ class Contato(Model):
             "nm_contato", "celular", "email", "mensagem",
             "marketplace", "cd_status"
         }
+
         campos = {chave: valor for chave, valor in dados.items() if chave in permitidos}
 
         if not campos:
             return {"sucesso": False, "erro": "Informe um campo para atualizar."}
 
-        for campo, limite in (("nm_contato", 150), ("celular", 20), ("email", 150), ("mensagem", None)):
+        for campo, limite in (
+            ("nm_contato", 150),
+            ("celular", 20),
+            ("email", 150),
+            ("mensagem", None)
+        ):
             if campo not in campos:
                 continue
 
@@ -104,8 +120,11 @@ class Contato(Model):
             except (ValueError, TypeError):
                 return {"sucesso": False, "erro": "Status inválido."}
 
+            if campos["cd_status"] not in (1, 2, 3):
+                return {"sucesso": False, "erro": "Status inválido."}
+
         if "marketplace" in campos:
-            campos["marketplace"] = campos["marketplace"] in (True, "1")
+            campos["marketplace"] = campos["marketplace"] in (True, "1", "on")
 
         try:
             with conectar():
@@ -120,19 +139,13 @@ class Contato(Model):
                     if contato is None:
                         return {"sucesso": False, "erro": "Contato não encontrado."}
 
-                    if "cd_status" in campos:
-                        existe = ContatoStatus.select().where(
-                            ContatoStatus.cd_status == campos["cd_status"]
-                        ).exists()
-
-                        if not existe:
-                            return {"sucesso": False, "erro": "Status não encontrado."}
-
                     campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
 
-                    Contato.update(**campos).where(
-                        Contato.cd_contato == cd_contato
-                    ).execute()
+                    (
+                        Contato.update(**campos)
+                        .where(Contato.cd_contato == cd_contato)
+                        .execute()
+                    )
 
         except IntegrityError:
             return {"sucesso": False, "erro": "Não foi possível atualizar o contato."}
@@ -141,20 +154,10 @@ class Contato(Model):
 
     @staticmethod
     def excluir(cd_contato):
-        with conectar():
-            alterados = (
-                Contato.update(
-                    cd_status=3,
-                    dt_atualizacao=SQL("CURRENT_TIMESTAMP")
-                )
-                .where(Contato.cd_contato == cd_contato)
-                .execute()
-            )
-
-        if not alterados:
-            return {"sucesso": False, "erro": "Contato não encontrado."}
-
-        return {"sucesso": True, "cd_contato": cd_contato}
+        return {
+            "sucesso": False,
+            "erro": "A exclusão não está disponível. Utilize os status Atendido ou Perdido."
+        }
 
     @staticmethod
     def por_prazo():
@@ -191,7 +194,7 @@ class Contato(Model):
         with conectar():
             return list(
                 Contato.select()
-                .where(Contato.cd_status.in_([1, 2]))
+                .where(Contato.cd_status == 1)
                 .order_by(
                     Contato.marketplace.desc(),
                     Contato.dt_cadastro.asc(),
@@ -204,7 +207,7 @@ class Contato(Model):
         with conectar():
             return list(
                 Contato.select()
-                .where(Contato.cd_status == 3)
+                .where(Contato.cd_status.in_([2, 3]))
                 .order_by(
                     Contato.dt_atualizacao.desc(),
                     Contato.cd_contato.desc()
@@ -213,7 +216,20 @@ class Contato(Model):
 
     @staticmethod
     def opcoes(cd_contato=None):
-        with conectar():
-            return list(
-                ContatoStatus.select().order_by(ContatoStatus.cd_status)
+        return [
+            SimpleNamespace(
+                cd_status=1,
+                nm_status="Pendente",
+                ds_status="Aguardando atendimento"
+            ),
+            SimpleNamespace(
+                cd_status=2,
+                nm_status="Atendido",
+                ds_status="Atendimento encerrado"
+            ),
+            SimpleNamespace(
+                cd_status=3,
+                nm_status="Perdido",
+                ds_status="Contato sem resposta"
             )
+        ]

@@ -209,49 +209,25 @@ class CadastroCliente:
                 "erro": str(erro)
             }
 
-
-
     @staticmethod
     def listar(cd_status=None):
         with conectar():
             consulta = (
                 Cliente.select(Cliente.cd_cliente, Pessoa.nm_pessoa)
                 .join(Pessoa, on=(Cliente.cd_pessoa == Pessoa.cd_pessoa))
-                .where((Cliente.fl_ativo == True) & (Pessoa.fl_ativo == True))
-                .order_by(Pessoa.nm_pessoa, Cliente.cd_cliente)
+                .where(Pessoa.fl_ativo == True)
             )
 
-            if cd_status == 1:
-                consulta = consulta.where(
-                    Cliente.cd_cliente.in_(SQL("""(
-                        SELECT l.cd_cliente
-                        FROM public.tb_cliente_link AS l
-                        WHERE l.dt_utilizacao IS NOT NULL
-                          AND NOT EXISTS (
-                              SELECT 1
-                              FROM public.tb_contrato AS c
-                              WHERE c.cd_cliente = l.cd_cliente
-                          )
-                    )"""))
-                )
-            elif cd_status is not None:
-                consulta = consulta.where(
-                    Cliente.cd_cliente.in_(SQL("""(
-                        SELECT c.cd_cliente
-                        FROM public.tb_contrato AS c
-                        WHERE c.cd_status = %s
-                    )""", (cd_status,)))
-                )
+            if cd_status is not None:
+                consulta = consulta.where(Cliente.cd_status == cd_status)
 
-            return list(consulta.dicts())
+            return list(consulta.order_by(Pessoa.nm_pessoa, Cliente.cd_cliente).dicts())
+            
 
     @staticmethod
     def buscar(cd_cliente):
         with conectar():
-            cadastro = Cliente.get_or_none(
-                (Cliente.cd_cliente == cd_cliente) &
-                (Cliente.fl_ativo == True)
-            )
+            cadastro = Cliente.get_or_none(Cliente.cd_cliente == cd_cliente)            
 
             if cadastro is None:
                 return {
@@ -296,8 +272,7 @@ class CadastroCliente:
 
             cliente = {
                 "nm_responsavel": cadastro.nm_responsavel or "",
-                "cd_contato": cadastro.cd_contato or "",
-                "fl_ativo": cadastro.fl_ativo,
+                "cd_status": cadastro.cd_status,
                 "dt_cadastro": dt_cadastro or ""
             }
 

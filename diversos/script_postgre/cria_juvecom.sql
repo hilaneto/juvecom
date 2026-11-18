@@ -2,58 +2,36 @@
 -- BANCO: juvecom
 -- SCHEMA: public
 -- Revisão estrutural: 2026-10-15 | revisão estática adicional
--- Versao: 2026-11-09 | revisao do esquema validado em 2026-10-15
+-- Versao: 2026-11-18 | consolidacao das correcoes SQL
 -- ===============================================================
-
 -- ===============================================================
 -- rodar no terminal
--- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom_validado.sql
+-- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom_consolidado.sql
 -- local/servidor: scp cria_juvecom.sql dev:/tmp/cria_juvecom.sql && ssh -t dev 'psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f /tmp/cria_juvecom.sql'
 -- ===============================================================
-
-
 DROP DATABASE IF EXISTS juvecom;
 
 SELECT 'CREATE DATABASE juvecom'
-WHERE NOT EXISTS (
-    SELECT 1 FROM pg_database WHERE datname = 'juvecom'
-)\gexec
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'juvecom')\gexec
 
 \connect juvecom
 
 BEGIN;
 
-
--- ============================================================
--- tb_contato_status: drop table tb_contato_status cascade - status de interessados em planos
--- ============================================================
-CREATE TABLE tb_contato_status (
-cd_status smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nm_status varchar(30) NOT NULL UNIQUE,
-ds_status varchar(150) NOT NULL);
-
--- ---------------------------------------------------------
-INSERT INTO tb_contato_status (nm_status, ds_status) values
-('aguardando', 'aguardando primeiro atendimento'),
-('pendente', 'foi atendido e há algo a resolver'),
-('finalizado', 'Atendimento encerrado');
-
 -- ==============================================================
 -- tb_contato: captação de interessados (sem vínculo com plano ou contrato)
 -- ==============================================================
-CREATE TABLE tb_contato (
+CREATE TABLE public.tb_contato (
 cd_contato BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 nm_contato VARCHAR(150) NOT NULL,
 celular VARCHAR(20) NOT NULL,
 email VARCHAR(150),
 mensagem TEXT,
 marketplace BOOLEAN NOT NULL DEFAULT FALSE,
-cd_status SMALLINT NOT NULL REFERENCES tb_contato_status(cd_status),
+cd_status SMALLINT NOT NULL DEFAULT 1,
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT ck_contato_celular CHECK (BTRIM(celular) <> ''),
-CONSTRAINT ck_contato_nome CHECK (BTRIM(nm_contato) <> ''));
-
+CONSTRAINT ck_contato_status CHECK (cd_status IN (1, 2, 3)));
 
 
 -- ============================================================
@@ -82,23 +60,23 @@ CONSTRAINT ck_pessoa_dados_cep CHECK (NOT (dados ? 'cep') OR (jsonb_typeof(dados
 CONSTRAINT ck_pessoa_dados_cidade CHECK (NOT (dados ? 'cidade') OR (jsonb_typeof(dados -> 'cidade') = 'string' AND char_length(dados ->> 'cidade') <= 50)),
 CONSTRAINT ck_pessoa_dados_uf CHECK (NOT (dados ? 'uf') OR (jsonb_typeof(dados -> 'uf') = 'string' AND ((dados ->> 'uf') = '' OR (dados ->> 'uf') ~ '^[A-Z]{2}$'))));
 
+
 -- Cadastre pessoas reais por procedimento seguro após a instalação.
-
-
 -- ============================================================
 -- tb_cliente_status: etapas do cadastro JUV-026
 -- ============================================================
 CREATE TABLE tb_cliente_status (
-    cd_status SMALLINT PRIMARY KEY,
-    nm_status VARCHAR(30) NOT NULL UNIQUE,
-    ds_status VARCHAR(200) NOT NULL
-);
+cd_status SMALLINT PRIMARY KEY,
+nm_status VARCHAR(30) NOT NULL UNIQUE,
+ds_status VARCHAR(200) NOT NULL);
+
 
 INSERT INTO tb_cliente_status (cd_status, nm_status, ds_status) VALUES
-    (1, 'Pendente', 'Recebido, aguardando conferência ou em análise'),
-    (2, 'Aprovado', 'Dados conferidos, corrigidos e confirmados pelo analista'),
-    (3, 'Confirmado', 'Cliente acessou o site e definiu sua senha'),
-    (4, 'Reprovado', 'Cadastro encerrado sem aprovação');
+(1, 'Pendente', 'Recebido, aguardando conferência ou em análise'),
+(2, 'Aprovado', 'Dados conferidos, corrigidos e confirmados pelo analista'),
+(3, 'Confirmado', 'Cliente acessou o site e definiu sua senha'),
+(4, 'Reprovado', 'Cadastro encerrado sem aprovação'),
+(5, 'Cancelado', 'Cliente cancelado/excluído da base');
 
 
 -- ============================================================
@@ -109,7 +87,6 @@ cd_cliente BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 cd_pessoa BIGINT NOT NULL UNIQUE REFERENCES tb_pessoa(cd_pessoa),
 nm_responsavel VARCHAR(150),
 cd_status SMALLINT NOT NULL DEFAULT 2 REFERENCES tb_cliente_status(cd_status),
-fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
 cd_contato BIGINT UNIQUE REFERENCES tb_contato(cd_contato),
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
@@ -128,6 +105,8 @@ fl_ativo BOOLEAN NOT NULL DEFAULT TRUE,
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 UNIQUE (cd_cliente, cd_loja));
+
+
 CREATE INDEX ix_loja_cliente ON tb_loja (cd_cliente);
 
 
@@ -143,6 +122,7 @@ fl_ativo boolean NOT NULL DEFAULT true,
 dt_cadastro timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT ck_servico_preco_base CHECK (vl_servico >= 0));
 
+
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO tb_servico (nm_servico, ds_servico, vl_servico) values
 ('Diagnóstico inicial', 'Análise inicial da loja e definição de prioridades e recomendações de atuação.',0),
@@ -156,10 +136,11 @@ INSERT INTO tb_servico (nm_servico, ds_servico, vl_servico) values
 
 
 -- =====================================================================
--- tb_plano: pacotes oferecidos ao cliente - drop table tb_plano cascade 
+-- tb_plano: pacotes oferecidos ao cliente - drop table tb_plano cascade
 -- =====================================================================
 CREATE TABLE tb_plano (
 cd_plano bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+cd_plano_tipo integer NOT NULL,
 nm_plano varchar(100) NOT NULL,
 ds_plano varchar(500),
 periodicidade_dias integer NOT NULL,
@@ -173,31 +154,32 @@ CONSTRAINT ck_plano_periodicidade CHECK (periodicidade_dias > 0),
 CONSTRAINT ck_plano_preco CHECK (valor >= 0),
 CONSTRAINT ck_plano_beneficios CHECK (jsonb_typeof(beneficios) = 'array'));
 
+
 -- -----------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO tb_plano (nm_plano, ds_plano, periodicidade_dias, valor,texto_banner, texto_periodo, beneficios)
+INSERT INTO tb_plano (cd_plano_tipo, nm_plano, ds_plano, periodicidade_dias, valor,texto_banner, texto_periodo, beneficios)
 VALUES
-('Diamante',
+(1,'Diamante',
  'Para quem busca crescimento sustentável e evolução contínua da sua loja Shopee, com acompanhamento estratégico ao longo de todo o ano.',
  360, 900,
  'Gestão completa da loja', '12 meses de acompanhamento',
  '["Gestão completa da operação", "Anúncios e Shopee Ads", "Campanhas e promoções", "Análise de performance", "Relatórios e acompanhamento"]'::jsonb),
-('Safira', 'Ideal para quem quer estruturar e impulsionar a operação da loja com consistência, em um ciclo intermediário de evolução.',
+(2,'Safira', 'Ideal para quem quer estruturar e impulsionar a operação da loja com consistência, em um ciclo intermediário de evolução.',
 180, 1100,
  'Gestão completa da loja', '6 meses de acompanhamento',
  '["Gestão completa da operação", "Anúncios e Shopee Ads", "Campanhas e promoções", "Análise de performance", "Relatórios e acompanhamento"]'::jsonb),
-('Esmeralda','Para quem deseja organizar, otimizar e ganhar tração na loja em um período inicial, com foco em resultados e direcionamento prioritário.',
+(3,'Esmeralda','Para quem deseja organizar, otimizar e ganhar tração na loja em um período inicial, com foco em resultados e direcionamento prioritário.',
  90, 1300,'Gestão completa da loja','3 meses de acompanhamento',
  '["Gestão completa da operação", "Anúncios e Shopee Ads", "Campanhas e promoções", "Análise de performance", "Relatórios e acompanhamento"]'::jsonb),
-('Avulso','Uma análise completa da sua loja para identificar os principais problemas, oportunidades e prioridades de ação.',
+(4,'Avulso','Uma análise completa da sua loja para identificar os principais problemas, oportunidades e prioridades de ação.',
   7, 150,'Análise de Conta','Análise em reunião de 1 hora',
  '["Diagnóstico da operação", "Análise de anúncios e campanhas", "Avaliação de Shopee Ads", "Recomendações personalizadas", "Entrega de relatório com plano de ação"]'::jsonb
 );
 
--- ---------------------------------------------------------------------------------------------------------------------------------
+
+-- -------------------------------------
 CREATE UNIQUE INDEX uq_plano_nome_ativo
 ON tb_plano (nm_plano)
 WHERE fl_ativo;
-
 
 
 -- ============================================================
@@ -207,6 +189,7 @@ CREATE TABLE tb_plano_servico (
 cd_plano bigint NOT NULL REFERENCES tb_plano(cd_plano),
 cd_servico bigint NOT NULL REFERENCES tb_servico(cd_servico),
 CONSTRAINT pk_plano_servico PRIMARY KEY (cd_plano, cd_servico));
+
 
 -- -----------------------------------------------------------------------
 INSERT INTO tb_plano_servico (cd_plano, cd_servico)
@@ -225,14 +208,14 @@ cd_status smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 nm_status varchar(30) NOT NULL UNIQUE,
 ds_status varchar(200) NOT NULL);
 
+
 -- -------------------------------------------------------------
 INSERT INTO tb_contrato_status (nm_status, ds_status) VALUES
-('pendente', 'Cadastro aguardando validação dos dados'),
-('assinatura', 'Contrato emitido e aguardando assinatura'),
-('ativo', 'Contrato assinado e em vigência'),
-('inadimplente', 'Contrato suspenso por falta de pagamento'),
-('vencido',  'Contrato que atingiu o fim da vigência'),
-('cancelado', 'Contrato cancelado e mantido para histórico');
+('Sem assinatura', 'Contrato emitido e aguardando assinatura'),
+('Vigente', 'Vigente sem restrições'),
+('Inadimplente', 'Suspenso por falta de pagamento'),
+('Liquidado', 'Liquidado atingiu o fim da vigência'),
+('Cancelado', 'Cancelado mantido para histórico');
 
 
 -- ============================================================
@@ -265,7 +248,6 @@ CREATE INDEX ix_contrato_vigencia ON tb_contrato USING gist (vigencia);
 CREATE INDEX ix_contrato_cliente ON tb_contrato (cd_cliente);
 
 
-
 -- ============================================================
 -- tb_contrato_documento: contrato físico em .pdf
 -- ============================================================
@@ -286,7 +268,6 @@ cd_modelo bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 arquivo_pdf bytea NOT NULL,
 dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT ck_modelo_pdf CHECK (octet_length(arquivo_pdf) > 0));
-
 
 
 -- ============================================================
@@ -323,9 +304,11 @@ CONSTRAINT ck_encargo_percentuais CHECK (percentual_multa BETWEEN 0 AND 100 AND 
 CONSTRAINT ck_encargo_dias CHECK (dias_carencia >= 0 AND dias_painel >= 0 AND dias_suspensao >= dias_painel),
 CONSTRAINT ex_encargo_vigencia EXCLUDE USING gist (vigencia WITH &&));
 
+
 -- -------------------------------------------------------------------------------------------
 INSERT INTO tb_encargo_atraso (vigencia, percentual_multa, juros_mensal, dias_carencia, dias_painel, dias_suspensao)
 VALUES (daterange(DATE '2026-09-26', NULL, '[)'), 2, 1, 0, 3, 10);
+
 
 -- ============================================================
 -- tb_desconto_loja: desconto por lojas
@@ -339,6 +322,7 @@ CONSTRAINT ck_desconto_faixa CHECK (NOT isempty(qt_loja) AND NOT lower_inf(qt_lo
 CONSTRAINT ck_desconto_vigencia CHECK (NOT isempty(vigencia) AND NOT lower_inf(vigencia)),
 CONSTRAINT ck_desconto_percentual CHECK (desconto BETWEEN 0 AND 100),
 CONSTRAINT ex_desconto_faixas EXCLUDE USING gist (qt_loja WITH &&, vigencia WITH &&));
+
 
 -- ----------------------------------------------------------------------
 INSERT INTO tb_desconto_loja (qt_loja, vigencia, desconto) VALUES
@@ -358,8 +342,8 @@ cd_cliente BIGINT NOT NULL REFERENCES tb_cliente(cd_cliente),
 PRIMARY KEY (cd_contrato, cd_loja),
 CONSTRAINT fk_contrato_loja_contrato FOREIGN KEY (cd_cliente, cd_contrato) REFERENCES tb_contrato(cd_cliente, cd_contrato),
 CONSTRAINT fk_contrato_loja_loja FOREIGN KEY (cd_cliente, cd_loja) REFERENCES tb_loja(cd_cliente, cd_loja));
-CREATE INDEX ix_contrato_loja_loja ON tb_contrato_loja (cd_loja);
 
+CREATE INDEX ix_contrato_loja_loja ON tb_contrato_loja (cd_loja);
 
 
 -- ============================================================
@@ -391,9 +375,8 @@ dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT ck_usuario_login CHECK (btrim(login) <> ''),
 CONSTRAINT ck_usuario_senha CHECK (btrim(senha_hash) <> ''));
 
+
 -- Cadastre usuários e gere hashes de senha na aplicação; não inclua credenciais fixas no DDL.
-
-
 -- ============================================================
 -- tb_cliente_link: convite exclusivo de pre-cadastro JUV-026
 --   Disponivel: dt_utilizacao nula, dt_validade > agora
@@ -438,7 +421,6 @@ CREATE INDEX ix_contato_conversa_historico
 ON tb_contato_conversa (cd_contato, dt_conversa, cd_conversa);
 
 
-
 -- ============================================================
 -- tb_evento_log
 -- ============================================================
@@ -468,7 +450,6 @@ ip_acesso inet,
 dt_evento timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
 
-
 -- ===========================================================
 -- vw_cobranca_proximos: 1. Vence hoje ou nos próximos 3 dias
 -- ===========================================================
@@ -481,7 +462,7 @@ JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
 JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
 WHERE p.dt_pagamento IS NULL
 AND p.dt_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + 3
-AND st.nm_status IN ('ativo', 'inadimplente');
+AND st.cd_status IN (2, 3);
 
 
 -- ========================================================================
@@ -496,7 +477,7 @@ JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
 JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
 WHERE p.dt_pagamento IS NULL
 AND p.dt_vencimento BETWEEN CURRENT_DATE - 3 AND CURRENT_DATE - 1
-AND st.nm_status <> 'cancelado';
+AND st.cd_status <> 5;
 
 
 -- ==========================================================================
@@ -506,7 +487,7 @@ CREATE OR REPLACE VIEW vw_cobranca_inadimplentes AS
 SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano, st.nm_status AS status_contrato,
 p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela - p.vl_desconto AS vl_original,
 ROUND((p.vl_parcela - p.vl_desconto) * e.percentual_multa / 100, 2) AS vl_multa,
-ROUND((p.vl_parcela - p.vl_desconto) * e.juros_mensal / 100 * (CURRENT_DATE - p.dt_vencimento - e.dias_carencia) / 30, 2) AS vl_juros, 
+ROUND((p.vl_parcela - p.vl_desconto) * e.juros_mensal / 100 * (CURRENT_DATE - p.dt_vencimento - e.dias_carencia) / 30, 2) AS vl_juros,
 CURRENT_DATE - p.dt_vencimento > e.dias_suspensao AS avaliar_suspensao
 FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
@@ -516,23 +497,16 @@ JOIN tb_encargo_atraso e ON e.vigencia @> p.dt_vencimento
 WHERE p.dt_pagamento IS NULL
 AND CURRENT_DATE - p.dt_vencimento > e.dias_painel
 AND CURRENT_DATE - p.dt_vencimento > e.dias_carencia
-AND st.nm_status <> 'cancelado';
+AND st.cd_status <> 5;
 
 
 -- ==========================================================================
 -- vw_contatos_pendentes: Contatos pendentes
 -- ==========================================================================
 CREATE VIEW public.vw_contatos_pendentes AS
-SELECT
-    c.cd_contato,
-    c.nm_contato,
-    c.email,
-    c.celular,
-    c.mensagem,
-    c.dt_cadastro,
-    CURRENT_DATE - c.dt_cadastro::date AS dias_aguardando
+SELECT c.cd_contato, c.nm_contato, c.email, c.celular, c.mensagem, c.dt_cadastro, CURRENT_DATE - c.dt_cadastro::date AS dias_aguardando
 FROM public.tb_contato c
-WHERE c.cd_status IN (1, 2);
+WHERE c.cd_status IN (1);
 
 
 -- ==========================================================================
@@ -547,102 +521,38 @@ on a.cd_nivel  = c.cd_nivel;
 
 
 -- ==========================================================================
--- vw_dashboard_admin: drop view vw_dashboard_admin - Usuarios
+-- vw_dash_adm: drop view vw_dash_adm - Usuarios
 -- ==========================================================================
-CREATE VIEW public.vw_dashboard_admin AS
-SELECT
-    (SELECT COUNT(*) FROM public.tb_cliente WHERE fl_ativo = TRUE) AS clientes_ativos,
-
-    (SELECT COUNT(*) FROM public.tb_contrato c
-     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
-     WHERE LOWER(s.nm_status) = 'ativo') AS contratos_ativos,
-
-    (SELECT COALESCE(SUM(c.vl_bruto), 0)
-     FROM public.tb_contrato c
-     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
-     WHERE LOWER(s.nm_status) = 'ativo') AS valor_contratos_ativos,
-
-    (SELECT COUNT(*) FROM public.vw_contatos_pendentes) AS contatos_pendentes,
-
-    (SELECT COUNT(*) FROM public.vw_cobranca_proximos) AS parcelas_proximas,
-    (SELECT COUNT(*) FROM public.vw_cobranca_vencidos) AS parcelas_vencidas,
-    (SELECT COUNT(*) FROM public.vw_cobranca_inadimplentes) AS parcelas_inadimplentes,
-
-    (SELECT COALESCE(SUM(vl_a_pagar), 0)
-     FROM public.vw_cobranca_proximos) AS valor_proximos,
-
-    (SELECT COALESCE(SUM(vl_original), 0)
-     FROM public.vw_cobranca_vencidos) AS valor_vencidos,
-
-    (SELECT COALESCE(SUM(vl_original + vl_multa + vl_juros), 0)
-     FROM public.vw_cobranca_inadimplentes) AS valor_inadimplencia;
+CREATE OR REPLACE VIEW public.vw_dash_adm AS
+SELECT 'Cliente' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_cliente) AS qtd
+FROM tb_cliente_status b
+LEFT JOIN tb_cliente a ON a.cd_status = b.cd_status
+GROUP BY b.cd_status, b.nm_status
+UNION ALL
+SELECT 'Contrato' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_contrato) AS qtd
+FROM tb_contrato_status b
+LEFT JOIN tb_contrato a ON a.cd_status = b.cd_status
+GROUP BY b.cd_status, b.nm_status
+UNION ALL
+SELECT 'Contato' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_contato) AS qtd
+FROM (VALUES (1, 'Pendente'), (2, 'Atendido'), (3, 'Perdido')) AS b(cd_status, nm_status)
+LEFT JOIN tb_contato a ON a.cd_status = b.cd_status
+GROUP BY b.cd_status, b.nm_status
+ORDER BY origem, cd_status;
 
 
 -- ==========================================================================
--- fn_nova_versao_plano: versionamento de planos
+-- vw_dashboard_fin: drop view vw_dashboard_fin - Usuarios
 -- ==========================================================================
-CREATE OR REPLACE FUNCTION fn_nova_versao_plano(
-    p_cd_plano bigint,
-    p_nm_plano varchar(100) DEFAULT NULL,
-    p_ds_plano varchar(500) DEFAULT NULL,
-    p_periodicidade_dias integer DEFAULT NULL,
-    p_valor numeric(12,2) DEFAULT NULL,
-    p_texto_banner varchar(100) DEFAULT NULL,
-    p_texto_periodo varchar(100) DEFAULT NULL,
-    p_beneficios jsonb DEFAULT NULL)
-    
-RETURNS bigint
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_anterior tb_plano%ROWTYPE;
-    v_cd_novo bigint;
-BEGIN
-    SELECT * INTO v_anterior
-    FROM tb_plano
-    WHERE cd_plano = p_cd_plano
-    FOR UPDATE;
+CREATE OR REPLACE VIEW public.vw_dash_fin as
+select * from
+(SELECT COUNT(*) AS parcelas_proximas,COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos)
+cross join
+(SELECT COUNT(*) AS parcelas_vencidas,COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos)
+cross join
+(SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_original + vl_multa + vl_juros), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes);
 
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Plano % não encontrado', p_cd_plano;
-    END IF;
-
-    IF NOT v_anterior.fl_ativo THEN
-        RAISE EXCEPTION 'Plano % já está inativo', p_cd_plano;
-    END IF;
-
-    IF p_nm_plano IS NULL AND p_ds_plano IS NULL
-       AND p_periodicidade_dias IS NULL AND p_valor IS NULL
-       AND p_texto_banner IS NULL AND p_texto_periodo IS NULL
-       AND p_beneficios IS NULL THEN
-        RAISE EXCEPTION 'Informe ao menos um campo para a nova versão';
-    END IF;
-
-    UPDATE tb_plano
-    SET fl_ativo = false
-    WHERE cd_plano = p_cd_plano;
-
-    INSERT INTO tb_plano
-        (nm_plano, ds_plano, periodicidade_dias, valor,
-         texto_banner, texto_periodo, beneficios, fl_ativo)
-    VALUES
-        (COALESCE(p_nm_plano, v_anterior.nm_plano),
-         COALESCE(p_ds_plano, v_anterior.ds_plano),
-         COALESCE(p_periodicidade_dias, v_anterior.periodicidade_dias),
-         COALESCE(p_valor, v_anterior.valor),
-         COALESCE(p_texto_banner, v_anterior.texto_banner),
-         COALESCE(p_texto_periodo, v_anterior.texto_periodo),
-         COALESCE(p_beneficios, v_anterior.beneficios),
-         true)
-    RETURNING cd_plano INTO v_cd_novo;
-
-    INSERT INTO tb_plano_servico (cd_plano, cd_servico)
-    SELECT v_cd_novo, cd_servico
-    FROM tb_plano_servico
-    WHERE cd_plano = p_cd_plano;
-
-    RETURN v_cd_novo;
-END;
-$$;
 
 COMMIT;
+
+

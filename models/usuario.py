@@ -36,9 +36,8 @@ class Usuario(Model):
 
         return Cliente.select().where(
             (Cliente.cd_pessoa == cd_pessoa) &
-            (Cliente.fl_ativo == True)
+            (Cliente.cd_status.in_([2, 3]))
         ).exists()
-
 
 
     @staticmethod

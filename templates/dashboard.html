@@ -1,4 +1,3 @@
-
 {% extends "adm_base.html" %}
 
 {% block title %}Dashboard | Juvecom{% endblock %}
@@ -12,99 +11,55 @@
         <p>Visão geral da operação Juvecom</p>
     </header>
 
-    <!-- INDICADORES GERAIS -->
-    <div class="dashboard__cards">
+    <!-- INDICADORES ADMINISTRATIVOS -->
 
-        <div class="dashboard__card">
-            <span>Clientes Ativos</span>
-            <strong>{{ resumo.clientes_ativos }}</strong>
+    {% for origem, registros in administrativo.items() %}
+
+        <h2>{{ origem }}{% if origem != 'Contato' %}s{% endif %}</h2>
+
+        <div class="dashboard__cards">
+
+            {% for registro in registros %}
+                <div class="dashboard__card">
+                    <span>{{ registro.nm_status }}</span>
+                    <strong>{{ registro.qtd }}</strong>
+                </div>
+            {% endfor %}
+
         </div>
 
-        <div class="dashboard__card">
-            <span>Contratos Ativos</span>
-            <strong>{{ resumo.contratos_ativos }}</strong>
-        </div>
-
-        <div class="dashboard__card">
-            <span>Valor dos Contratos Ativos</span>
-            <strong>
-                R$ {{ "{:,.2f}".format(resumo.valor_contratos_ativos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
-            </strong>
-        </div>
-
-        <div class="dashboard__card">
-            <span>Contatos Pendentes</span>
-            <strong>{{ resumo.contatos_pendentes }}</strong>
-        </div>
-
-        <div class="dashboard__card">
-            <span>Parcelas Vencidas</span>
-            <strong>{{ resumo.parcelas_vencidas }}</strong>
-        </div>
-
-    </div>
+    {% endfor %}
 
     <!-- INDICADORES FINANCEIROS -->
+
     <h2>Indicadores Financeiros</h2>
 
     <div class="dashboard__cards dashboard__cards--financeiro">
 
         <div class="dashboard__card">
             <span>Próximos Vencimentos</span>
-            <strong>{{ resumo.parcelas_proximas }}</strong>
+            <strong>{{ financeiro.parcelas_proximas }}</strong>
             <small>
-                R$ {{ "{:,.2f}".format(resumo.valor_proximos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                R$ {{ "{:,.2f}".format(financeiro.valor_proximos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
             </small>
         </div>
 
         <div class="dashboard__card">
             <span>Parcelas Vencidas</span>
-            <strong>{{ resumo.parcelas_vencidas }}</strong>
+            <strong>{{ financeiro.parcelas_vencidas }}</strong>
             <small>
-                R$ {{ "{:,.2f}".format(resumo.valor_vencidos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                R$ {{ "{:,.2f}".format(financeiro.valor_vencidos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
             </small>
         </div>
 
         <div class="dashboard__card">
             <span>Inadimplência</span>
-            <strong>{{ resumo.parcelas_inadimplentes }}</strong>
+            <strong>{{ financeiro.parcelas_inadimplentes }}</strong>
             <small>
-                R$ {{ "{:,.2f}".format(resumo.valor_inadimplencia or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                R$ {{ "{:,.2f}".format(financeiro.valor_inadimplencia or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
             </small>
         </div>
 
-    </div>
-
-    <!-- CONTATOS RECENTES -->
-    <h2>Contatos Pendentes Recentes</h2>
-
-    <div class="dashboard__tabela">
-        <table>
-            <thead>
-                <tr>
-                    <th>Contato</th>
-                    <th>E-mail</th>
-                    <th>Celular</th>
-                    <th>Cadastro</th>
-                    <th>Dias aguardando</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for contato in contatos %}
-                <tr>
-                    <td>{{ contato.nm_contato }}</td>
-                    <td>{{ contato.email or '-' }}</td>
-                    <td>{{ contato.celular or '-' }}</td>
-                    <td>{{ contato.dt_cadastro.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ contato.dias_aguardando }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5">Nenhum contato pendente.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 
 </div>

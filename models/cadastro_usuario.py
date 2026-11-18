@@ -53,10 +53,12 @@ class CadastroUsuario:
                                 "Cadastre primeiro o cliente antes de criar seu usuário."
                             )
 
+
                         cliente = Cliente.get_or_none(
                             (Cliente.cd_pessoa == existente.cd_pessoa) &
-                            (Cliente.fl_ativo == True)
+                            (Cliente.cd_status.in_([2, 3]))
                         )
+
 
                         if cliente is None:
                             raise ValueError(
@@ -167,7 +169,7 @@ class CadastroUsuario:
                         if novo_nivel == 5:
                             cliente = Cliente.get_or_none(
                                 (Cliente.cd_pessoa == conta.cd_pessoa) &
-                                (Cliente.fl_ativo == True)
+                                (Cliente.cd_status.in_([2, 3]))
                             )
 
                             if cliente is None:

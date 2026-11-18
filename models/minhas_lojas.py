@@ -55,7 +55,7 @@ class MinhasLojas:
 
             cliente = Cliente.get_or_none(
                 (Cliente.cd_pessoa == pessoa.cd_pessoa)
-                & (Cliente.fl_ativo == True)
+                & (Cliente.cd_status.in_([2, 3]))
             )
             if cliente is None:
                 return {"sucesso": False, "erro": "Cliente inativo ou inexistente."}

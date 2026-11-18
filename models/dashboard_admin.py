@@ -4,23 +4,38 @@ from database.conexao import db, conectar
 class DashboardAdmin:
 
     @staticmethod
-    def resumo():
+    def administrativo():
         with conectar():
-            cursor = db.execute_sql("SELECT * FROM public.vw_dashboard_admin")
+            cursor = db.execute_sql("""
+                SELECT origem, cd_status, nm_status, qtd
+                FROM public.vw_dash_adm
+                ORDER BY origem, cd_status
+            """)
             campos = [coluna[0] for coluna in cursor.description]
-            return dict(zip(campos, cursor.fetchone()))
+            registros = [dict(zip(campos, linha)) for linha in cursor.fetchall()]
+
+        return {
+            origem: [registro for registro in registros if registro["origem"] == origem]
+            for origem in ("Cliente", "Contrato", "Contato")
+        }
 
     @staticmethod
-    def contatos_recentes(limite=5):
-        sql = """
-            SELECT cd_contato, nm_contato, email, celular,
-                   dt_cadastro, dias_aguardando
-            FROM vw_contatos_pendentes
-            ORDER BY dt_cadastro DESC
-            LIMIT %s
-        """
-
+    def financeiro():
         with conectar():
-            cursor = db.execute_sql(sql, (limite,))
+            cursor = db.execute_sql("SELECT * FROM public.vw_dash_fin")
+            campos = [coluna[0] for coluna in cursor.description]
+            registro = cursor.fetchone()
+            return dict(zip(campos, registro)) if registro else {}
+
+    @staticmethod
+    def contatos_recentes():
+        with conectar():
+            cursor = db.execute_sql("""
+                SELECT nm_contato, email, celular, dt_cadastro,
+                       CURRENT_DATE - dt_cadastro::date AS dias_aguardando
+                FROM public.tb_contato
+                WHERE cd_status = 1
+                ORDER BY dt_cadastro DESC
+            """)
             campos = [coluna[0] for coluna in cursor.description]
             return [dict(zip(campos, linha)) for linha in cursor.fetchall()]

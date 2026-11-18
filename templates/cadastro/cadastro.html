@@ -266,8 +266,9 @@
             <nav class="cliente-filtros" aria-label="Filtrar clientes por status">
                 {% for codigo, rotulo in filtros_status %}
                     {% set ativo = codigo == status_lista %}
+
                     <a class="pessoa-botao{% if ativo %} pessoa-botao--salvar{% endif %}"
-                    href="{{ url_for('adm_cliente', status=none if ativo else codigo) }}"
+                    href="{{ url_for('adm_cliente', status=codigo) }}"
                     {% if ativo %}aria-current="true"{% endif %}>
                         {{ rotulo }}
                     </a>

@@ -33,10 +33,12 @@ class MinhaConta:
             if pessoa is None:
                 return {"sucesso": False, "erro": "Cadastro da pessoa não está ativo."}
 
+
             cliente = Cliente.get_or_none(
                 (Cliente.cd_pessoa == pessoa.cd_pessoa)
-                & (Cliente.fl_ativo == True)
+                & (Cliente.cd_status.in_([2, 3]))
             )
+
 
             if cliente is None:
                 return {"sucesso": False, "erro": "Cadastro de cliente não está ativo."}

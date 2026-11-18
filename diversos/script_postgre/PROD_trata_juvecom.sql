@@ -33,6 +33,20 @@ select * from tb_logusuario;
 select * from vw_cobranca_inadimplentes;
 select * from vw_contatos_pendentes;
 select * from vw_usuario;
+select * from tb_cliente_link;
+select * from tb_cliente_status;
+
+select * from tb_contato_status;
+
+
+SELECT l.cd_link, l.cd_cliente, l.dt_utilizacao,
+       c.cd_cliente AS cliente_cadastrado,
+       c.cd_status, c.fl_ativo,
+       p.nm_pessoa , p.cpf_cnpj
+FROM public.tb_cliente_link l
+LEFT JOIN public.tb_cliente c ON c.cd_cliente = l.cd_cliente
+LEFT JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+ORDER BY l.cd_link DESC;
 
 -- ===================================================================================================================
 
@@ -46,6 +60,8 @@ select * from tb_contato_status;
 INSERT into tb_contato
 (cd_status, nm_contato, celular, email, mensagem)
 VALUES(1, 'Juvenal Pereira de Souza', '11 98738-5695', 'variedadesjps@gmail.com', 'TESTE');
+
+select * from tb_cliente_link;
 
 
 -- --------------------------------------------------
@@ -116,6 +132,59 @@ WHERE table_schema = 'public'
   AND table_name = 'tb_cliente_link'
 ORDER BY ordinal_position;
 
+select * from vw_dashboard_admin;
+
+select * from tb_cliente;
+
+select * from tb_plano;
+
+select * from tb_contrato;
+
+DROP INDEX IF EXISTS uq_plano_nome_ativo;
+
+CREATE UNIQUE INDEX uq_plano_tipo_ativo
+ON public.tb_plano (cd_plano_tipo)
+WHERE fl_ativo;
+
+
+SELECT s.cd_status, s.nm_status, COUNT(c.cd_contrato) AS contratos
+FROM public.tb_contrato_status s
+LEFT JOIN public.tb_contrato c ON c.cd_status = s.cd_status
+GROUP BY s.cd_status, s.nm_status
+ORDER BY s.cd_status;
+
+1	pendente	0
+2	assinatura	3
+3	ativo	43
+4	inadimplente	0
+5	vencido	0
+6	cancelado	0
+
+
+CREATE OR REPLACE VIEW public.vw_dashboard_admin AS
+SELECT
+    (SELECT COUNT(*) FROM public.tb_cliente WHERE fl_ativo = TRUE) AS clientes_ativos,
+
+    (SELECT COUNT(*) FROM public.tb_contrato c
+     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
+     WHERE LOWER(s.nm_status) = 'ativo') AS contratos_ativos,
+
+    (SELECT COALESCE(SUM(c.vl_bruto), 0)
+     FROM public.tb_contrato c
+     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
+     WHERE LOWER(s.nm_status) = 'ativo') AS valor_contratos_ativos,
+
+    (SELECT COUNT(*) FROM public.vw_contatos_pendentes) AS contatos_pendentes,
+
+    (SELECT COUNT(*) FROM public.vw_cobranca_proximos) AS parcelas_proximas,
+    (SELECT COUNT(*) FROM public.vw_cobranca_vencidos) AS parcelas_vencidas,
+    (SELECT COUNT(*) FROM public.vw_cobranca_inadimplentes) AS parcelas_inadimplentes,
+
+    (SELECT COALESCE(SUM(vl_a_pagar), 0) FROM public.vw_cobranca_proximos) AS valor_proximos,
+    (SELECT COALESCE(SUM(vl_original), 0) FROM public.vw_cobranca_vencidos) AS valor_vencidos,
+
+    (SELECT COALESCE(SUM(vl_original + vl_multa + vl_juros), 0)
+     FROM public.vw_cobranca_inadimplentes) AS valor_inadimplencia;
 
 select * from tb_usuario;
 

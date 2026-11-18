@@ -2034,14 +2034,17 @@ body:has(.precadastro) {
     font-size: 20px;
 }
 
+
 .dashboard__cards {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 18px;
 }
 
-.dashboard__cards--financeiro {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+@media (max-width: 1200px) {
+    .dashboard__cards {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
 }
 
 .dashboard__card {
@@ -2101,6 +2104,363 @@ body:has(.precadastro) {
 
     .dashboard__cards,
     .dashboard__cards--financeiro {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* CONTRATOS - BARRA DE AÇÕES */
+
+/* CONTRATOS - BARRA DE AÇÕES */
+
+.pessoa-botoes.contrato-acoes {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pessoa-botoes.contrato-acoes > form.contrato-acoes__assinatura {
+    margin: 0 0 0 auto;
+    flex: 0 0 auto;
+}
+
+.contrato-acoes .pessoa-botao--confirmar {
+    background: #e86b29;
+    border: 1px solid #e86b29;
+    color: #fff;
+}
+
+.contrato-acoes .pessoa-botao--confirmar:hover {
+    background: #ff7838;
+    border-color: #ff7838;
+}
+
+@media (max-width: 600px) {
+    .pessoa-botoes.contrato-acoes > form.contrato-acoes__assinatura {
+        margin-left: 0;
+    }
+}
+
+/* Vigência */
+.contrato-vigencia-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr);
+    align-items: end;
+    column-gap: 20px;
+    row-gap: 16px;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Períodos predefinidos */
+.contrato-vigencia-opcoes {
+    display: flex;
+    align-items: center;
+    justify-self: start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 0;
+}
+
+.contrato-vigencia-opcoes > label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.contrato-vigencia-opcoes input[type="radio"] {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    accent-color: #ff7849;
+}
+
+/* Quantidade de meses */
+.contrato-meses-livre {
+    display: flex;
+    flex-direction: column;
+    justify-self: center;
+    gap: 4px;
+    width: 76px;
+    min-width: 0;
+}
+
+.contrato-meses-livre label {
+    font-size: 12px;
+}
+
+#vigencia_meses {
+    width: 76px;
+    min-width: 76px;
+    height: 32px;
+    padding: 4px 6px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+
+
+
+/* Vigência: três blocos proporcionais */
+.pessoa-form .contrato-vigencia-linha {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 0;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Bloco 1: períodos */
+.pessoa-form .contrato-vigencia-opcoes {
+    display: flex;
+    grid-column: 1;
+    justify-self: start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 0;
+}
+
+.contrato-vigencia-opcoes > label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.contrato-vigencia-opcoes input[type="radio"] {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    accent-color: #ff7849;
+}
+
+/* Bloco 2: meses */
+.pessoa-form .contrato-meses-livre {
+    display: flex;
+    grid-column: 2;
+    justify-self: center;
+    flex-direction: column;
+    gap: 4px;
+    width: 76px;
+    min-width: 0;
+}
+
+.contrato-meses-livre label {
+    width: auto;
+    font-size: 12px;
+}
+
+.pessoa-form .contrato-meses-livre #vigencia_meses {
+    width: 76px;
+    min-width: 0;
+    max-width: 76px;
+    height: 32px;
+    padding: 4px 6px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* Bloco 3: datas */
+.pessoa-form .contrato-vigencia-datas {
+    display: flex;
+    grid-column: 3;
+    justify-self: end;
+    justify-content: flex-end;
+    gap: 12px;
+    min-width: 0;
+    margin: 0;
+    position: static;
+}
+
+.contrato-vigencia-datas > div {
+    flex: 0 0 180px;
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+}
+
+.pessoa-form .contrato-vigencia-datas input[type="date"] {
+    display: block;
+    width: 180px;
+    min-width: 0;
+    max-width: 180px;
+    box-sizing: border-box;
+}
+
+/* Responsividade */
+@media (max-width: 1100px) {
+    .pessoa-form .contrato-vigencia-linha {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+
+    .pessoa-form .contrato-vigencia-opcoes,
+    .pessoa-form .contrato-meses-livre,
+    .pessoa-form .contrato-vigencia-datas {
+        grid-column: 1;
+        justify-self: start;
+    }
+
+    .pessoa-form .contrato-vigencia-datas {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}
+
+.dashboard__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 175px);
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.dashboard__card {
+    padding: 10px 14px;
+    min-height: 55px;
+}
+
+.dashboard__card span {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.dashboard__card strong {
+    display: block;
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+.dashboard__card small {
+    display: block;
+    font-size: 11px;
+    margin-top: 5px;
+}
+
+@media (max-width: 600px) {
+    .dashboard__cards {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}
+
+/* Contatos Pendentes Recentes */
+.dashboard__tabela {
+    width: 100%;
+    max-width: 850px;
+    margin-bottom: 15px;
+}
+
+.dashboard__tabela table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.dashboard__tabela th,
+.dashboard__tabela td {
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.dashboard__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.dashboard__card {
+    padding: 10px 14px;
+    min-height: 55px;
+}
+
+.central-contato__form {
+    grid-template-columns: 2fr 1fr 2fr;
+}
+
+@media (max-width: 900px) {
+    .central-contato__form {
+        grid-template-columns: 1fr;
+    }
+}
+
+.central-contato__inteiro {
+    grid-column: 1 / -1;
+}
+
+.central-contato__form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 14px;
+}
+
+.central-contato__campo {
+    min-width: 0;
+}
+
+.central-contato__campo input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.central-contato__check,
+.central-contato__inteiro {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+    .central-contato__form {
+        grid-template-columns: 1fr;
+    }
+}
+
+.central-contato__form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr 1.5fr;
+    gap: 14px;
+}
+
+.central-contato__campo {
+    min-width: 0;
+}
+
+.central-contato__campo input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.central-contato__check {
+    grid-column: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: end;
+    min-height: 38px;
+}
+
+.central-contato__check input {
+    width: auto;
+    flex-shrink: 0;
+}
+
+.central-contato__inteiro {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+    .central-contato__form {
         grid-template-columns: 1fr;
     }
 }

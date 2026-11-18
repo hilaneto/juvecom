@@ -7,19 +7,18 @@ WHERE table_schema = 'public';
 select * from tb_plano;
 select * from tb_servico;
 select * from tb_contrato_status;
-select * from tb_contato_status;
 select * from tb_encargo_atraso;
 select * from tb_desconto_loja;
 select * from tb_usuario_nivel;
 select * from tb_evento_log;
 select * from tb_plano_servico;
-
 -- -----------------------------------------------
 
 select * from tb_contato;
 select * from tb_parcelas;
 
 select * from tb_usuario;
+
 select * from vw_cobranca_proximos;
 select * from tb_contato_conversa;
 select * from vw_cobranca_vencidos;
@@ -41,7 +40,6 @@ select * from tb_pessoa;
 select * from tb_cliente;
 select * from tb_usuario_nivel;
 
-
 select * from vw_cobranca_inadimplentes;
 select * from vw_contatos_pendentes;
 select * from vw_usuario;
@@ -51,43 +49,120 @@ select * from vw_usuario;
 select * from tb_cliente;
 select * from tb_contrato;
 select * from tb_cliente_link;
-
-SELECT count(*) FROM public.tb_contrato WHERE cd_status = 3;
-
-SELECT pg_postmaster_start_time() AS inicio_instancia,
-       current_user AS usuario,
-       count(*) AS contratos_ativos
-FROM public.tb_contrato
-WHERE cd_status = 3;
-
-SELECT c.cd_contrato, c.cd_cliente, c.cd_status,
-       cl.fl_ativo AS cliente_habilitado,
-       p.fl_ativo AS pessoa_habilitada
-FROM public.tb_contrato AS c
-JOIN public.tb_cliente AS cl ON cl.cd_cliente = c.cd_cliente
-JOIN public.tb_pessoa AS p ON p.cd_pessoa = cl.cd_pessoa
-WHERE c.cd_status = 3
-ORDER BY c.cd_cliente;
+select * from tb_contrato_loja;
 
 
-select * from tb_cliente
-where cd_status = 3
-
-
-UPDATE public.tb_cliente
-SET cd_status = 3
-WHERE cd_status = 2
-
+-- ================================================================================================================ *
+-- Teste * Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *
+-- ================================================================================================================ * 
 
 select * from tb_pessoa a inner join tb_cliente b
 on a.cd_pessoa = b.cd_pessoa
 left join tb_loja c
 on b.cd_cliente = c.cd_cliente
 left join tb_contrato d
-on b.cd_cliente = d.cd_cliente
-where a.cpf_cnpj = '31726058093';
+on b.cd_cliente = d.cd_cliente;
+
+select * from tb_contrato;
+
+select * from tb_plano;
 
 select * from tb_cliente_link;
+
+select * from tb_cliente_status;
+
+select * from tb_contrato_status;
+
+select * from tb_contrato_status where cd_status = 2
+
+
+SELECT
+c.cd_contato,
+c.nm_contato,
+c.email,
+c.celular,
+c.mensagem,
+c.dt_cadastro,
+CURRENT_DATE - c.dt_cadastro::date AS dias_aguardando
+FROM public.tb_contato c
+WHERE c.cd_status IN (1, 2);
+
+select * from vw_dash_adm;
+select * from tb_contato;
+select * from vw_dash_adm;
+select * from vw_dash_fin;
+select * from tb_contato;
+
+SELECT 'Cliente' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_cliente) AS qtd
+FROM tb_cliente_status b
+LEFT JOIN tb_cliente a ON a.cd_status = b.cd_status
+GROUP BY b.cd_status, b.nm_status
+
+UNION ALL
+SELECT 'Contrato' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_contrato) AS qtd
+FROM tb_contrato_status b
+LEFT JOIN tb_contrato a ON a.cd_status = b.cd_status
+GROUP BY b.cd_status, b.nm_status
+UNION ALL
+SELECT 'Contato' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_contato) AS qtd
+FROM (VALUES (1, 'Pendente'), (2, 'Atendido'), (3, 'Perdido')) AS b(cd_status, nm_status)
+LEFT JOIN tb_contato a ON a.cd_status = b.cd_status
+GROUP BY b.cd_status, b.nm_status
+ORDER BY origem, cd_status;
+
+
+SELECT * FROM public.vw_dash_adm
+
+ORDER BY origem, cd_status;
+
+SELECT * FROM public.vw_dash_adm ORDER BY origem, cd_status;
+
+SELECT * FROM public.vw_contatos_pendentes
+ORDER BY dt_cadastro DESC;
+
+SELECT 'tb_cliente' AS tabela, COUNT(*) AS registros FROM public.tb_cliente
+UNION ALL
+SELECT 'tb_loja', COUNT(*) FROM public.tb_loja
+UNION ALL
+SELECT 'tb_contrato', COUNT(*) FROM public.tb_contrato
+UNION ALL
+SELECT 'tb_parcelas', COUNT(*) FROM public.tb_parcelas
+UNION ALL
+SELECT 'tb_contrato_documento', COUNT(*) FROM public.tb_contrato_documento
+UNION ALL
+SELECT 'tb_contrato_loja', COUNT(*) FROM public.tb_contrato_loja
+UNION ALL
+SELECT 'tb_cliente_link', COUNT(*) FROM public.tb_cliente_link;
+
+
+SELECT l.cd_link, l.cd_cliente, l.dt_utilizacao,
+       c.cd_cliente AS cliente_cadastrado,
+       p.nm_pessoa , p.cpf_cnpj
+FROM public.tb_cliente_link l
+LEFT JOIN public.tb_cliente c ON c.cd_cliente = l.cd_cliente
+LEFT JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+ORDER BY l.cd_link DESC;
+
+-- ================================================================================================================================= *
+-- Fim Teste * Fim Teste * Fim Teste * Fim Teste * Fim Teste * Fim Teste * Fim Teste * Fim Teste * Fim Teste * Fim Teste * Fim Teste * 
+-- ================================================================================================================================= *
+
+select * from tb_pessoa;
+
+select * from tb_cliente;
+
+select * from tb_contrato;
+
+select * from tb_contato;
+
+select * from tb_cliente_link;
+select * from tb_loja;
+
+select * from public.vw_dashboard_admin;
+
+(select count(*) AS clientes_ativos FROM public.tb_cliente)
+
+
 
 bf981eccd4d868c603db10ef48888e8e6ab83805c568255b2d2fbd16a2cde417
 https://juvaecom.jhan.com.br/cadastro/bf981eccd4d868c603db10ef48888e8e6ab83805c568255b2d2fbd16a2cde417
@@ -111,34 +186,187 @@ ORDER BY table_name, ordinal_position;
 
 SELECT * FROM tb_contrato_modelo LIMIT 3;
 
+select * from tb_cliente;
 
-
-(SELECT COALESCE(SUM(c.vl_contrato), 0)
- FROM tb_contrato c
- JOIN tb_contrato_status s ON s.cd_status = c.cd_status
- WHERE LOWER(s.nm_status) = 'ativo') AS valor_contratos;
-
-
-
-   
 select * from tb_contrato;
 
 select * from vw_dashboard_admin;
 
+SELECT * FROM public.vw_dashboard_admin
 
-SELECT COUNT(*) FROM vw_contatos_pendentes;
+
+SELECT * FROM vw_contatos_pendentes ORDER BY dt_cadastro DESC
+
+SELECT cd_contato, nm_contato, email, celular, dt_cadastro, dias_aguardando
+FROM vw_contatos_pendentes
+ORDER BY dt_cadastro DESC
+LIMIT 10;
+
+SELECT * FROM vw_contatos_pendentes LIMIT 0;
+
+SELECT * FROM vw_contatos_pendentes;
 
 select * from tb_contato;
 
 SELECT * FROM tb_contato_status ORDER BY cd_status;
 
-
 SELECT viewname, definition
 FROM pg_views
 WHERE schemaname = 'public'
-  AND viewname IN ('vw_contatos_pendentes', 'vw_cobranca_proximos',
-                   'vw_cobranca_vencidos', 'vw_cobranca_inadimplentes');
+AND viewname IN ('vw_contatos_pendentes', 'vw_cobranca_proximos',
+                   'vw_cobranca_vencidos', 'vw_cobranca_inadimplentes','vw_dashboard_admin');
 
+select * from tb_plano;
+
+
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'tb_plano_servico'
+ORDER BY ordinal_position;
+	
+ALTER TABLE tb_plano ADD COLUMN cd_plano_tipo integer;
+
+update tb_plano
+set cd_plano_tipo = cd_plano
+
+
+select periodicidade_dias, valor, dt_plano from tb_plano;
+
+select * from tb_contrato;
+
+
+DROP INDEX IF EXISTS uq_plano_nome_ativo;
+
+CREATE UNIQUE INDEX uq_plano_tipo_ativo
+ON public.tb_plano (cd_plano_tipo);
+
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'tb_plano'
+AND indexname = 'uq_plano_nome_ativo';
+
+
+SELECT cd_plano, cd_plano_tipo, nm_plano, periodicidade_dias, dt_cadastro
+FROM tb_plano
+WHERE cd_plano_tipo = 3
+ORDER BY cd_plano;
+
+select * from tb_pessoa
+where nm_pessoa = 'simone apartecida'
+
+A regra deverá ser a seguinte em ordem:
+
+Cliente envia dados via link (Pendente)
+A Jovecom acessa esse cliente pendente (página Cadastro Cliente, botão Pendente) e confirma dados cadastrais, esse registro de cliente passa de pendente para 
+
+select * from tb_cliente_status;
+select * from tb_contrato_status;
+
+SELECT c.cd_status, s.nm_status, COUNT(*) AS quantidade
+FROM public.tb_contrato c
+JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
+GROUP BY c.cd_status, s.nm_status
+ORDER BY c.cd_status;
+
+
+
+BEGIN;
+
+UPDATE public.tb_contrato
+SET cd_status = CASE cd_status
+    WHEN 2 THEN 1
+    WHEN 3 THEN 2
+END
+WHERE cd_status IN (2, 3);
+
+SELECT c.cd_status, s.nm_status, COUNT(*) AS quantidade
+FROM public.tb_contrato c
+JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
+GROUP BY c.cd_status, s.nm_status
+ORDER BY c.cd_status;
+
+ROLLBACK;
+
+
+select * from tb_pessoa
+where cd_pessoa = 40
+
+select * from tb_cliente
+where cd_cliente = 45
+
+select * from tb_contrato
+where cd_contrato = 45
+
+select * from tb_pessoa a inner join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa
+inner join tb_contrato c
+on b.cd_cliente = c.cd_cliente
+where a.cd_pessoa = 40 and b.cd_cliente = 45
+
+truncate table tb_pessoa;
+truncate table tb_cliente;
+truncate table tb_contrato;
+
+
+
+
+
+1	Pendente	Recebido, aguardando conferência ou em análise
+2	Aprovado	Dados conferidos, corrigidos e confirmados pelo analista
+3	Confirmado	Cliente acessou o site e definiu sua senha
+4	Reprovado	Cadastro encerrado sem aprovação
+
+select * from tb_contrato_status
+1	pendente		Cadastro aguardando validação dos dados
+2	assinatura		Contrato emitido e aguardando assinatura
+3	ativo			Contrato assinado e em vigência
+4	inadimplente	Contrato suspenso por falta de pagamento
+5	vencido			Contrato que atingiu o fim da vigência
+6	cancelado		Contrato cancelado e mantido para histórico
+
+SELECT s.cd_status, s.nm_status, COUNT(c.cd_contrato) AS contratos
+FROM public.tb_contrato_status s
+LEFT JOIN public.tb_contrato c ON c.cd_status = s.cd_status
+GROUP BY s.cd_status, s.nm_status
+ORDER BY s.cd_status;
+
+SELECT con.conname AS constraint_name,
+       con.conrelid::regclass AS tabela_origem,
+       pg_get_constraintdef(con.oid) AS definicao
+FROM pg_constraint con
+WHERE con.contype = 'f'
+  AND con.confrelid = 'public.tb_contrato_status'::regclass
+ORDER BY con.conrelid::regclass::text;
+
+
+
+select * from tb_cliente
+where cd_pessoa = 49
+
+select * from tb_cliente
+where cd_cliente = 54
+
+select * from tb_contrato
+where cd_cliente = 54
+
+select * from tb_cliente
+where nm_responsavel 
+
+SELECT schemaname, viewname, definition
+FROM pg_views
+WHERE schemaname = 'public'
+  AND (definition ILIKE '%tb_cliente%' OR viewname ILIKE '%pendente%');
+
+select * from tb_plano;
+
+select * from tb_cliente;
+
+select * from tb_plano_servico;
+select * from tb_servico;
+
+SELECT cd_plano, cd_plano_tipo, nm_plano, periodicidade_dias
+FROM tb_plano
+ORDER BY cd_plano;
 
 SELECT
     p.nm_pessoa,
@@ -156,72 +384,15 @@ SELECT
 FROM public.tb_pessoa p
 WHERE p.cd_pessoa = 3;
 
+select * from tb_pessoa;
+
 
 -- Pessoa ------------------------------------
 -- --------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados, fl_ativo, dt_cadastro, dt_atualizacao) values
-('F', 'José Hilário Alves Neto', '06478701859', '11 9 7666-0826', 'hilaneto@yahoo.com.br', '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('F', 'Juvenal Pereira de Souza', '12345678195', '11 98738-5695', 'variedadesjps@gmail.com'     , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('J', 'JPS - Juvaecom Promoções', '22144785142369', '11 98738-5695', 'variedadesjps@gmail.com'     , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
--- pessoa_relacao ------------------------------
-INSERT INTO tb_pessoa_relacao (cd_pessoa, cd_relacao) values
-(0, 1), (0, 2),
-(1, 1), (1, 2);
-
--- Importação de Pessoas.xlsx para public.tb_pessoa
-INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone, email, dados) VALUES
-('F', 'Jaqueline de Sousa Ribeiro', '99848422234', '48984840191', 'Jacksousa1989@gmail.com', '{"endereco": "Rua manoel medeiros borges", "numero": "1607", "cidade": "São José", "uf": "SC"}'::jsonb),
-('F', 'ALEXANDRE BURMAS DA SILVA SILVA', '12512178854', '1992065245', '/alexandreburmas@gmail.com', '{"endereco": "Avenida Cassandoca", "numero": "757", "uf": "SP"}'::jsonb),
-('F', 'Aline de Sousa Alves Laise', '39499679820', '11974898031', 'alishop.alishop.2020@gmail.com', '{"endereco": "Rua Valdecir Ferreira dos Reis", "numero": "350", "cidade": "Suzano", "uf": "SP"}'::jsonb),
-('J', 'ANDREA DE BARROS SANTOS', '65084601000175', '11959605451', 'arjn04@gmail.com', '{"endereco": "Rua Dos Cravos", "numero": "51"}'::jsonb),
-('J', 'Camila Paganotto Ltda', '29555924000136', '45999484930', 'camilapaganotto@hotmail.com', '{"endereco": "Rua 1° de Maio", "numero": "1630", "cidade": "Toledo", "uf": "PR", "cep": "85909010"}'::jsonb),
-('J', 'Cleber Jacinto', '50166991000155', '11991642657', 'cl eber.j acint o@yahoo.com', '{"endereco": "Rua Cascavel", "cidade": "Itaquaquecetuba", "uf": "SP", "cep": "08575680"}'::jsonb),
-('J', 'Luanna Comercio de Bijuterias Ltda', '19320598000205', '81991896753', 'diegopita1@hotmail.com', '{"endereco": "Rua José osti", "numero": "284", "cidade": "Neves Paulista", "uf": "SP"}'::jsonb),
-('J', 'Jefferson Toffoli Lelis', '65648940000137', '34988560330', 'comercial@toffbr.com.br', '{"endereco": "Rua Itumbiara", "numero": "598", "cidade": "Uberlandia", "uf": "MG", "cep": "38400617"}'::jsonb),
-('J', 'Josy Rafaela dos Santos Fazan', '65846714000160', '12988456216', 'josy-rafaela@hotmail.com', '{"endereco": "Rua Pedro Pomar", "cidade": "São Jose dos Campos", "uf": "SP", "cep": "12232471"}'::jsonb),
-('J', 'TRI FORMA 3D', '68920193000132', '51991995352', 'KATHLEENCARINE18@GMAIL', '{"endereco": "RUA CELINA VIEIRA PEIXOTO", "numero": "142", "cidade": "Tijucas", "uf": "SC"}'::jsonb),
-('J', 'Aline Barbosa Souza Furtuoso', '61586175000171', '31995957347', 'lilisouzas@yahoo.com.br', '{"cidade": "Itaverava", "uf": "MG", "cep": "36440000"}'::jsonb),
-('F', 'Luci Rodrigues da Costa', '85960045567', '62994690440', '/luciarodriguesdac@gmail.com,', '{"endereco": "Rua patriarca qd 16", "numero": "lt07", "cidade": "Goiania", "uf": "GO", "cep": "74453610"}'::jsonb),
-('J', 'MILENAR MADEIRAS LTDA', '68134578000174', '11917446684', 'keller.contato@gmail.com,', '{"endereco": "Rua Talofitos", "cidade": "São Paulo", "uf": "SP", "cep": "02945170"}'::jsonb),
-('F', 'Natalia Daudt Porto', '43273189819', '11982089853', 'trendseyewear.sac@gmail.com', '{"endereco": "Rua Moisés Justino", "cidade": "São Paulo", "uf": "SP", "cep": "03562000"}'::jsonb),
-('J', 'Eskinão - Utilidades, móveis e decoração', '29891871000124', '13997717160', 'Eskinao.financeiro@gmail.com', '{"endereco": "Avenida Eva Pereira dos Santos", "numero": "215", "cidade": "Santos", "uf": "SP", "cep": "11495005"}'::jsonb),
-('J', 'ESCADAO COM PECAS ELETRICAS P/ AUTOS LTDA', '02124962000188', '11981940851', 'rodrigo@escadao.com.br', '{"endereco": "RUA SILVEIRA CAMPOS", "numero": "447", "cidade": "São Paulo", "uf": "SP", "cep": "01541030"}'::jsonb),
-('J', 'Fábricapet975/ Sandra', '30401088000114', '14997725758', 'fabricadopet@gmail.com', '{"endereco": "Avenida Custódio Soares da Silva", "cidade": "Cafelandia", "uf": "SP", "cep": "16503042"}'::jsonb),
-('J', 'LOJA DOT RIOMAR', '51312652000100', '819995676427', 'financeirojadot@gmail.com', '{"cidade": "Recife", "uf": "PE"}'::jsonb),
-('J', 'COMERCI AL REI DO TNT LTDA', '37802034000100', '11981587705', 't hi agonsil va @terra.com.br', '{"endereco": "Rua Mogi Mirim", "cidade": "São Paulo", "uf": "SP", "cep": "03187040"}'::jsonb),
-('J', 'Vicya Professional', '62058883000148', '1130735447', 'vicyacosmeticos@gmail.com', '{"endereco": "4180081", "cidade": "São Paulo", "uf": "SP"}'::jsonb),
-('F', 'Waléria Cristina de Souza', '00220931178', '62982251329', 'waleriac1982@gmail.com', '{"endereco": "Rua C-48", "cidade": "Goiania", "uf": "GO", "cep": "74305280"}'::jsonb),
-('J', 'Germano Group', '06817144000144', '(11) 915933151', 'germanogroupp@gmail.com', '{"endereco": "Avenida dos Autonomistas", "cidade": "Osasco", "uf": "SP", "cep": "06090020"}'::jsonb),
-('J', 'Amanda Cristina de Oliveira', '43406970000122', '(19)996246099', 'amanda.cristina278@gmail.com', '{"endereco": "Rua Cristiano Osório", "cidade": "São Paulo", "uf": "SP"}'::jsonb);
-
-
-INSERT INTO public.tb_cliente (cd_pessoa, nm_responsavel)
-values (4, 'ALEXANDRE BURMAS DA SILVA SILVA'),
-(13, 'Aline Barbosa Souza Furtuoso'),
-(5, 'Aline de Sousa Alves Laise'),
-(25, 'Amanda Cristina de Oliveira'),
-(6, 'ANDREA DE BARROS SANTOS'),
-(7, 'Camila Paganotto Ltda'),
-(8, 'Cleber Jacinto'),
-(21, 'COMERCI AL REI DO TNT LTDA'),
-(18, 'ESCADAO COM PECAS ELETRICAS P/ AUTOS LTDA'),
-(17, 'Eskinão - Utilidades, móveis e decoração'),
-(19, 'Fábricapet975/ Sandra'),
-(24, 'Germano Group'),
-(3, 'Jaqueline de Sousa Ribeiro'),
-(10, 'Jefferson Toffoli Lelis'),
-(11, 'Josy Rafaela dos Santos Fazan'),
-(20, 'LOJA DOT RIOMAR'),
-(9, 'Luanna Comercio de Bijuterias Ltda'),
-(14, 'Luci Rodrigues da Costa'),
-(15, 'MILENAR MADEIRAS LTDA'),
-(16, 'Natalia Daudt Porto'),
-(12, 'TRI FORMA 3D'),
-(22, 'Vicya Professional'),
-(23, 'Waléria Cristina de Souza');
-
-
+INSERT INTO tb_pessoa (tp_pessoa, nm_pessoa, cpf_cnpj, telefone    , email, dados, fl_ativo, dt_cadastro, dt_atualizacao) values
+('F', 'José Hilário Alves Neto',  '06478701859', '11 9 7666-0826'  , 'hilaneto@yahoo.com.br'  , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('F', 'Juvenal Pereira de Souza', '12345678195', '11 98738-5695'   , 'variedadesjps@gmail.com', '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('J', 'JPS - Juvaecom Promoções', '22144785142369', '11 98738-5695', 'juvaps@gmail.com'       , '{}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 select a.nm_pessoa, b.nm_responsavel  from tb_pessoa a inner join tb_cliente b 
 on a.cd_pessoa  = b.cd_pessoa
@@ -229,67 +400,10 @@ left join tb_loja c
 on b.cd_cliente  = c.cd_cliente
 where a.nm_pessoa = b.nm_responsavel
 
-
 select * from tb_pessoa
 order by dt_atualizacao desc;
 
-select * from tb_cliente
-order by dt_atualizacao desc;
 
-select * from tb_loja;
-shop_id, url_loja
-
-INSERT INTO tb_loja (cd_cliente, nm_loja, url_loja)
-values (1,'ALEXANDRE','https://br.shp.ee/zpNUATDo'), 
-(2,'Aline','Visual Fashion 2'),
-(3,'Alinesa','https://www.mercadolivre.com.br/pagina/alishop2405'), 
-(4,'Amanda','https://br.shp.ee/BaLeRaBQ'),
-(5,'ANDREA','https://shopee.com.br/ikep7vralb'),
-(6,'Camila','https://br.shp.ee/TydBkyVN'),
-(7,'Cleber','https://br.shp.ee/53Lk2auN'),
-(8,'Com Rei','Rei dotnt'),
-(9,'ESCADAO','https://shopee.com.br/shop/1557529648'), 
-(10,'Eskinão','https://shopee.com.br/user/account/profile'), 
-(11,'Fábricapet','https://br.shp.ee/qS8DVBS'),
-(12,'Germano Group','https://br.shp.ee/6RVCrbWS'),
-(13,'Jaqueline','https://br.shp.ee/qk8kgpVP'), 
-(14,'Jefferson','https://br.shp.ee/KjkMTgbJ'),
-(15,'Josy','https://s.shopee.com.br/20vsHau6y2'), 
-(16,'LOJA RIOMAR','2acjcdvzgv'),
-(17,'Luanna Com','https://br.shp.ee/qvXgC5Zz'), 
-(18,'Luci','https://br.shp.ee/u5sGTPsg'),
-(19,'MILENAR','https://shopee.com.br'), 
-(20,'Natalia','https://shopee.com.br/shop/1130492484'),
-(21,'TRI FORMA','https://seller.shopee.com.br/portal/settings/shop/profile'), 
-(22,'Vicya','https://br.shp.ee/TuNsZiAs'),
-(23,'Waléria','https://br.shp.ee/WanJhV8q'); 
-
-select * from tb_pessoa a inner join tb_cliente b
-on a.cd_pessoa = b.cd_pessoa
-left join tb_loja c
-on b.cd_cliente = c.cd_cliente
-where a.cpf_cnpj = '02124962000188'
-
-
-
-select a.cd_pessoa, a.nm_pessoa , b.nm_responsavel  from tb_pessoa a inner join tb_cliente b
-on a.cd_pessoa = b.cd_pessoa
-where a.cpf_cnpj = '68134578000174'
-
-tb_pessoa_relacao b
-on a.cd_pessoa  = b.cd_pessoa
-left join tb_loja c
-on a.
-where b.cd_relacao = 1
-
-select DATE_TRUNC('month', dt_atualizacao)::DATE, dt_atualizacao::time from tb_pessoa
-where cpf_cnpj in ('61586175000171','12345678195','22144785142369')
-
-select * from tb_pessoa
-where dt_atualizacao::DATE = '2026-10-15'
-
-select * from tb_pessoa
-order by nm_pessoa
 
 
 
@@ -301,14 +415,10 @@ INSERT INTO tb_usuario (cd_pessoa, cd_nivel, login, senha_hash, fl_ativo) values
 
 select * from tb_usuario;
 
-SELECT cd_relacao, nm_relacao
-FROM tb_relacao
-ORDER BY cd_relacao;
-
 -- CONTATOS -----------------------------------
 select * from tb_contato;
 select * from tb_contato_conversa;
-select * from tb_contato_status;
+
 
 INSERT into tb_contato
 (cd_status, nm_contato, celular, email, mensagem)
