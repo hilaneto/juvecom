@@ -56,12 +56,162 @@ select * from tb_contrato_loja;
 -- Teste * Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *  Teste *
 -- ================================================================================================================ * 
 
+select * from tb_cliente_status;
+select * from tb_contrato_status;
+
 select * from tb_pessoa a inner join tb_cliente b
 on a.cd_pessoa = b.cd_pessoa
 left join tb_loja c
 on b.cd_cliente = c.cd_cliente
 left join tb_contrato d
-on b.cd_cliente = d.cd_cliente;
+on b.cd_cliente = d.cd_cliente
+where a.cpf_cnpj = '85073629000114';
+
+
+-- acompanhamaneto: ====================================================================================
+
+select * from tb_pessoa a inner join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa
+left join tb_loja c
+on b.cd_cliente = c.cd_cliente
+left join tb_contrato d
+on b.cd_cliente = d.cd_cliente
+inner join tb_cliente_status e
+on b.cd_status = e.cd_status
+where b.cd_cliente = 4
+
+
+
+select a.cd_pessoa, a.tp_pessoa, a.nm_pessoa, a.cpf_cnpj, a.telefone, a.email,	a.dados, a.fl_ativo, a.dt_cadastro, a.dt_atualizacao,
+b.cd_cliente, b.cd_pessoa, b.nm_responsavel, b.cd_status, b.cd_contato, b.dt_cadastro, b.dt_atualizacao,
+c.cd_loja, c.cd_cliente, c.nm_loja, c.shop_id, c.url_loja, c.fl_ativo, c.dt_cadastro, c.dt_atualizacao,
+d.cd_contrato, d.cd_cliente, d.cd_plano, d.cd_status, d.nm_plano, d.ds_plano, d.vigencia, d.vl_bruto, d.vl_desconto_lojas, d.vl_desconto_manual, d.vl_acrescimo, d.vl_contrato, d.ds_contrato, d.ds_observacao, d.dt_cadastro, d.dt_atualizacao,
+g.nm_plano, g.periodicidade_dias, g.valor
+from tb_pessoa a inner join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa
+left join tb_loja c
+on b.cd_cliente = c.cd_cliente
+left join tb_contrato d
+on b.cd_cliente = d.cd_cliente
+left join tb_plano g
+on d.cd_plano = g.cd_plano
+left join tb_cliente_status e
+on b.cd_status = e.cd_status
+left join tb_contrato_status f
+on d.cd_status = f.cd_status
+where b.cd_cliente = 4
+
+where b.cd_status = 1 --Cliente Pendente
+where b.cd_status = 2 --Cliente Aprovado
+where b.cd_status = 3 --Cliente Confirmado
+where b.cd_status = 4 --Cliente Reprovado
+where b.cd_status = 5 --Cliente Cancelado
+where d.cd_status = 1 --Contrato Sem assinatura
+where d.cd_status = 2 --Contrato Ativo
+where d.cd_status = 3 --Contrato Inadimplente
+where d.cd_status = 4 --Contrato Liquidade
+where d.cd_status = 5 --Contrato Cancelado
+
+
+-- ========================
+-- View
+-- ========================
+CREATE OR REPLACE VIEW public.vw_cliente_contrato AS
+SELECT c.cd_cliente, p.cd_pessoa, p.nm_pessoa,
+c.nm_responsavel, c.cd_status AS cd_status_cliente, sc.nm_status AS nm_status_cliente,
+ct.cd_contrato, ct.cd_status AS cd_status_contrato, st.nm_status AS nm_status_contrato,
+ct.cd_plano, ct.nm_plano AS nm_plano_contrato, ct.vigencia, ct.vl_contrato
+FROM public.tb_cliente c
+JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+LEFT JOIN public.tb_cliente_status sc ON sc.cd_status = c.cd_status
+LEFT JOIN public.tb_contrato ct ON ct.cd_cliente = c.cd_cliente
+LEFT JOIN public.tb_contrato_status st ON st.cd_status = ct.cd_status;
+-- ========================
+
+-- =========================================================================
+-- Function fn_listar_clientes
+-- =========================================================================
+BEGIN;
+CREATE OR REPLACE FUNCTION public.fn_listar_clientes(p_cd_status integer DEFAULT NULL)
+RETURNS TABLE (cd_cliente bigint, nm_pessoa text)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT c.cd_cliente, p.nm_pessoa::text
+    FROM public.tb_cliente c
+    JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+    WHERE p.fl_ativo IS TRUE
+      AND (p_cd_status IS NULL OR c.cd_status = p_cd_status)
+    ORDER BY p.nm_pessoa, c.cd_cliente;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fn_listar_contratos(p_cd_status integer DEFAULT NULL)
+RETURNS TABLE (cd_contrato bigint, nm_pessoa text, nm_status text)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT ct.cd_contrato, p.nm_pessoa::text, s.nm_status::text
+    FROM public.tb_contrato ct
+    JOIN public.tb_cliente c ON c.cd_cliente = ct.cd_cliente
+    JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+    JOIN public.tb_contrato_status s ON s.cd_status = ct.cd_status
+    WHERE p_cd_status IS NULL OR ct.cd_status = p_cd_status
+    ORDER BY ct.cd_contrato DESC;
+$$;
+COMMIT;
+-- ==============================================================================
+SELECT * FROM public.fn_listar_contratos();  -- Todos
+SELECT * FROM public.fn_listar_contratos(1); -- Sem assinatura
+SELECT * FROM public.fn_listar_contratos(2); -- Vigente
+SELECT * FROM public.fn_listar_contratos(3); -- Inadimplente
+SELECT * FROM public.fn_listar_contratos(4); -- Liquidado
+SELECT * FROM public.fn_listar_contratos(5); -- Cancelado
+
+
+-- =========================================================================
+-- Function fn_listar_contratos
+-- =========================================================================
+CREATE OR REPLACE FUNCTION public.fn_listar_contratos(p_cd_status integer DEFAULT NULL)
+RETURNS TABLE (cd_contrato bigint, nm_pessoa text, nm_status text)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT ct.cd_contrato, p.nm_pessoa::text, s.nm_status::text
+    FROM public.tb_contrato ct
+    JOIN public.tb_cliente c ON c.cd_cliente = ct.cd_cliente
+    JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+    JOIN public.tb_contrato_status s ON s.cd_status = ct.cd_status
+    WHERE p_cd_status IS NULL OR ct.cd_status = p_cd_status
+    ORDER BY ct.cd_contrato DESC;
+$$;
+-- ==============================================================================
+SELECT * FROM public.fn_listar_contratos();  -- Todos
+SELECT * FROM public.fn_listar_contratos(1); -- Sem assinatura
+SELECT * FROM public.fn_listar_contratos(2); -- Vigente
+SELECT * FROM public.fn_listar_contratos(3); -- Inadimplente
+SELECT * FROM public.fn_listar_contratos(4); -- Liquidado
+SELECT * FROM public.fn_listar_contratos(5); -- Cancelado
+
+
+
+select * from tb_plano;
+select * from tb_contrato;
+select * from tb_contrato;
+
+
+
+
+
+SELECT c.cd_cliente, c.cd_status, s.nm_status
+FROM public.tb_cliente c
+JOIN public.tb_cliente_status s ON s.cd_status = c.cd_status
+join public.tb_contrato_status a on a.cd_status = c. 
+WHERE c.cd_cliente = 4;
+
+
+
+
+-- ====================================================================================================
 
 select * from tb_contrato;
 
@@ -69,11 +219,17 @@ select * from tb_plano;
 
 select * from tb_cliente_link;
 
+select * from tb_cliente;
+
+select * from tb_contrato;
+
 select * from tb_cliente_status;
 
 select * from tb_contrato_status;
 
 select * from tb_contrato_status where cd_status = 2
+
+
 
 
 SELECT
@@ -404,8 +560,19 @@ select * from tb_pessoa
 order by dt_atualizacao desc;
 
 
+select * from tb_cliente_link;
+
+SELECT cd_link, cd_cliente, dt_criacao, dt_validade, dt_utilizacao
+FROM tb_cliente_link
+ORDER BY cd_link desc
+LIMIT 5;
 
 
+SELECT c.cd_cliente, p.nm_pessoa, c.cd_status, s.nm_status
+FROM tb_cliente c
+JOIN tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+JOIN tb_cliente_status s ON s.cd_status = c.cd_status
+WHERE c.cd_cliente = 1;
 
 
 -- Usuários -----------------------------------

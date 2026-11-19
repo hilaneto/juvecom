@@ -19,17 +19,9 @@
     </div>
 
     <div class="cliente-campo--ativo">
-        <label for="fl_ativo">Situação</label>
-        <select id="fl_ativo" name="fl_ativo">
-            <option value="1"
-                {% if cliente.get('fl_ativo', True) in (True, '1', 1) %}selected{% endif %}>
-                Ativo
-            </option>
-            <option value="0"
-                {% if cliente.get('fl_ativo') in (False, '0', 0) %}selected{% endif %}>
-                Inativo
-            </option>
-        </select>
+        <label for="status_cliente">Status do cliente</label>
+        <input id="status_cliente" type="text"
+               value="{{ dict(filtros_status).get(cliente.get('cd_status', 1), '') }}" readonly>
     </div>
 
     <div class="cliente-campo--cadastro">

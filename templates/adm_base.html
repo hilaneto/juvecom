@@ -6,6 +6,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Painel Juvecom{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/juvaecom.css') }}">
+    <style>
+        .adm-lateral__nav { display: grid; gap: 0; font-size: 14px; }
+
+        .adm-lateral__nav > a,
+        .adm-lateral__itens > a,
+        .adm-lateral__itens > span { display: block; padding: 6px 12px; border-radius: 8px; color: #eee5df; font-size: 14px; text-decoration: none; }
+
+        .adm-lateral__nav a:hover,
+        .adm-lateral__nav a.ativo { background: #ff784122; color: #ff995f; }
+
+        .adm-lateral__itens > span { opacity: .5; }
+
+        .adm-lateral__nav small { font-size: 12px; white-space: nowrap; }
+
+        .adm-lateral__grupo:not([open]) > .adm-lateral__itens {
+            display: none;
+        }
+
+        .adm-lateral__nav .adm-lateral__titulo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 18px 0 3px;
+            padding: 6px 12px;
+            list-style: none;
+            cursor: pointer;
+        }
+
+        .adm-lateral__titulo::-webkit-details-marker {
+            display: none;
+        }
+
+        .adm-lateral__titulo::before {
+            content: "";
+            flex: 0 0 auto;
+            width: 6px;
+            height: 6px;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
+            transform: rotate(-45deg);
+        }
+
+        .adm-lateral__grupo[open] > .adm-lateral__titulo::before {
+            transform: rotate(45deg);
+        }
+
+        .adm-lateral__titulo::after {
+            content: "";
+            flex: 1;
+            border-top: 1px solid #ffffff24;
+        }
+    </style>
 </head>
 
 <body>
@@ -17,49 +69,48 @@
                 <a href="{{ url_for('adm') }}"
                    {% if request.endpoint == 'adm' %}class="ativo" aria-current="page"{% endif %}> Home </a>
                    
-                <!-- CADASTROS -->
-                <details class="adm-submenu"
-                        {% if request.endpoint in ('adm_cliente', 'adm_usuario', 'adm_colaborador', 'adm_fornecedor') %}open{% endif %}>
-
-                    <summary>Cadastros</summary>
-
-                    <div class="adm-submenu__itens">
-
+                <details class="adm-lateral__grupo">
+                    <summary class="adm-lateral__titulo"><span>Negócio</span></summary>
+                    <div class="adm-lateral__itens">
                         <a href="{{ url_for('adm_cliente') }}"
-                           {% if request.endpoint == 'adm_cliente' %}class="ativo" aria-current="page"{% endif %}> Clientes </a>
+                           {% if request.endpoint == 'adm_cliente' %}class="ativo" aria-current="page"{% endif %}>Clientes</a>
 
-                        <a href="{{ url_for('adm_usuario') }}"
-                        {% if request.endpoint == 'adm_usuario' %}class="ativo" aria-current="page"{% endif %}> Usuários </a>
+                        {% if session.get('cd_nivel') in (0, 1) %}
+                            <a href="{{ url_for('adm_contrato') }}"
+                               {% if request.endpoint in ('adm_contrato', 'adm_contrato_novo') %}class="ativo" aria-current="page"{% endif %}>Contratos</a>
+                        {% endif %}
 
-                        <span> Colaboradores <small>Em construção</small> </span>
-                        <span> Fornecedores <small>Em construção</small> </span>
+                        <a href="{{ url_for('adm_contato') }}"
+                           {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}>Contatos pendentes</a>
 
+                        <span>Lojas <small>- em construção</small></span>
+
+                        <a href="{{ url_for('adm_cliente_links') }}"
+                           {% if request.endpoint == 'adm_cliente_links' %}class="ativo" aria-current="page"{% endif %}>Gerar Link</a>
                     </div>
-
                 </details>
 
-                <!-- OUTRAS FUNCIONALIDADES -->
-                <span>Lojas <small>Em construção</small></span>
+                <details class="adm-lateral__grupo">
+                    <summary class="adm-lateral__titulo"><span>Operacional</span></summary>
+                    <div class="adm-lateral__itens">
+                        <a href="{{ url_for('adm_usuario') }}"
+                           {% if request.endpoint == 'adm_usuario' %}class="ativo" aria-current="page"{% endif %}>Usuários</a>
 
-                {% if session.get('cd_nivel') in (0, 1) %}
-                    <a href="{{ url_for('adm_contrato') }}"
-                    {% if request.endpoint == 'adm_contrato' %}aria-current="page"{% endif %}>
-                        Contratos
-                    </a>
-                {% endif %}
+                        <span>Colaboradores <small>- em construção</small></span>
+                        <span>Fornecedores <small>- em construção</small></span>
+                    </div>
+                </details>
 
-                <span>Cobranças <small>Em construção</small></span>
-
-
-                <a href="{{ url_for('adm_contato') }}"
-                   {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}> Contatos pendentes </a>
-
-
-                <a href="{{ url_for('adm_cliente_links') }}">
-                    Gerar Link
-                </a>
-
+                <details class="adm-lateral__grupo">
+                    <summary class="adm-lateral__titulo"><span>Finanças</span></summary>
+                    <div class="adm-lateral__itens">
+                        <span>Relatórios <small>- em construção</small></span>
+                        <span>Cobranças <small>- em construção</small></span>
+                    </div>
+                </details>
             </nav>
+
+            <hr class="adm-lateral__divisor">
 
             <form class="adm-menu-sair" method="post" action="{{ url_for('logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">

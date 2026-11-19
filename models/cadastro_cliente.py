@@ -212,17 +212,16 @@ class CadastroCliente:
     @staticmethod
     def listar(cd_status=None):
         with conectar():
-            consulta = (
-                Cliente.select(Cliente.cd_cliente, Pessoa.nm_pessoa)
-                .join(Pessoa, on=(Cliente.cd_pessoa == Pessoa.cd_pessoa))
-                .where(Pessoa.fl_ativo == True)
+            cursor = db.execute_sql(
+                """SELECT cd_cliente, nm_pessoa
+                   FROM public.fn_listar_clientes(%s)
+                   ORDER BY nm_pessoa, cd_cliente""",
+                (cd_status,),
             )
-
-            if cd_status is not None:
-                consulta = consulta.where(Cliente.cd_status == cd_status)
-
-            return list(consulta.order_by(Pessoa.nm_pessoa, Cliente.cd_cliente).dicts())
-            
+            return [
+                {"cd_cliente": cd_cliente, "nm_pessoa": nm_pessoa}
+                for cd_cliente, nm_pessoa in cursor.fetchall()
+            ]
 
     @staticmethod
     def buscar(cd_cliente):
@@ -273,6 +272,8 @@ class CadastroCliente:
             cliente = {
                 "nm_responsavel": cadastro.nm_responsavel or "",
                 "cd_status": cadastro.cd_status,
+                "pode_cancelar": cadastro.cd_status != 5
+                and not Cliente.tem_contrato_impeditivo(cd_cliente, 5),
                 "dt_cadastro": dt_cadastro or ""
             }
 

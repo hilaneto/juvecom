@@ -169,20 +169,6 @@
 
             {% endif %}
 
-            {% if tipo_cadastro == 'cliente' and status_lista == 1 and selecionado %}
-                {% set ids_pendentes = registros | map(attribute='cd_cliente') | list %}
-
-                {% if selecionado in ids_pendentes %}
-                    <a class="pessoa-botao pessoa-botao--salvar"
-                    href="{{ url_for('adm_contrato_novo',
-                                        cd_cliente=selecionado,
-                                        confirmar_dados=1) }}">
-                        Confirmar Dados
-                    </a>
-                {% endif %}
-            {% endif %}
-
-
             <!-- NOVO -->
 
             {% if pode_novo %}
@@ -197,7 +183,14 @@
 
             <!-- EXCLUIR CLIENTE / FORNECEDOR -->
 
-            {% if tipo_cadastro in ('cliente', 'fornecedor') %}
+            {% if tipo_cadastro == 'cliente' %}
+                <button class="pessoa-botao pessoa-botao--excluir" type="submit"
+                        form="cadastro-formulario" name="acao" value="cancelar" formnovalidate
+                        onclick="return confirm('Confirma o cancelamento deste cliente?')"
+                        {% if not cliente.get('pode_cancelar') %}disabled{% endif %}>
+                    Cancelado
+                </button>
+            {% elif tipo_cadastro == 'fornecedor' %}
 
                 <button class="pessoa-botao pessoa-botao--excluir"
                         id="btn-excluir"
@@ -248,6 +241,20 @@
 
             {% endif %}
 
+            {% if tipo_cadastro == 'cliente' and selecionado and cliente.get('cd_status') == 1 %}
+                <div class="cliente-acoes__analise">
+                    <a class="pessoa-botao pessoa-botao--salvar"
+                       href="{{ url_for('adm_contrato_novo', cd_cliente=selecionado, confirmar_dados=1) }}">
+                        Confirmar Dados
+                    </a>
+                    <button class="pessoa-botao pessoa-botao--excluir" type="submit"
+                            form="cadastro-formulario" name="acao" value="reprovar" formnovalidate
+                            onclick="return confirm('Confirma a reprovação deste cliente?')">
+                        Reprovado
+                    </button>
+                </div>
+            {% endif %}
+
         </div>
 
     </section>
@@ -264,7 +271,7 @@
 
         {% if tipo_cadastro == 'cliente' %}
             <nav class="cliente-filtros" aria-label="Filtrar clientes por status">
-                {% for codigo, rotulo in filtros_status %}
+                {% for codigo, rotulo in ((0, 'Todos'),) + filtros_status %}
                     {% set ativo = codigo == status_lista %}
 
                     <a class="pessoa-botao{% if ativo %} pessoa-botao--salvar{% endif %}"

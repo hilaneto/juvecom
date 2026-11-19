@@ -6,6 +6,14 @@ from zoneinfo import ZoneInfo
 
 
 class Cliente(Model):
+    STATUS = (
+        (1, "Pendente"),
+        (2, "Aprovado"),
+        (3, "Confirmado"),
+        (4, "Reprovado"),
+        (5, "Cancelado"),
+    )
+
 
     cd_cliente = BigAutoField()
     cd_pessoa = BigIntegerField(unique=True)
@@ -112,7 +120,29 @@ class Cliente(Model):
                 return {"sucesso": False, "erro": "Situação do cliente inválida."}
 
         try:
-            with conectar():
+            with conectar(), db.atomic():
+                if "cd_status" in campos:
+                    cadastro = (
+                        Cliente.select(Cliente.cd_cliente, Cliente.cd_status)
+                        .where(Cliente.cd_cliente == cd_cliente)
+                        .for_update()
+                        .first()
+                    )
+                    if cadastro is None:
+                        return {"sucesso": False, "erro": "Cliente não encontrado."}
+
+                    cd_status = campos["cd_status"]
+                    if cd_status == 4 and cadastro.cd_status != 1:
+                        return {"sucesso": False, "erro": "Somente um cliente Pendente pode ser reprovado."}
+                    if cd_status in (1, 4, 5):
+                        if Cliente.tem_contrato_impeditivo(cd_cliente, cd_status):
+                            rotulo = dict(Cliente.STATUS)[cd_status]
+                            motivo = (
+                                "Todos os contratos vinculados precisam estar Cancelados."
+                                if cd_status == 5 else "O cliente já possui contrato."
+                            )
+                            return {"sucesso": False, "erro": f"Não é possível alterar para {rotulo}. {motivo}"}
+
                 campos["dt_atualizacao"] = SQL("CURRENT_TIMESTAMP")
                 alterados = (
                     Cliente.update(**campos)
@@ -127,6 +157,15 @@ class Cliente(Model):
             return {"sucesso": False, "erro": "Cliente não encontrado."}
 
         return {"sucesso": True, "cd_cliente": cd_cliente}
+
+    @staticmethod
+    def tem_contrato_impeditivo(cd_cliente, cd_status):
+        return db.execute_sql("""
+            SELECT EXISTS (
+                SELECT 1 FROM public.tb_contrato
+                WHERE cd_cliente = %s AND (%s <> 5 OR cd_status <> 5)
+            )
+        """, (cd_cliente, cd_status)).fetchone()[0]
 
     @staticmethod
     def excluir(cd_cliente):

@@ -17,17 +17,22 @@ class CadastroContrato:
     LIQUIDADO = 4
     CANCELADO = 5
 
+    FILTROS_STATUS = (
+        (SEM_ASSINATURA, "Sem assinatura"),
+        (VIGENTE, "Vigente"),
+        (INADIMPLENTE, "Inadimplente"),
+        (LIQUIDADO, "Liquidado"),
+        (CANCELADO, "Cancelado"),
+    )
+
     @staticmethod
-    def tela(cd_cliente=None, cd_contrato=None):
+    def tela(cd_cliente=None, cd_contrato=None, cd_status=None):
         with conectar():
             registros = db.execute_sql("""
-                SELECT c.cd_contrato, p.nm_pessoa, s.nm_status
-                FROM public.tb_contrato c
-                JOIN public.tb_cliente cl USING (cd_cliente)
-                JOIN public.tb_pessoa p USING (cd_pessoa)
-                JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
-                ORDER BY c.cd_contrato DESC
-            """).fetchall()
+                SELECT cd_contrato, nm_pessoa, nm_status
+                FROM public.fn_listar_contratos(%s)
+                ORDER BY cd_contrato DESC
+            """, (cd_status,)).fetchall()
 
             contrato = {}
             if cd_contrato is not None:
@@ -112,7 +117,7 @@ class CadastroContrato:
 
             if cd_contrato is None:
                 cliente = db.execute_sql("""
-                    SELECT cl.cd_cliente FROM public.tb_cliente cl
+                    SELECT cl.cd_status FROM public.tb_cliente cl
                     JOIN public.tb_pessoa p USING (cd_pessoa)
                     WHERE cl.cd_cliente = %s AND cl.cd_status IN (1, 2, 3) AND p.fl_ativo
                     FOR UPDATE OF cl
@@ -130,7 +135,7 @@ class CadastroContrato:
                     )
                 """, (cd_cliente, cd_cliente)).fetchone()[0]
 
-                if pendente != confirmar:
+                if (cliente[0] == 1) != confirmar or (confirmar and not pendente):
                     raise ValueError("Volte à ficha do cliente para conferir o pré-cadastro ou iniciar outro contrato.")
 
             else:
@@ -174,6 +179,12 @@ class CadastroContrato:
             parametros = (cd_plano, *plano, inicio, fim, *valores, total, descricao or None)
 
             if cd_contrato is None:
+                if confirmar:
+                    db.execute_sql("""
+                        UPDATE public.tb_cliente
+                        SET cd_status = 2, dt_atualizacao = CURRENT_TIMESTAMP
+                        WHERE cd_cliente = %s
+                    """, (cd_cliente,))
                 cd_contrato = db.execute_sql("""
                     INSERT INTO public.tb_contrato (
                         cd_cliente, cd_status, cd_plano, nm_plano, ds_plano, vigencia,

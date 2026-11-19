@@ -626,18 +626,11 @@ def adm_cliente():
     if session["cd_nivel"] not in (0, 1):
         abort(403)
 
-    filtros_status = (
-        (1, "Pendente"),
-        (2, "Assinatura"),
-        (3, "Ativo"),
-        (4, "Inadimplente"),
-        (5, "Vencido"),
-        (6, "Cancelado"),
-    )
+    filtros_status = Cliente.STATUS
 
-    status_lista = request.args.get("status", default=3, type=int)
-    if status_lista not in dict(filtros_status):
-        status_lista = 3
+    status_lista = request.args.get("status", default=0, type=int)
+    if status_lista != 0 and status_lista not in dict(filtros_status):
+        status_lista = 0
 
     hoje = datetime.now(
         ZoneInfo("America/Sao_Paulo")
@@ -668,21 +661,22 @@ def adm_cliente():
         # --------------------------------------------------
         # EXCLUSÃO LÓGICA DO CLIENTE
         # --------------------------------------------------
-        if acao == "excluir":
+        if acao in ("reprovar", "cancelar", "excluir"):
 
             if not cd_cliente.isdigit():
                 erro = "Código do cliente não informado."
 
             else:
-                resultado = Cliente.excluir(int(cd_cliente))
+                selecionado = int(cd_cliente)
+                novo_status = 4 if acao == "reprovar" else 5
+                resultado = Cliente.atualizar({"cd_cliente": selecionado, "cd_status": novo_status})
 
                 if resultado["sucesso"]:
-                    return redirect(
-                        url_for("adm_cliente", excluido=1, status=status_lista)
-                    )
+                    return redirect(url_for(
+                        "adm_cliente", sucesso=1, cd_cliente=selecionado, status=novo_status
+                    ))
 
                 erro = resultado["erro"]
-                selecionado = int(cd_cliente)
 
         # --------------------------------------------------
         # INCLUSÃO OU ALTERAÇÃO DO CLIENTE
@@ -797,7 +791,8 @@ def adm_cliente():
 
                     if resultado["sucesso"]:
                         return redirect(
-                            url_for("adm_cliente", sucesso=1, status=status_lista)
+                            url_for("adm_cliente", sucesso=1, cd_cliente=int(cd_cliente),
+                                    status=status_lista)
                         )
 
                     erro = resultado["erro"]
@@ -826,37 +821,23 @@ def adm_cliente():
     # ======================================================
     # LISTAGEM EXCLUSIVA DE CLIENTES
     # ======================================================
-    registros = CadastroCliente.listar(status_lista)
+    registros = CadastroCliente.listar(status_lista or None)
 
     # ======================================================
     # GET - CONSULTA DO CLIENTE SELECIONADO
     # ======================================================
-    if request.method == "GET":
-
-        cd_cliente = request.args.get(
-            "cd_cliente",
-            type=int
-        )
-
-        if cd_cliente is not None:
-
-            resultado = CadastroCliente.buscar(cd_cliente)
-
-            if resultado["sucesso"]:
-
-                dados = resultado["dados"]
-                cliente = resultado["cliente"]
-                loja = resultado["loja"]
-                lojas = resultado["lojas"]
-
-                # Recupera o usuário vinculado ao cliente,
-                # quando existir.
-                usuario = resultado.get("usuario") or {}
-
-                selecionado = cd_cliente
-
-            else:
-                erro = resultado["erro"]
+    cd_cliente = request.args.get("cd_cliente", type=int) if request.method == "GET" else selecionado
+    if cd_cliente is not None:
+        resultado = CadastroCliente.buscar(cd_cliente)
+        if resultado["sucesso"]:
+            dados = resultado["dados"]
+            cliente = resultado["cliente"]
+            loja = resultado["loja"]
+            lojas = resultado["lojas"]
+            usuario = resultado.get("usuario") or {}
+            selecionado = cd_cliente
+        elif erro is None:
+            erro = resultado["erro"]
 
     # ======================================================
     # RENDERIZAÇÃO DO FORMULÁRIO
@@ -896,6 +877,11 @@ def adm_contrato(cd_cliente=None):
     if session["cd_nivel"] not in (0, 1):
         abort(403)
 
+    filtros_status = CadastroContrato.FILTROS_STATUS
+    status_lista = request.args.get("status", type=int)
+    if status_lista not in dict(filtros_status):
+        status_lista = None
+
     vindo_cliente = cd_cliente is not None
     cd_contrato = None if vindo_cliente else request.args.get("cd_contrato", type=int)
     if not vindo_cliente and cd_contrato is None:
@@ -922,15 +908,18 @@ def adm_contrato(cd_cliente=None):
         except ValueError as exc:
             erro = str(exc)
         else:
-            return redirect(url_for("adm_contrato", cd_contrato=cd_contrato))
+            return redirect(url_for("adm_contrato", cd_contrato=cd_contrato, status=status_lista))
 
-    tela = CadastroContrato.tela(cd_cliente=cd_cliente, cd_contrato=cd_contrato)
+    tela = CadastroContrato.tela(
+        cd_cliente=cd_cliente, cd_contrato=cd_contrato, cd_status=status_lista
+    )
     if tela is None:
         abort(404)
 
     return render_template(
         "cadastro/contratos.html", **tela, erro=erro, formulario=formulario,
         confirmar=confirmar, vindo_cliente=vindo_cliente,
+        filtros_status=filtros_status, status_lista=status_lista,
         motivo=request.form.get("motivo", "")
     )
 

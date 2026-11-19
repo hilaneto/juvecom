@@ -2,6 +2,7 @@ from peewee import Model, BigAutoField, BigIntegerField, SmallIntegerField, Char
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.conexao import db, conectar
 from models.pessoa import Pessoa
+from models.cliente import Cliente
 from suporte.validacao import somente_numeros
 
 SENHA_INICIAL = "jps123"
@@ -24,8 +25,6 @@ class Usuario(Model):
 
     @staticmethod
     def _cliente_ativo(cd_pessoa):
-        from models.cliente import Cliente
-
         pessoa_ativa = Pessoa.select().where(
             (Pessoa.cd_pessoa == cd_pessoa) &
             (Pessoa.fl_ativo == True)
@@ -80,7 +79,7 @@ class Usuario(Model):
         if not login.strip() or not senha:
             return {"status": 0, "usuario": None}
 
-        with conectar():
+        with conectar(), db.atomic():
             usuario = Usuario.get_or_none(
                 (Usuario.login == login.strip()) &
                 (Usuario.fl_ativo == True)
@@ -95,6 +94,20 @@ class Usuario(Model):
             if usuario.cd_nivel == 5:
                 if not Usuario._cliente_ativo(usuario.cd_pessoa):
                     return {"status": 0, "usuario": None}
+
+                cliente = (
+                    Cliente.select(Cliente.cd_cliente, Cliente.cd_status)
+                    .where((Cliente.cd_pessoa == usuario.cd_pessoa) & Cliente.cd_status.in_([2, 3]))
+                    .for_update()
+                    .first()
+                )
+                if cliente is None:
+                    return {"status": 0, "usuario": None}
+
+                if cliente.cd_status == 2:
+                    resultado = Cliente.atualizar({"cd_cliente": cliente.cd_cliente, "cd_status": 3})
+                    if not resultado["sucesso"]:
+                        return {"status": 0, "usuario": None}
 
             # Verificar necessidade de troca da senha inicial
             status = (

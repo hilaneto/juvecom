@@ -4,8 +4,8 @@
 <p class="home__categoria">Cadastro | Contratos</p>
 {% set editavel = not contrato or contrato.cd_status == 1 %}
 {% set cancelar = contrato and contrato.cd_status in (1, 2, 3) %}
-{% set acao_form = url_for('adm_contrato_novo', cd_cliente=cd_cliente, confirmar_dados=1 if confirmar else none)
-    if vindo_cliente else url_for('adm_contrato', cd_contrato=contrato.get('cd_contrato') if contrato else none, cd_cliente=cd_cliente if not contrato else none) %}
+{% set acao_form = url_for('adm_contrato_novo', cd_cliente=cd_cliente, confirmar_dados=1 if confirmar else none, status=status_lista)
+    if vindo_cliente else url_for('adm_contrato', cd_contrato=contrato.get('cd_contrato') if contrato else none, cd_cliente=cd_cliente if not contrato else none, status=status_lista) %}
 <div class="pessoa-layout cadastro-compacto">
     <section class="pessoa-card">
         <h2 class="pessoa-form__titulo">
@@ -16,6 +16,9 @@
         {% endif %}
         {% if not contrato and not vindo_cliente %}
             <form class="pessoa-form" method="get" action="{{ url_for('adm_contrato') }}">
+                {% if status_lista is not none %}
+                    <input type="hidden" name="status" value="{{ status_lista }}">
+                {% endif %}
                 <label for="cd_cliente">Cliente</label>
                 <select id="cd_cliente" name="cd_cliente" required onchange="this.form.submit()">
                     <option value="">Selecione o cliente</option>
@@ -157,7 +160,7 @@
                 <button class="pessoa-botao pessoa-botao--salvar" form="contrato-formulario"
                         type="submit" name="acao" value="salvar">Salvar</button>
             {% endif %}
-            <a class="pessoa-botao" href="{{ url_for('adm_contrato') }}">Novo</a>
+            <a class="pessoa-botao" href="{{ url_for('adm_contrato', status=status_lista) }}">Novo</a>
             {% if cancelar %}
                 <button class="pessoa-botao pessoa-botao--excluir" type="button"
                         onclick="document.getElementById('cancelar-contrato').showModal()">Excluir</button>
@@ -194,11 +197,19 @@
     </section>
     <aside class="pessoa-lista cadastro-lista">
         <h2 class="pessoa-form__titulo">Contratos ({{ registros|length }})</h2>
+        <nav class="cliente-filtros" aria-label="Filtrar contratos por status">
+            {% for codigo, rotulo in ((none, 'Todos'),) + filtros_status %}
+                {% set ativo = codigo == status_lista %}
+                <a class="pessoa-botao{% if ativo %} pessoa-botao--salvar{% endif %}"
+                   href="{{ url_for('adm_contrato', status=codigo) }}"
+                   {% if ativo %}aria-current="true"{% endif %}>{{ rotulo }}</a>
+            {% endfor %}
+        </nav>
         {% if registros %}
             <ul>
                 {% for numero, nome, status in registros %}
                     <li>
-                        <a href="{{ url_for('adm_contrato', cd_contrato=numero) }}"
+                        <a href="{{ url_for('adm_contrato', cd_contrato=numero, status=status_lista) }}"
                            {% if contrato and contrato.cd_contrato == numero %}aria-current="page"{% endif %}>
                             #{{ numero }} · {{ nome }} · {{ status|capitalize }}
                         </a>
