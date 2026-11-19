@@ -35,9 +35,30 @@ select * from vw_contatos_pendentes;
 select * from vw_usuario;
 select * from tb_cliente_link;
 select * from tb_cliente_status;
+select * from tb_contrato_status;
 
-select * from tb_contato_status;
 
+select * from tb_cliente_status;
+
+select * from tb_contrato_status;
+
+SELECT s.cd_status, s.nm_status, COUNT(c.cd_contrato) AS qtd_contratos
+FROM public.tb_contrato_status s
+LEFT JOIN public.tb_contrato c ON c.cd_status = s.cd_status
+GROUP BY s.cd_status, s.nm_status
+ORDER BY s.cd_status;
+
+SELECT viewname, definition
+FROM pg_catalog.pg_views
+WHERE schemaname = 'public'
+  AND viewname IN (
+      'vw_cobranca_proximos',
+      'vw_cobranca_vencidos',
+      'vw_cobranca_inadimplentes',
+      'vw_dash_adm',
+      'vw_dash_fin'
+  )
+ORDER BY viewname;
 
 SELECT l.cd_link, l.cd_cliente, l.dt_utilizacao,
        c.cd_cliente AS cliente_cadastrado,
@@ -87,16 +108,100 @@ select * from tb_pessoa;
 
 select * from tb_cliente;
 
+select * from tb_loja;
+
+select * from tb_cliente a inner join tb_loja b
+on a.cd_cliente = b.cd_cliente
+
+
 select * from tb_pessoa a inner join tb_cliente b
 on a.cd_pessoa = b.cd_pessoa
 
 select 34*600
 
+select * from tb_parcelas;
 
-select * from tb_pessoa a inner join tb_cliente b
-on a.cd_pessoa = b.cd_pessoa
-inner join tb_loja c
-on b.cd_cliente = c.cd_cliente
+SELECT c.cd_cliente, p.nm_pessoa, COUNT(l.cd_loja) AS lojas_ativas
+FROM public.tb_cliente c
+JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+LEFT JOIN public.tb_loja l ON l.cd_cliente = c.cd_cliente AND l.fl_ativo
+WHERE c.cd_status IN (2, 3)
+  AND p.fl_ativo
+  AND NOT EXISTS (SELECT 1 FROM public.tb_contrato ct WHERE ct.cd_cliente = c.cd_cliente)
+GROUP BY c.cd_cliente, p.nm_pessoa
+ORDER BY p.nm_pessoa, c.cd_cliente;
+
+select * from tb_contrato;
+
+select 100*37
+
+select sum(vl_bruto) from tb_contrato;
+
+-- Carga massiva Contratos ---------------------------------------------------------------------------
+BEGIN;
+
+LOCK TABLE public.tb_pessoa, public.tb_cliente, public.tb_loja,
+           public.tb_plano, public.tb_contrato_status IN SHARE MODE;
+LOCK TABLE public.tb_contrato IN SHARE ROW EXCLUSIVE MODE;
+
+CREATE TEMP TABLE lote_contratos_provisorios ON COMMIT DROP AS
+SELECT c.cd_cliente, MIN(l.cd_loja) AS cd_loja, COUNT(l.cd_loja) AS lojas_ativas
+FROM public.tb_cliente c
+JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+LEFT JOIN public.tb_loja l ON l.cd_cliente = c.cd_cliente AND l.fl_ativo
+WHERE c.cd_status IN (2, 3)
+  AND p.fl_ativo
+  AND NOT EXISTS (SELECT 1 FROM public.tb_contrato ct WHERE ct.cd_cliente = c.cd_cliente)
+GROUP BY c.cd_cliente;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM lote_contratos_provisorios WHERE lojas_ativas <> 1) THEN
+        RAISE EXCEPTION 'Lote interrompido: há cliente elegível sem uma única loja ativa.';
+    END IF;
+
+    IF (SELECT COUNT(*) FROM public.tb_plano WHERE nm_plano = 'Avulso' AND fl_ativo) <> 1 THEN
+        RAISE EXCEPTION 'Lote interrompido: é necessário exatamente um plano Avulso ativo.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM public.tb_contrato_status
+        WHERE cd_status = 1 AND nm_status = 'Sem assinatura'
+    ) THEN
+        RAISE EXCEPTION 'Lote interrompido: status 1 deve ser Sem assinatura.';
+    END IF;
+END;
+$$;
+
+WITH novos AS (
+    INSERT INTO public.tb_contrato (
+        cd_cliente, cd_plano, cd_status, nm_plano, ds_plano,
+        vigencia, vl_bruto, vl_contrato, ds_contrato
+    )
+    SELECT l.cd_cliente, p.cd_plano, 1, p.nm_plano, p.ds_plano,
+           daterange(DATE '2026-11-19', DATE '2026-12-31', '[]'),
+           100.00, 100.00, 'Contrato Provisório - Precisa ser Atualizado'
+    FROM lote_contratos_provisorios l
+    CROSS JOIN public.tb_plano p
+    WHERE p.nm_plano = 'Avulso' AND p.fl_ativo
+    RETURNING cd_cliente, cd_contrato
+), vinculos AS (
+    INSERT INTO public.tb_contrato_loja (cd_cliente, cd_contrato, cd_loja)
+    SELECT n.cd_cliente, n.cd_contrato, l.cd_loja
+    FROM novos n
+    JOIN lote_contratos_provisorios l ON l.cd_cliente = n.cd_cliente
+    RETURNING cd_cliente, cd_contrato, cd_loja
+)
+SELECT cd_cliente, cd_contrato, cd_loja, COUNT(*) OVER () AS total_criado
+FROM vinculos
+ORDER BY cd_cliente;
+
+COMMIT;
+
+
+
+
+
 
 where cpf_cnpj = '48463520057'
 
@@ -329,6 +434,88 @@ LEFT JOIN tb_plano_contrato d ON d.cd_contrato = c.cd_contrato
 LEFT JOIN tb_plano e ON e.cd_plano = d.cd_plano
 GROUP BY c.cd_contrato, a.cd_pessoa, st.cd_status
 ORDER BY c.cd_contrato;
+
+
+-- =========================================================================
+-- View vw_cliente_contrato
+-- =========================================================================
+CREATE OR REPLACE VIEW public.vw_cliente_contrato AS
+SELECT c.cd_cliente, p.cd_pessoa, p.nm_pessoa,
+c.nm_responsavel, c.cd_status AS cd_status_cliente, sc.nm_status AS nm_status_cliente,
+ct.cd_contrato, ct.cd_status AS cd_status_contrato, st.nm_status AS nm_status_contrato,
+ct.cd_plano, ct.nm_plano AS nm_plano_contrato, ct.vigencia, ct.vl_contrato
+FROM public.tb_cliente c
+JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+LEFT JOIN public.tb_cliente_status sc ON sc.cd_status = c.cd_status
+LEFT JOIN public.tb_contrato ct ON ct.cd_cliente = c.cd_cliente
+LEFT JOIN public.tb_contrato_status st ON st.cd_status = ct.cd_status;
+
+
+-- =========================================================================
+-- Function fn_listar_clientes
+-- =========================================================================
+BEGIN;
+CREATE OR REPLACE FUNCTION public.fn_listar_clientes(p_cd_status integer DEFAULT NULL)
+RETURNS TABLE (cd_cliente bigint, nm_pessoa text)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT c.cd_cliente, p.nm_pessoa::text
+    FROM public.tb_cliente c
+    JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+    WHERE p.fl_ativo IS TRUE
+      AND (p_cd_status IS NULL OR c.cd_status = p_cd_status)
+    ORDER BY p.nm_pessoa, c.cd_cliente;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fn_listar_contratos(p_cd_status integer DEFAULT NULL)
+RETURNS TABLE (cd_contrato bigint, nm_pessoa text, nm_status text)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT ct.cd_contrato, p.nm_pessoa::text, s.nm_status::text
+    FROM public.tb_contrato ct
+    JOIN public.tb_cliente c ON c.cd_cliente = ct.cd_cliente
+    JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+    JOIN public.tb_contrato_status s ON s.cd_status = ct.cd_status
+    WHERE p_cd_status IS NULL OR ct.cd_status = p_cd_status
+    ORDER BY ct.cd_contrato DESC;
+$$;
+COMMIT;
+
+-- ==============================================================================
+SELECT * FROM public.fn_listar_contratos();  -- Todos
+SELECT * FROM public.fn_listar_contratos(1); -- Sem assinatura
+SELECT * FROM public.fn_listar_contratos(2); -- Vigente
+SELECT * FROM public.fn_listar_contratos(3); -- Inadimplente
+SELECT * FROM public.fn_listar_contratos(4); -- Liquidado
+SELECT * FROM public.fn_listar_contratos(5); -- Cancelado
+
+
+-- =========================================================================
+-- Function fn_listar_contratos
+-- =========================================================================
+CREATE OR REPLACE FUNCTION public.fn_listar_contratos(p_cd_status integer DEFAULT NULL)
+RETURNS TABLE (cd_contrato bigint, nm_pessoa text, nm_status text)
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT ct.cd_contrato, p.nm_pessoa::text, s.nm_status::text
+    FROM public.tb_contrato ct
+    JOIN public.tb_cliente c ON c.cd_cliente = ct.cd_cliente
+    JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+    JOIN public.tb_contrato_status s ON s.cd_status = ct.cd_status
+    WHERE p_cd_status IS NULL OR ct.cd_status = p_cd_status
+    ORDER BY ct.cd_contrato DESC;
+$$;
+
+-- ==============================================================================
+SELECT * FROM public.fn_listar_contratos();  -- Todos
+SELECT * FROM public.fn_listar_contratos(1); -- Sem assinatura
+SELECT * FROM public.fn_listar_contratos(2); -- Vigente
+SELECT * FROM public.fn_listar_contratos(3); -- Inadimplente
+SELECT * FROM public.fn_listar_contratos(4); -- Liquidado
+SELECT * FROM public.fn_listar_contratos(5); -- Cancelado
 
 
 

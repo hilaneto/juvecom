@@ -1,5 +1,4 @@
 
-from datetime import date
 from decimal import Decimal, InvalidOperation
 from flask import render_template
 from weasyprint import HTML
@@ -9,6 +8,7 @@ from dateutil.relativedelta import relativedelta
 
 
 class CadastroContrato:
+    MAX_PARCELAS = 600
     CAMPOS_VALOR = ("vl_bruto", "vl_desconto_lojas", "vl_desconto_manual", "vl_acrescimo")
 
     SEM_ASSINATURA = 1
@@ -35,6 +35,7 @@ class CadastroContrato:
             """, (cd_status,)).fetchall()
 
             contrato = {}
+            parcelas = []
             if cd_contrato is not None:
                 cursor = db.execute_sql("""
                     SELECT c.*, p.nm_pessoa, s.nm_status,
@@ -50,6 +51,7 @@ class CadastroContrato:
                     return None
                 contrato = dict(zip((coluna[0] for coluna in cursor.description), linha))
                 cd_cliente = contrato["cd_cliente"]
+                parcelas = CadastroContrato._parcelas(cd_contrato)
 
             clientes = db.execute_sql("""
                 SELECT cl.cd_cliente, p.nm_pessoa FROM public.tb_cliente cl
@@ -76,7 +78,60 @@ class CadastroContrato:
             """, (cd_contrato, cd_cliente)).fetchall()
 
         return dict(registros=registros, contrato=contrato, clientes=clientes,
-                    cd_cliente=cd_cliente, planos=planos, lojas=lojas)
+                    cd_cliente=cd_cliente, planos=planos, lojas=lojas, parcelas=parcelas,
+                    max_parcelas=CadastroContrato.MAX_PARCELAS)
+
+    @staticmethod
+    def _parcelas(cd_contrato):
+        return db.execute_sql("""
+            SELECT nr_parcela, dt_vencimento, vl_parcela, vl_desconto, dt_pagamento
+            FROM public.tb_parcelas
+            WHERE cd_contrato = %s ORDER BY nr_parcela
+        """, (cd_contrato,)).fetchall()
+
+    @classmethod
+    def _gerar_parcelas(cls, total, quantidade, primeiro_vencimento):
+        try:
+            quantidade = int(quantidade)
+            primeiro = date.fromisoformat(primeiro_vencimento)
+            if not 1 <= quantidade <= cls.MAX_PARCELAS or quantidade > int(total * 100):
+                raise ValueError()
+            centavos, sobra = divmod(int(total * 100), quantidade)
+            return [
+                (indice + 1, primeiro + relativedelta(months=indice),
+                 Decimal(centavos + (indice >= quantidade - sobra)).scaleb(-2))
+                for indice in range(quantidade)
+            ]
+        except (ValueError, OverflowError) as erro:
+            raise ValueError(
+                f"Informe um primeiro vencimento válido e de 1 a {cls.MAX_PARCELAS} parcelas "
+                "de pelo menos R$ 0,01."
+            ) from erro
+
+    @classmethod
+    def _salvar_parcelas(cls, cd_contrato, total, quantidade, vencimento):
+        atuais = cls._parcelas(cd_contrato)
+        total_atual = sum(valor - desconto for _, _, valor, desconto, _ in atuais)
+        if not quantidade and not vencimento:
+            if atuais and total_atual != total:
+                raise ValueError("Atualize o parcelamento para acompanhar o novo valor do contrato.")
+            return
+
+        novas = cls._gerar_parcelas(total, quantidade, vencimento)
+        if atuais and len(atuais) == len(novas) and atuais[0][1] == novas[0][1] and total_atual == total:
+            return
+
+        if any(desconto or pagamento is not None for _, _, _, desconto, pagamento in atuais):
+            raise ValueError("O parcelamento contém descontos ou pagamentos registrados e não pode ser recalculado.")
+
+        db.execute_sql("DELETE FROM public.tb_parcelas WHERE cd_contrato = %s", (cd_contrato,))
+        numeros, vencimentos, valores = map(list, zip(*novas))
+        db.execute_sql("""
+            INSERT INTO public.tb_parcelas (cd_contrato, nr_parcela, dt_vencimento, vl_parcela)
+            SELECT %s, nr_parcela, dt_vencimento, vl_parcela
+            FROM unnest(%s::integer[], %s::date[], %s::numeric[])
+                AS parcela(nr_parcela, dt_vencimento, vl_parcela)
+        """, (cd_contrato, numeros, vencimentos, valores))
 
     @classmethod
     def salvar(cls, cd_cliente, formulario, cd_contrato=None, confirmar=False):
@@ -217,6 +272,11 @@ class CadastroContrato:
                     SELECT %s, loja, %s FROM unnest(%s::bigint[]) AS lista(loja)
                 """, (cd_contrato, cd_cliente, lojas))
 
+            cls._salvar_parcelas(
+                cd_contrato, total, formulario.get("qt_parcelas", "").strip(),
+                formulario.get("dt_primeiro_vencimento", "").strip(),
+            )
+
         return cd_contrato
 
     @classmethod
@@ -246,11 +306,16 @@ class CadastroContrato:
                 SET cd_status = %s, dt_atualizacao = CURRENT_TIMESTAMP
                 WHERE cd_contrato = %s AND cd_status = %s
                   AND vigencia @> (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
-                RETURNING cd_contrato
+                RETURNING vl_contrato
             """, (cls.VIGENTE, cd_contrato, cls.SEM_ASSINATURA)).fetchone()
 
             if linha is None:
                 raise ValueError("O contrato precisa aguardar assinatura e estar dentro da vigência.")
+
+            total = linha[0]
+            parcelas = cls._parcelas(cd_contrato)
+            if sum(valor - desconto for _, _, valor, desconto, _ in parcelas) != total:
+                raise ValueError("Cadastre as parcelas com a soma igual ao valor do contrato antes de confirmar a assinatura.")
 
     @staticmethod
     def dados_pdf(cd_contrato):

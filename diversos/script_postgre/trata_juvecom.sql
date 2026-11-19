@@ -113,9 +113,9 @@ where d.cd_status = 4 --Contrato Liquidade
 where d.cd_status = 5 --Contrato Cancelado
 
 
--- ========================
--- View
--- ========================
+-- =========================================================================
+-- View vw_cliente_contrato
+-- =========================================================================
 CREATE OR REPLACE VIEW public.vw_cliente_contrato AS
 SELECT c.cd_cliente, p.cd_pessoa, p.nm_pessoa,
 c.nm_responsavel, c.cd_status AS cd_status_cliente, sc.nm_status AS nm_status_cliente,
@@ -126,7 +126,7 @@ JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
 LEFT JOIN public.tb_cliente_status sc ON sc.cd_status = c.cd_status
 LEFT JOIN public.tb_contrato ct ON ct.cd_cliente = c.cd_cliente
 LEFT JOIN public.tb_contrato_status st ON st.cd_status = ct.cd_status;
--- ========================
+
 
 -- =========================================================================
 -- Function fn_listar_clientes
@@ -159,6 +159,7 @@ AS $$
     ORDER BY ct.cd_contrato DESC;
 $$;
 COMMIT;
+
 -- ==============================================================================
 SELECT * FROM public.fn_listar_contratos();  -- Todos
 SELECT * FROM public.fn_listar_contratos(1); -- Sem assinatura
@@ -184,6 +185,7 @@ AS $$
     WHERE p_cd_status IS NULL OR ct.cd_status = p_cd_status
     ORDER BY ct.cd_contrato DESC;
 $$;
+
 -- ==============================================================================
 SELECT * FROM public.fn_listar_contratos();  -- Todos
 SELECT * FROM public.fn_listar_contratos(1); -- Sem assinatura
@@ -191,6 +193,53 @@ SELECT * FROM public.fn_listar_contratos(2); -- Vigente
 SELECT * FROM public.fn_listar_contratos(3); -- Inadimplente
 SELECT * FROM public.fn_listar_contratos(4); -- Liquidado
 SELECT * FROM public.fn_listar_contratos(5); -- Cancelado
+
+
+
+
+
+-- =========================================================================
+-- View_cobranca_vencidos
+-- =========================================================================
+BEGIN;
+
+SET LOCAL search_path TO public;
+
+CREATE OR REPLACE VIEW public.vw_cobranca_vencidos AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela - p.vl_desconto AS vl_original
+FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+WHERE p.dt_pagamento IS NULL
+AND p.dt_vencimento BETWEEN CURRENT_DATE - 3 AND CURRENT_DATE - 1
+AND st.cd_status NOT IN (1, 5);
+
+CREATE OR REPLACE VIEW public.vw_cobranca_inadimplentes AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano, st.nm_status AS status_contrato,
+p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela - p.vl_desconto AS vl_original,
+ROUND((p.vl_parcela - p.vl_desconto) * e.percentual_multa / 100, 2) AS vl_multa,
+ROUND((p.vl_parcela - p.vl_desconto) * e.juros_mensal / 100 * (CURRENT_DATE - p.dt_vencimento - e.dias_carencia) / 30, 2) AS vl_juros,
+CURRENT_DATE - p.dt_vencimento > e.dias_suspensao AS avaliar_suspensao
+FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+JOIN tb_encargo_atraso e ON e.vigencia @> p.dt_vencimento
+WHERE p.dt_pagamento IS NULL
+AND CURRENT_DATE - p.dt_vencimento > e.dias_painel
+AND CURRENT_DATE - p.dt_vencimento > e.dias_carencia
+AND st.cd_status NOT IN (1, 5);
+
+COMMIT;
+-- ==============================================================================
+SELECT * FROM public.vw_cobranca_vencidos;
+
+
+
+
+
 
 
 

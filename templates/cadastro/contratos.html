@@ -142,6 +142,30 @@
                     </div>
                 </section>
                 <section class="contrato-grupo">
+                    <h3>Condições de pagamento</h3>
+                    {% if editavel %}
+                        <div class="contrato-grade">
+                            <div>
+                                <label for="qt_parcelas">Quantidade de parcelas</label>
+                                <input id="qt_parcelas" name="qt_parcelas" type="number" min="1" max="{{ max_parcelas }}"
+                                       value="{{ formulario.get('qt_parcelas', '') if formulario is not none else (parcelas|length if parcelas else '') }}">
+                            </div>
+                            <div>
+                                <label for="dt_primeiro_vencimento">Primeiro vencimento</label>
+                                <input id="dt_primeiro_vencimento" name="dt_primeiro_vencimento" type="date"
+                                       value="{{ formulario.get('dt_primeiro_vencimento', '') if formulario is not none else (parcelas[0][1].isoformat() if parcelas else '') }}">
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if parcelas %}
+                        <ul>
+                            {% for numero, vencimento, valor, desconto, pagamento in parcelas %}
+                                <li>{{ numero }}ª parcela · {{ vencimento.strftime('%d/%m/%Y') }} · R$ {{ "%.2f"|format(valor - desconto)|replace('.', ',') }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </section>
+                <section class="contrato-grupo">
                     <h3>Detalhes</h3>
                     <label for="ds_contrato">Descrição</label>
                     {% if editavel %}
