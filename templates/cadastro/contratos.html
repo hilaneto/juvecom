@@ -11,6 +11,9 @@
         <h2 class="pessoa-form__titulo">
             {{ 'Contrato #' ~ contrato.cd_contrato if contrato else 'Novo contrato' }}
         </h2>
+        {% if contrato and contrato.cd_contrato_origem %}
+            <p>Renovação do <a href="{{ url_for('adm_contrato', cd_contrato=contrato.cd_contrato_origem) }}">contrato #{{ contrato.cd_contrato_origem }}</a></p>
+        {% endif %}
         {% if erro %}
             <div class="contato-aviso contato-aviso--erro" role="alert">{{ erro }}</div>
         {% endif %}
@@ -194,6 +197,13 @@
             {% endif %}
             {% if contrato and contrato.cd_contrato %}
                 <a class="pessoa-botao" href="{{ url_for('adm_contrato_download', cd_contrato=contrato.cd_contrato) }}">Baixar Contrato</a>
+                <form method="post" action="{{ acao_form }}">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                    <button class="pessoa-botao" type="submit" name="acao" value="renovar"
+                            {% if not pode_renovar %}disabled title="Disponível após o último dia da vigência"{% endif %}>
+                        Renovar Contrato
+                    </button>
+                </form>
             {% endif %}
             {% if contrato and contrato.cd_status == 1 %}
                 <form class="contrato-acoes__assinatura" method="post" action="{{ acao_form }}">

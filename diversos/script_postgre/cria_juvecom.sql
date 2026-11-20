@@ -221,11 +221,12 @@ INSERT INTO tb_contrato_status (nm_status, ds_status) VALUES
 -- ============================================================
 -- tb_contrato - drop table tb_contrato cascade
 -- ============================================================
-CREATE TABLE tb_contrato (
+CREATE TABLE public.tb_contrato (
 cd_contrato BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_cliente BIGINT NOT NULL REFERENCES tb_cliente(cd_cliente),
-cd_plano BIGINT NOT NULL REFERENCES tb_plano(cd_plano),
-cd_status SMALLINT NOT NULL REFERENCES tb_contrato_status(cd_status),
+cd_cliente BIGINT NOT NULL REFERENCES public.tb_cliente(cd_cliente),
+cd_plano BIGINT NOT NULL REFERENCES public.tb_plano(cd_plano),
+cd_status SMALLINT NOT NULL REFERENCES public.tb_contrato_status(cd_status),
+cd_contrato_origem BIGINT,
 nm_plano VARCHAR(100) NOT NULL,
 ds_plano VARCHAR(500),
 vigencia DATERANGE NOT NULL,
@@ -235,15 +236,19 @@ vl_desconto_manual NUMERIC(12,2) NOT NULL DEFAULT 0,
 vl_acrescimo NUMERIC(12,2) NOT NULL DEFAULT 0,
 vl_contrato NUMERIC(12,2) NOT NULL,
 ds_contrato VARCHAR(500),
-ds_observacao text,
+ds_observacao TEXT,
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT uq_contrato_cliente_contrato UNIQUE (cd_cliente, cd_contrato),
+CONSTRAINT fk_contrato_origem FOREIGN KEY (cd_cliente, cd_contrato_origem)
+REFERENCES public.tb_contrato (cd_cliente, cd_contrato),
 CONSTRAINT ck_contrato_vigencia CHECK (NOT isempty(vigencia) AND NOT lower_inf(vigencia)),
-CONSTRAINT ck_contrato_valores CHECK (vl_bruto >= 0 AND vl_desconto_lojas >= 0 AND vl_desconto_manual >= 0 AND vl_acrescimo >= 0
-AND vl_contrato = vl_bruto - vl_desconto_lojas - vl_desconto_manual + vl_acrescimo AND vl_contrato >= 0));
-
--- --------------------------------------------------------------------
+CONSTRAINT ck_contrato_valores CHECK (
+vl_bruto >= 0 AND vl_desconto_lojas >= 0 AND vl_desconto_manual >= 0 AND vl_acrescimo >= 0
+AND vl_contrato = vl_bruto - vl_desconto_lojas - vl_desconto_manual + vl_acrescimo
+AND vl_contrato >= 0));
+-- --------------------------------------------------------------------------
+CREATE INDEX ix_contrato_origem ON public.tb_contrato (cd_contrato_origem);
 CREATE INDEX ix_contrato_vigencia ON tb_contrato USING gist (vigencia);
 CREATE INDEX ix_contrato_cliente ON tb_contrato (cd_cliente);
 

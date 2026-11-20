@@ -127,6 +127,8 @@ LEFT JOIN public.tb_cliente_status sc ON sc.cd_status = c.cd_status
 LEFT JOIN public.tb_contrato ct ON ct.cd_cliente = c.cd_cliente
 LEFT JOIN public.tb_contrato_status st ON st.cd_status = ct.cd_status;
 
+-- -------------------------------
+select * from vw_cliente_contrato;
 
 -- =========================================================================
 -- Function fn_listar_clientes
@@ -237,17 +239,19 @@ COMMIT;
 SELECT * FROM public.vw_cobranca_vencidos;
 
 
-
-
-
-
-
-
 select * from tb_plano;
 select * from tb_contrato;
 select * from tb_contrato;
+select * from tb_parcelas;
 
+select * from tb_parcelas
+where cd_contrato = 4
 
+select * from tb_contrato
+where cd_contrato = 6
+
+select * from tb_contrato
+where cd_cliente = 7
 
 
 

@@ -3,8 +3,9 @@ from decimal import Decimal, InvalidOperation
 from flask import render_template
 from weasyprint import HTML
 from database.conexao import conectar, db
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from zoneinfo import ZoneInfo
 
 
 class CadastroContrato:
@@ -79,7 +80,57 @@ class CadastroContrato:
 
         return dict(registros=registros, contrato=contrato, clientes=clientes,
                     cd_cliente=cd_cliente, planos=planos, lojas=lojas, parcelas=parcelas,
-                    max_parcelas=CadastroContrato.MAX_PARCELAS)
+                    max_parcelas=CadastroContrato.MAX_PARCELAS,
+                    pode_renovar=CadastroContrato._vigencia_encerrada(contrato.get("dt_fim")))
+
+    @staticmethod
+    def _vigencia_encerrada(fim, hoje=None):
+        hoje = hoje or datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+        return fim is not None and fim < hoje
+
+    @classmethod
+    def renovar(cls, cd_contrato):
+        with conectar(), db.atomic():
+            origem = db.execute_sql("""
+                SELECT lower(vigencia), upper(vigencia) - 1
+                FROM public.tb_contrato WHERE cd_contrato = %s FOR UPDATE
+            """, (cd_contrato,)).fetchone()
+
+            if origem is None:
+                raise ValueError("Contrato de origem não encontrado.")
+
+            hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+            inicio_anterior, fim_anterior = origem
+            if not cls._vigencia_encerrada(fim_anterior, hoje):
+                raise ValueError("A renovação só está disponível após o último dia da vigência.")
+
+            renovacao = db.execute_sql("""
+                SELECT cd_contrato FROM public.tb_contrato
+                WHERE cd_contrato_origem = %s AND cd_status <> %s
+            """, (cd_contrato, cls.CANCELADO)).fetchone()
+            if renovacao is not None:
+                return renovacao[0]
+
+            fim_exclusivo = hoje + (fim_anterior - inicio_anterior) + timedelta(days=1)
+            novo = db.execute_sql("""
+                INSERT INTO public.tb_contrato (
+                    cd_cliente, cd_status, cd_plano, nm_plano, ds_plano, vigencia,
+                    vl_bruto, vl_desconto_lojas, vl_desconto_manual, vl_acrescimo,
+                    vl_contrato, ds_contrato, cd_contrato_origem
+                )
+                SELECT cd_cliente, %s, cd_plano, nm_plano, ds_plano, daterange(%s, %s, '[)'),
+                       vl_bruto, vl_desconto_lojas, vl_desconto_manual, vl_acrescimo,
+                       vl_contrato, ds_contrato, cd_contrato
+                FROM public.tb_contrato WHERE cd_contrato = %s
+                RETURNING cd_contrato
+            """, (cls.SEM_ASSINATURA, hoje, fim_exclusivo, cd_contrato)).fetchone()[0]
+
+            db.execute_sql("""
+                INSERT INTO public.tb_contrato_loja (cd_contrato, cd_loja, cd_cliente)
+                SELECT %s, cd_loja, cd_cliente
+                FROM public.tb_contrato_loja WHERE cd_contrato = %s
+            """, (novo, cd_contrato))
+            return novo
 
     @staticmethod
     def _parcelas(cd_contrato):
@@ -327,6 +378,7 @@ class CadastroContrato:
             cursor = db.execute_sql("""
                 SELECT c.*, lower(c.vigencia) AS dt_inicio,
                        upper(c.vigencia) - 1 AS dt_fim,
+                       (c.dt_cadastro AT TIME ZONE 'America/Sao_Paulo')::date AS dt_contrato,
                        p.nm_pessoa AS nome, p.tp_pessoa, p.cpf_cnpj, p.telefone, p.email,
                        p.dados AS endereco_dados, cl.nm_responsavel
                 FROM public.tb_contrato c

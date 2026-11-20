@@ -116,7 +116,9 @@ tr { break-inside: avoid; }
 <p>13.2. A eventual tolerância de uma parte quanto ao descumprimento de obrigação pela outra não implicará renúncia, alteração contratual ou novação.</p>
 <p>13.3. Se qualquer disposição deste contrato for considerada inválida ou inexequível, as demais permanecerão em vigor na extensão permitida pela legislação.</p>
 <p>13.4. Fica eleito o foro da Comarca de São Paulo/SP para dirimir controvérsias oriundas deste contrato, ressalvadas hipóteses em que a legislação aplicável determine foro diverso.</p>
-<p>São Paulo/SP, ____ de __________________ de ______.</p>
+{% set meses = ('janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro') %}
+<p>São Paulo/SP, {{ contrato.dt_contrato.day }} de {{ meses[contrato.dt_contrato.month - 1] }} de {{ contrato.dt_contrato.year }}.</p>
 <div class="assinaturas"><div class="assinatura">________________________________<br>JPS UTILIDADES UNIPESSOAL LTDA<br>CONTRATADA</div><div class="assinatura">________________________________<br>{{ cliente.nome }}<br>CONTRATANTE</div></div>
 <div class="assinaturas"><div class="assinatura">________________________________<br>Testemunha 1<br>Nome: __________________________<br>CPF: ___________________________</div><div class="assinatura">________________________________<br>Testemunha 2<br>Nome: __________________________<br>CPF: ___________________________</div></div>
 </section>

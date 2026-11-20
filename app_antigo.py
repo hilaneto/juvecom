@@ -628,7 +628,7 @@ def adm_cliente():
 
     filtros_status = Cliente.STATUS
 
-    status_lista = request.args.get("status", default=1, type=int)
+    status_lista = request.args.get("status", default=0, type=int)
     if status_lista != 0 and status_lista not in dict(filtros_status):
         status_lista = 0
 

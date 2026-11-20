@@ -903,6 +903,9 @@ def adm_contrato(cd_cliente=None):
                 CadastroContrato.cancelar(cd_contrato, request.form.get("motivo", ""))
             elif acao == "confirmar_assinatura" and cd_contrato is not None:
                 CadastroContrato.confirmar_assinatura(cd_contrato)
+            elif acao == "renovar" and cd_contrato is not None:
+                cd_contrato = CadastroContrato.renovar(cd_contrato)
+                status_lista = None
             else:
                 abort(400)
         except ValueError as exc:

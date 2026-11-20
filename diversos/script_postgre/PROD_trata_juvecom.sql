@@ -8,7 +8,6 @@ WHERE table_schema = 'public';
 select * from tb_plano;
 select * from tb_servico;
 select * from tb_contrato_status;
-select * from tb_contato_status;
 select * from tb_encargo_atraso;
 select * from tb_desconto_loja;
 select * from tb_usuario_nivel;
@@ -112,6 +111,10 @@ select * from tb_loja;
 
 select * from tb_cliente a inner join tb_loja b
 on a.cd_cliente = b.cd_cliente
+
+SELECT * FROM public.vw_cobranca_vencidos;
+SELECT * FROM public.fn_listar_contratos();  -- Todos
+select * from vw_cliente_contrato;
 
 
 select * from tb_pessoa a inner join tb_cliente b
