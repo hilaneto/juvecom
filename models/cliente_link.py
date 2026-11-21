@@ -1,16 +1,18 @@
+
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from peewee import BigIntegerField, Case, CharField, DateTimeField, Model, SQL
+from peewee import Case, SQL, Model, BigAutoField, BigIntegerField, CharField, DateTimeField
 from database.conexao import db, conectar
 
 
 class ClienteLink(Model):
-    cd_link = BigIntegerField(primary_key=True)
-    token = CharField(max_length=100, unique=True)
+    cd_link = BigAutoField()
+    token_hash = CharField(max_length=64, unique=True, null=False)
     cd_usuario = BigIntegerField()
     cd_cliente = BigIntegerField(null=True)
-    dt_criacao = DateTimeField()
-    dt_validade = DateTimeField()
+    dt_criacao = DateTimeField(default=lambda: datetime.now(timezone.utc))
+    dt_validade = DateTimeField(default=lambda: datetime.now(timezone.utc) + timedelta(days=7))
     dt_utilizacao = DateTimeField(null=True)
 
     class Meta:
@@ -19,8 +21,10 @@ class ClienteLink(Model):
 
     @staticmethod
     def consulta_disponivel(token):
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+
         return ClienteLink.select().where(
-            (ClienteLink.token == token) &
+            (ClienteLink.token_hash == token_hash) &
             (ClienteLink.dt_validade > SQL("CURRENT_TIMESTAMP")) &
             ClienteLink.dt_utilizacao.is_null(True)
         )
@@ -28,11 +32,12 @@ class ClienteLink(Model):
     @staticmethod
     def gerar(cd_usuario):
         token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
         agora = datetime.now(timezone.utc)
 
         with conectar():
             link = ClienteLink.create(
-                token=token,
+                token_hash=token_hash,
                 cd_usuario=cd_usuario,
                 dt_criacao=agora,
                 dt_validade=agora + timedelta(days=7)
@@ -46,7 +51,7 @@ class ClienteLink(Model):
 
     @staticmethod
     def validar(token):
-        if not token:
+        if not isinstance(token, str) or not token:
             return None
 
         with conectar():
