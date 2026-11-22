@@ -1,23 +1,29 @@
--- ===============================================================
--- BANCO: juvecom
--- SCHEMA: public
--- Revisão estrutural: 2026-10-15 | revisão estática adicional
--- Versao: 2026-11-18 | consolidacao das correcoes SQL
--- ===============================================================
--- ===============================================================
--- rodar no terminal
--- local/local   : psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f cria_juvecom_consolidado.sql
--- local/servidor: scp cria_juvecom.sql dev:/tmp/cria_juvecom.sql && ssh -t dev 'psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -f /tmp/cria_juvecom.sql'
--- ===============================================================
+-- ============================================================================
+-- JUVECOM | CRIACAO INTEGRAL DO BANCO - AMBIENTE DEV
+-- Revisao: 2026-11-21 v2 | JUV-027 + funcoes de listagem
+-- Base: cria_juvecom(1).sql de 2026-11-18
+-- ATENCAO: ESTE SCRIPT APAGA O BANCO juvecom E TODOS OS SEUS DADOS.
+-- Executar SOMENTE no servidor DEV, com backup previo e conexoes encerradas.
+-- Exemplo: psql -U hilaneto -d postgres -v ON_ERROR_STOP=1 -v RECRIAR_DEV=1 -f cria_juvecom.sql
+-- Nao executar no ambiente de producao.
+-- ============================================================================
+\if :{?RECRIAR_DEV}
+\if :RECRIAR_DEV
+\echo 'ATENCAO: recriando o banco juvecom; dados anteriores serao perdidos.'
+\else
+\echo 'ABORTADO: RECRIAR_DEV precisa ser 1.'
+\quit
+\endif
+\else
+\echo 'ABORTADO: e necessario informar -v RECRIAR_DEV=1.'
+\quit
+\endif
+
 DROP DATABASE IF EXISTS juvecom;
-
-SELECT 'CREATE DATABASE juvecom'
-WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'juvecom')\gexec
-
+CREATE DATABASE juvecom;
 \connect juvecom
 
 BEGIN;
-
 -- ==============================================================
 -- tb_contato: captação de interessados (sem vínculo com plano ou contrato)
 -- ==============================================================
@@ -87,7 +93,6 @@ cd_cliente BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 cd_pessoa BIGINT NOT NULL UNIQUE REFERENCES tb_pessoa(cd_pessoa),
 nm_responsavel VARCHAR(150),
 cd_status SMALLINT NOT NULL DEFAULT 2 REFERENCES tb_cliente_status(cd_status),
-cd_contato BIGINT UNIQUE REFERENCES tb_contato(cd_contato),
 dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
@@ -242,6 +247,7 @@ dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT uq_contrato_cliente_contrato UNIQUE (cd_cliente, cd_contrato),
 CONSTRAINT fk_contrato_origem FOREIGN KEY (cd_cliente, cd_contrato_origem)
 REFERENCES public.tb_contrato (cd_cliente, cd_contrato),
+CONSTRAINT ck_contrato_origem_self CHECK (cd_contrato_origem IS NULL OR cd_contrato_origem <> cd_contrato),
 CONSTRAINT ck_contrato_vigencia CHECK (NOT isempty(vigencia) AND NOT lower_inf(vigencia)),
 CONSTRAINT ck_contrato_valores CHECK (
 vl_bruto >= 0 AND vl_desconto_lojas >= 0 AND vl_desconto_manual >= 0 AND vl_acrescimo >= 0
@@ -277,6 +283,8 @@ CONSTRAINT ck_modelo_pdf CHECK (octet_length(arquivo_pdf) > 0));
 
 -- ============================================================
 -- tb_parcelas: parcelas de contratos
+-- pc_desconto: percentual sobre parcela + multa + juros, aplicado na quitacao.
+-- dt_atualizacao: atualizar via Peewee em cada UPDATE (sem trigger).
 -- ============================================================
 CREATE TABLE tb_parcelas (
 cd_parcela bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -284,12 +292,14 @@ cd_contrato bigint NOT NULL REFERENCES tb_contrato(cd_contrato),
 nr_parcela integer NOT NULL,
 dt_vencimento date NOT NULL,
 vl_parcela numeric(12,2) NOT NULL,
-vl_desconto numeric(12,2) NOT NULL DEFAULT 0,
+pc_desconto numeric(5,2) NOT NULL DEFAULT 0,
 dt_pagamento date,
 vl_pago numeric(12,2),
+dt_atualizacao timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT uq_parcelas_contrato_numero UNIQUE (cd_contrato, nr_parcela),
 CONSTRAINT ck_parcelas_numero CHECK (nr_parcela > 0),
-CONSTRAINT ck_parcelas_valores CHECK (vl_parcela >= 0 AND vl_desconto BETWEEN 0 AND vl_parcela AND (vl_pago IS NULL OR vl_pago >= 0)),
+CONSTRAINT ck_parcelas_valores CHECK (vl_parcela >= 0 AND (vl_pago IS NULL OR vl_pago >= 0)),
+CONSTRAINT ck_parcelas_desconto CHECK (pc_desconto BETWEEN 0 AND 100),
 CONSTRAINT ck_parcelas_pagamento CHECK ((dt_pagamento IS NULL) = (vl_pago IS NULL)));
 
 
@@ -299,20 +309,19 @@ CONSTRAINT ck_parcelas_pagamento CHECK ((dt_pagamento IS NULL) = (vl_pago IS NUL
 CREATE TABLE tb_encargo_atraso (
 cd_encargo bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 vigencia daterange NOT NULL,
-percentual_multa numeric(5,2) NOT NULL,
-juros_mensal numeric(5,2) NOT NULL,
+percentual_multa numeric(5,2) NOT NULL DEFAULT 0,
+juros_mensal numeric(5,2) NOT NULL DEFAULT 0,
+juros_diario numeric(8,5) NOT NULL DEFAULT 0,
 dias_carencia integer NOT NULL DEFAULT 0,
-dias_painel integer NOT NULL DEFAULT 3,
-dias_suspensao integer NOT NULL DEFAULT 10,
 CONSTRAINT ck_encargo_vigencia CHECK (NOT isempty(vigencia) AND NOT lower_inf(vigencia)),
-CONSTRAINT ck_encargo_percentuais CHECK (percentual_multa BETWEEN 0 AND 100 AND juros_mensal BETWEEN 0 AND 100),
-CONSTRAINT ck_encargo_dias CHECK (dias_carencia >= 0 AND dias_painel >= 0 AND dias_suspensao >= dias_painel),
+CONSTRAINT ck_encargo_percentuais CHECK (percentual_multa BETWEEN 0 AND 100 AND juros_mensal BETWEEN 0 AND 100 AND juros_diario BETWEEN 0 AND 100),
+CONSTRAINT ck_encargo_dias CHECK (dias_carencia >= 0),
 CONSTRAINT ex_encargo_vigencia EXCLUDE USING gist (vigencia WITH &&));
 
 
 -- -------------------------------------------------------------------------------------------
-INSERT INTO tb_encargo_atraso (vigencia, percentual_multa, juros_mensal, dias_carencia, dias_painel, dias_suspensao)
-VALUES (daterange(DATE '2026-09-26', NULL, '[)'), 2, 1, 0, 3, 10);
+INSERT INTO tb_encargo_atraso (vigencia, percentual_multa, juros_mensal, juros_diario, dias_carencia)
+VALUES (daterange(DATE '2026-09-26', NULL, '[)'), 2, 1, 0, 0);
 
 
 -- ============================================================
@@ -391,12 +400,13 @@ CONSTRAINT ck_usuario_senha CHECK (btrim(senha_hash) <> ''));
 -- ============================================================
 CREATE TABLE public.tb_cliente_link (
 cd_link BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-token VARCHAR(100) NOT NULL UNIQUE,
+token_hash VARCHAR(64) NOT NULL UNIQUE,
 cd_usuario BIGINT NOT NULL REFERENCES public.tb_usuario(cd_usuario),
 cd_cliente BIGINT REFERENCES public.tb_cliente(cd_cliente),
 dt_criacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_validade TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '7 days'),
 dt_utilizacao TIMESTAMPTZ,
+CONSTRAINT ck_cliente_link_hash CHECK (token_hash ~ '^[0-9a-f]{64}$'),
 CONSTRAINT ck_cliente_link_validade CHECK (dt_validade > dt_criacao),
 CONSTRAINT ck_cliente_link_uso CHECK ((dt_utilizacao IS NULL) = (cd_cliente IS NULL)));
 
@@ -410,20 +420,6 @@ CREATE INDEX ix_cliente_link_validade_pendente
 ON public.tb_cliente_link (dt_validade)
 WHERE dt_utilizacao IS NULL;
 
-
--- ==============================================================
--- tb_contato_conversa  - drop table tb_contato_conversa cascade
--- ==============================================================
-CREATE TABLE tb_contato_conversa (
-cd_conversa bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-cd_contato bigint NOT NULL REFERENCES tb_contato (cd_contato),
-cd_usuario bigint NOT NULL REFERENCES tb_usuario (cd_usuario),
-dt_conversa timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-texto text NOT NULL,
-CONSTRAINT ck_contato_conversa_texto CHECK (btrim(texto) <> ''));
-
-CREATE INDEX ix_contato_conversa_historico
-ON tb_contato_conversa (cd_contato, dt_conversa, cd_conversa);
 
 
 -- ============================================================
@@ -455,12 +451,17 @@ ip_acesso inet,
 dt_evento timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
 
--- ===========================================================
--- vw_cobranca_proximos: 1. Vence hoje ou nos próximos 3 dias
--- ===========================================================
+-- ============================================================================
+-- VIEWS FINANCEIRAS - JUV-027
+-- Classificacao: proximos (hoje ate +3), vencidos (1 a 3 dias),
+-- inadimplentes (4 ou mais dias). Carencia afeta encargos, nao classificacao.
+-- Para simulacao/confirmacao em data escolhida, o Peewee deve recalcular
+-- multa, juros e desconto na data efetiva do pagamento, usando Decimal.
+-- A politica de encargos e escolhida por vigencia @> dt_vencimento.
+-- ============================================================================
 CREATE OR REPLACE VIEW vw_cobranca_proximos AS
 SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
-p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer, p.vl_parcela - p.vl_desconto AS vl_a_pagar
+p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer, p.vl_parcela AS vl_a_pagar
 FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
 JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
@@ -470,40 +471,47 @@ AND p.dt_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + 3
 AND st.cd_status IN (2, 3);
 
 
--- ========================================================================
--- vw_cobranca_vencidos: 2. Vencidas de 1 a 3 dias: acompanhamento inicial
--- ========================================================================
-CREATE OR REPLACE VIEW vw_cobranca_vencidos AS
-SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
-p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela - p.vl_desconto AS vl_original
-FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+CREATE OR REPLACE VIEW public.vw_cobranca_vencidos AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela,
+       pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+       p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso,
+       p.vl_parcela AS vl_original
+FROM tb_parcelas p
+JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
 JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
 JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
 WHERE p.dt_pagamento IS NULL
-AND p.dt_vencimento BETWEEN CURRENT_DATE - 3 AND CURRENT_DATE - 1
-AND st.cd_status <> 5;
+  AND p.dt_vencimento < CURRENT_DATE
+  AND c.cd_status in(2,3);
 
-
--- ==========================================================================
--- vw_cobranca_inadimplentes: 3. Mais de 3 dias: cobrança com multa e juros
--- ==========================================================================
+-- A view preserva vl_juros (soma dos dois tipos), alem de discriminar cada um.
+-- Politicas inexistentes para uma data de vencimento nao geram linha nesta view.
 CREATE OR REPLACE VIEW vw_cobranca_inadimplentes AS
-SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano, st.nm_status AS status_contrato,
-p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela - p.vl_desconto AS vl_original,
-ROUND((p.vl_parcela - p.vl_desconto) * e.percentual_multa / 100, 2) AS vl_multa,
-ROUND((p.vl_parcela - p.vl_desconto) * e.juros_mensal / 100 * (CURRENT_DATE - p.dt_vencimento - e.dias_carencia) / 30, 2) AS vl_juros,
-CURRENT_DATE - p.dt_vencimento > e.dias_suspensao AS avaliar_suspensao
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+st.nm_status AS status_contrato, p.dt_vencimento,
+CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela AS vl_original,
+enc.vl_multa, enc.vl_juros_mensal, enc.vl_juros_diario,
+(enc.vl_juros_mensal + enc.vl_juros_diario) AS vl_juros,
+p.pc_desconto,
+ROUND((p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario) * p.pc_desconto / 100, 2) AS vl_desconto_calculado,
+(p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario)
+- ROUND((p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario) * p.pc_desconto / 100, 2) AS vl_total_atualizado
 FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
 JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
 JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
 JOIN tb_encargo_atraso e ON e.vigencia @> p.dt_vencimento
+CROSS JOIN LATERAL (
+SELECT
+CASE WHEN CURRENT_DATE - p.dt_vencimento > e.dias_carencia
+THEN ROUND(p.vl_parcela * e.percentual_multa / 100, 2) ELSE 0::numeric END AS vl_multa,
+ROUND(p.vl_parcela * e.juros_mensal / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0) / 30, 2) AS vl_juros_mensal,
+ROUND(p.vl_parcela * e.juros_diario / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0), 2) AS vl_juros_diario
+) enc
 WHERE p.dt_pagamento IS NULL
-AND CURRENT_DATE - p.dt_vencimento > e.dias_painel
-AND CURRENT_DATE - p.dt_vencimento > e.dias_carencia
+AND CURRENT_DATE - p.dt_vencimento > 3
 AND st.cd_status <> 5;
-
 
 -- ==========================================================================
 -- vw_contatos_pendentes: Contatos pendentes
@@ -547,17 +555,83 @@ ORDER BY origem, cd_status;
 
 
 -- ==========================================================================
+-- vw_cobranca_proximos: drop view vw_cobranca_proximos - Usuarios
+-- ==========================================================================
+CREATE OR REPLACE VIEW public.vw_cobranca_proximos AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela,
+       pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+       p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer,
+       p.vl_parcela AS vl_a_pagar
+FROM tb_parcelas p
+JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+WHERE p.dt_pagamento IS NULL
+AND p.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND st.cd_status IN (2, 3);
+
+
+
+-- ==========================================================================
 -- vw_dashboard_fin: drop view vw_dashboard_fin - Usuarios
 -- ==========================================================================
-CREATE OR REPLACE VIEW public.vw_dash_fin as
-select * from
-(SELECT COUNT(*) AS parcelas_proximas,COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos)
-cross join
-(SELECT COUNT(*) AS parcelas_vencidas,COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos)
-cross join
-(SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_original + vl_multa + vl_juros), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes);
+CREATE OR REPLACE VIEW public.vw_dash_fin AS
+SELECT a.parcelas_proximas, a.valor_proximos,
+       b.parcelas_vencidas, b.valor_vencidos,
+       c.parcelas_inadimplentes, c.valor_inadimplencia
+FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
+CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
+CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
 
+
+-- ============================================================================
+-- FUNCTIONS DE LISTAGEM (usadas pela aplicacao Flask/Peewee)
+-- Os parametros sao INTEGER para compatibilidade com os filtros do formulario.
+-- NULL retorna todos os registros. A ordem final e definida na consulta chamadora.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.fn_listar_clientes(p_cd_status INTEGER DEFAULT NULL)
+RETURNS TABLE (cd_cliente BIGINT, nm_pessoa VARCHAR(150))
+LANGUAGE sql STABLE AS $$
+    SELECT c.cd_cliente, p.nm_pessoa
+    FROM public.tb_cliente c
+    JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+    WHERE p_cd_status IS NULL OR c.cd_status = p_cd_status;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fn_listar_contratos(p_cd_status INTEGER DEFAULT NULL)
+RETURNS TABLE (cd_contrato BIGINT, nm_pessoa VARCHAR(150), nm_status VARCHAR(30))
+LANGUAGE sql STABLE AS $$
+    SELECT c.cd_contrato, p.nm_pessoa, s.nm_status
+    FROM public.tb_contrato c
+    JOIN public.tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+    JOIN public.tb_pessoa p ON p.cd_pessoa = cl.cd_pessoa
+    JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
+    WHERE p_cd_status IS NULL OR c.cd_status = p_cd_status;
+$$;
 
 COMMIT;
 
 
+
+-- ============================================================================
+-- VERIFICACAO BASICA POS-INSTALACAO
+-- ============================================================================
+SELECT 'tabelas' AS objeto, count(*) AS quantidade FROM information_schema.tables
+ WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+UNION ALL
+SELECT 'views', count(*) FROM information_schema.views WHERE table_schema = 'public';
+
+
+-- ==========================================================================
+-- SMOKE TESTS (somente leitura; banco pode estar vazio)
+-- ==========================================================================
+SELECT 'fn_listar_clientes' AS teste, count(*) AS linhas FROM public.fn_listar_clientes(NULL)
+UNION ALL SELECT 'fn_listar_clientes(2)', count(*) FROM public.fn_listar_clientes(2)
+UNION ALL SELECT 'fn_listar_contratos', count(*) FROM public.fn_listar_contratos(NULL)
+UNION ALL SELECT 'fn_listar_contratos(2)', count(*) FROM public.fn_listar_contratos(2);
+
+SELECT 'views_financeiras' AS teste, count(*) AS quantidade
+FROM information_schema.views
+WHERE table_schema = 'public' AND table_name IN
+('vw_cobranca_proximos', 'vw_cobranca_vencidos', 'vw_cobranca_inadimplentes', 'vw_dash_fin');

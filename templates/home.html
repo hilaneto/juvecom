@@ -26,28 +26,43 @@
 
         <div class="menu-principal__links">
 
-            <a href="{{ url_for('plano') }}">Planos</a>
-            <a href="{{ url_for('contato') }}">Contato</a>
+            <a href="{{ url_for('plano') }}">PLANOS</a>
+            <a href="{{ url_for('contato') }}">CONTATO</a>
 
+            <!-- ÁREA DO CLIENTE -->
+            {% if session.get('cd_nivel') == 5 %}
+
+                <a href="{{ url_for('cliente_inicio') }}">
+                    ÁREA DO CLIENTE
+                </a>
+
+            {% else %}
+
+                <a href="{{ url_for('login') }}">
+                    ÁREA DO CLIENTE
+                </a>
+
+            {% endif %}
+
+            <!-- ÁREA ADMINISTRATIVA -->
+            {% if session.get('cd_usuario') is not none
+                  and session.get('cd_nivel') in (0, 1, 2, 3, 4) %}
+
+                <a href="{{ url_for('adm') }}">
+                    ÁREA ADMINISTRATIVA
+                </a>
+
+            {% else %}
+
+                <a href="{{ url_for('login') }}">
+                    ÁREA ADMINISTRATIVA
+                </a>
+
+            {% endif %}
+
+            <!-- ENCERRAR SESSÃO -->
             {% if session.get('cd_usuario') is not none %}
 
-                <!-- CLIENTE: NÍVEL 5 -->
-                {% if session.get('cd_nivel') == 5 %}
-
-                    <a href="{{ url_for('cliente_inicio') }}">
-                        Área do Cliente
-                    </a>
-
-                <!-- USUÁRIOS ADMINISTRATIVOS -->
-                {% else %}
-
-                    <a href="{{ url_for('adm') }}">
-                        Área administrativa
-                    </a>
-
-                {% endif %}
-
-                <!-- ENCERRAR SESSÃO -->
                 <form class="menu-principal__sair"
                       method="post"
                       action="{{ url_for('logout') }}">
@@ -56,16 +71,11 @@
                            name="csrf_token"
                            value="{{ session.get('csrf_token', '') }}">
 
-                    <button type="submit">Sair</button>
+                    <button type="submit">
+                        Sair
+                    </button>
 
                 </form>
-
-            {% else %}
-
-                <!-- VISITANTE NÃO AUTENTICADO -->
-                <a href="{{ url_for('login') }}">
-                    Entrar
-                </a>
 
             {% endif %}
 

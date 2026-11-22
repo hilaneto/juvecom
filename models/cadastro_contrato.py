@@ -135,9 +135,10 @@ class CadastroContrato:
     @staticmethod
     def _parcelas(cd_contrato):
         return db.execute_sql("""
-            SELECT nr_parcela, dt_vencimento, vl_parcela, vl_desconto, dt_pagamento
+            SELECT nr_parcela, dt_vencimento, vl_parcela, pc_desconto, dt_pagamento
             FROM public.tb_parcelas
-            WHERE cd_contrato = %s ORDER BY nr_parcela
+            WHERE cd_contrato = %s
+            ORDER BY nr_parcela
         """, (cd_contrato,)).fetchall()
 
     @classmethod

@@ -3,79 +3,49 @@
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public';
 
-
--- -----------------------------------------------
-select * from tb_plano;
-select * from tb_servico;
-select * from tb_contrato_status;
-select * from tb_encargo_atraso;
-select * from tb_desconto_loja;
-select * from tb_usuario_nivel;
-select * from tb_evento_log;
-select * from tb_plano_servico;
-
--- -----------------------------------------------
+-- Table ---------------------------------------
 select * from tb_pessoa;
 select * from tb_cliente;
+select * from tb_cliente_status;
+select * from tb_contato;
 select * from tb_loja;
+select * from tb_plano;
+select * from tb_plano_servico;
+select * from tb_servico;
+select * from tb_contrato_status;
 select * from tb_contrato;
 select * from tb_contrato_documento;
 select * from tb_contrato_modelo;
-select * from tb_contato;
 select * from tb_parcelas;
+select * from tb_encargo_atraso;
+select * from tb_desconto_loja;
 select * from tb_contrato_loja;
 select * from tb_usuario;
-select * from vw_cobranca_proximos;
-select * from tb_contato_conversa;
-select * from vw_cobranca_vencidos;
-select * from tb_logusuario;
-select * from vw_cobranca_inadimplentes;
-select * from vw_contatos_pendentes;
-select * from vw_usuario;
+select * from tb_usuario_nivel;
 select * from tb_cliente_link;
-select * from tb_cliente_status;
-select * from tb_contrato_status;
+select * from tb_logusuario;
+select * from tb_evento_log;
 
+-- Views ---------------------------------------
+select * from vw_cobranca_proximos;
+select * from vw_usuario;
+select * from vw_dash_adm;
+select * from vw_dash_fin;
+select * from vw_cliente_contrato;
+select * from vw_cobranca_vencidos;
+select * from vw_cobranca_inadimplentes;
 
-select * from tb_cliente_status;
-
-select * from tb_contrato_status;
-
-SELECT s.cd_status, s.nm_status, COUNT(c.cd_contrato) AS qtd_contratos
-FROM public.tb_contrato_status s
-LEFT JOIN public.tb_contrato c ON c.cd_status = s.cd_status
-GROUP BY s.cd_status, s.nm_status
-ORDER BY s.cd_status;
-
-SELECT viewname, definition
-FROM pg_catalog.pg_views
-WHERE schemaname = 'public'
-  AND viewname IN (
-      'vw_cobranca_proximos',
-      'vw_cobranca_vencidos',
-      'vw_cobranca_inadimplentes',
-      'vw_dash_adm',
-      'vw_dash_fin'
-  )
-ORDER BY viewname;
-
-SELECT l.cd_link, l.cd_cliente, l.dt_utilizacao,
-       c.cd_cliente AS cliente_cadastrado,
-       c.cd_status, c.fl_ativo,
-       p.nm_pessoa , p.cpf_cnpj
-FROM public.tb_cliente_link l
-LEFT JOIN public.tb_cliente c ON c.cd_cliente = l.cd_cliente
-LEFT JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
-ORDER BY l.cd_link DESC;
-
--- ===================================================================================================================
-
-select * from tb_cliente;
-
+ 
 -- CONTATOS -----------------------------------
 select * from tb_contato;
 select * from tb_contato_conversa;
-select * from tb_contato_status;
+
+
+select * from tb_pessoa
+where cd_pessoa in (0, 1, 27)
+
+
+
 
 INSERT into tb_contato
 (cd_status, nm_contato, celular, email, mensagem)
@@ -139,70 +109,6 @@ select * from tb_contrato;
 select 100*37
 
 select sum(vl_bruto) from tb_contrato;
-
--- Carga massiva Contratos ---------------------------------------------------------------------------
-BEGIN;
-
-LOCK TABLE public.tb_pessoa, public.tb_cliente, public.tb_loja,
-           public.tb_plano, public.tb_contrato_status IN SHARE MODE;
-LOCK TABLE public.tb_contrato IN SHARE ROW EXCLUSIVE MODE;
-
-CREATE TEMP TABLE lote_contratos_provisorios ON COMMIT DROP AS
-SELECT c.cd_cliente, MIN(l.cd_loja) AS cd_loja, COUNT(l.cd_loja) AS lojas_ativas
-FROM public.tb_cliente c
-JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
-LEFT JOIN public.tb_loja l ON l.cd_cliente = c.cd_cliente AND l.fl_ativo
-WHERE c.cd_status IN (2, 3)
-  AND p.fl_ativo
-  AND NOT EXISTS (SELECT 1 FROM public.tb_contrato ct WHERE ct.cd_cliente = c.cd_cliente)
-GROUP BY c.cd_cliente;
-
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM lote_contratos_provisorios WHERE lojas_ativas <> 1) THEN
-        RAISE EXCEPTION 'Lote interrompido: há cliente elegível sem uma única loja ativa.';
-    END IF;
-
-    IF (SELECT COUNT(*) FROM public.tb_plano WHERE nm_plano = 'Avulso' AND fl_ativo) <> 1 THEN
-        RAISE EXCEPTION 'Lote interrompido: é necessário exatamente um plano Avulso ativo.';
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM public.tb_contrato_status
-        WHERE cd_status = 1 AND nm_status = 'Sem assinatura'
-    ) THEN
-        RAISE EXCEPTION 'Lote interrompido: status 1 deve ser Sem assinatura.';
-    END IF;
-END;
-$$;
-
-WITH novos AS (
-    INSERT INTO public.tb_contrato (
-        cd_cliente, cd_plano, cd_status, nm_plano, ds_plano,
-        vigencia, vl_bruto, vl_contrato, ds_contrato
-    )
-    SELECT l.cd_cliente, p.cd_plano, 1, p.nm_plano, p.ds_plano,
-           daterange(DATE '2026-11-19', DATE '2026-12-31', '[]'),
-           100.00, 100.00, 'Contrato Provisório - Precisa ser Atualizado'
-    FROM lote_contratos_provisorios l
-    CROSS JOIN public.tb_plano p
-    WHERE p.nm_plano = 'Avulso' AND p.fl_ativo
-    RETURNING cd_cliente, cd_contrato
-), vinculos AS (
-    INSERT INTO public.tb_contrato_loja (cd_cliente, cd_contrato, cd_loja)
-    SELECT n.cd_cliente, n.cd_contrato, l.cd_loja
-    FROM novos n
-    JOIN lote_contratos_provisorios l ON l.cd_cliente = n.cd_cliente
-    RETURNING cd_cliente, cd_contrato, cd_loja
-)
-SELECT cd_cliente, cd_contrato, cd_loja, COUNT(*) OVER () AS total_criado
-FROM vinculos
-ORDER BY cd_cliente;
-
-COMMIT;
-
-
-
 
 
 
@@ -336,13 +242,35 @@ ORDER BY c.cd_contrato;
 
 
 -- financeiro sem duplicação pelas lojas ------------------------------
-SELECT c.cd_contrato, c.vl_contrato,
-       sum(p.vl_parcela - p.vl_desconto) AS total_parcelas
+
+-- Parcelas --------------------------------------------------------------
+
+
+select * from tb_parcelas;
+
+cd_parcela
+select a.nm_pessoa, a.cpf_cnpj, a.telefone, a.email, 
+b.nm_responsavel, 
+c.nm_plano, c.vigencia, c.vl_bruto, c.vl_contrato, 
+d.cd_parcela, d.cd_contrato, d.nr_parcela, d.dt_vencimento, d.vl_parcela, d.dt_pagamento, d.vl_pago
+from tb_pessoa a inner join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa
+inner join tb_contrato c
+on b.cd_cliente = c.cd_cliente
+inner join  tb_parcelas d
+on c.cd_contrato = d.cd_contrato
+
+
+SELECT c.cd_contrato, c.vl_contrato, sum(p.vl_parcela - p.vl_desconto) AS total_parcelas
 FROM tb_contrato c
 JOIN tb_parcelas p ON p.cd_contrato = c.cd_contrato
 WHERE c.ds_contrato = 'Contrato de simulação'
 GROUP BY c.cd_contrato, c.vl_contrato
 ORDER BY c.cd_contrato;
+
+
+
+
 
 
 select * from tb_contrato

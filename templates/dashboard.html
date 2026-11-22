@@ -37,7 +37,7 @@
     <div class="dashboard__cards dashboard__cards--financeiro">
 
         <div class="dashboard__card">
-            <span>Próximos Vencimentos</span>
+            <span>Vencimentos Próximos 30 dias</span>
             <strong>{{ financeiro.parcelas_proximas }}</strong>
             <small>
                 R$ {{ "{:,.2f}".format(financeiro.valor_proximos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
@@ -45,7 +45,7 @@
         </div>
 
         <div class="dashboard__card">
-            <span>Parcelas Vencidas</span>
+            <span>Parcelas Vencidas (Inadimplentes)</span>
             <strong>{{ financeiro.parcelas_vencidas }}</strong>
             <small>
                 R$ {{ "{:,.2f}".format(financeiro.valor_vencidos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}

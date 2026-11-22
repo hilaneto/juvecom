@@ -476,29 +476,24 @@ def trocar_senha():
         obrigatoria=obrigatoria,
         erro=erro)
 
-
 @app.route("/cadastro/<token>", methods=["GET", "POST"])
 def cadastro_publico(token):
 
-    if ClienteLink.validar(token) is None:
-        return render_template(
-            "cadastro/link_invalido.html"
-        ), 403
+    app.logger.info("Iniciando validação do link de pré-cadastro")
+
+    link = ClienteLink.validar(token)
+
+    if link is None:
+        app.logger.warning("Link inválido, expirado ou utilizado")
+        return render_template("cadastro/link_invalido.html"), 403
+
+    app.logger.info("Link válido: cd_link=%s", link.cd_link)
 
     if request.method == "POST":
-
-        # A validação CSRF deve ocorrer antes da gravação,
-        # utilizando o mecanismo existente da aplicação.
-
-        resultado = CadastroCliente.receber_precadastro(
-            token,
-            request.form
-        )
+        resultado = CadastroCliente.receber_precadastro(token, request.form)
 
         if resultado["sucesso"]:
-            return render_template(
-                "cadastro/cadastro_sucesso.html"
-            )
+            return render_template("cadastro/cadastro_sucesso.html")
 
         return render_template(
             "cadastro/pre_cadastro.html",
@@ -508,6 +503,8 @@ def cadastro_publico(token):
             loja=request.form.to_dict(),
             erro=resultado["erro"]
         ), 400
+
+    app.logger.info("Renderizando formulário de pré-cadastro")
 
     return render_template(
         "cadastro/pre_cadastro.html",
