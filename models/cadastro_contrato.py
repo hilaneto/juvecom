@@ -233,18 +233,6 @@ class CadastroContrato:
                 if cliente is None:
                     raise ValueError("Selecione um cliente habilitado.")
 
-                pendente = db.execute_sql("""
-                    SELECT EXISTS (
-                        SELECT 1 FROM public.tb_cliente_link
-                        WHERE cd_cliente = %s AND dt_utilizacao IS NOT NULL
-                    ) AND NOT EXISTS (
-                        SELECT 1 FROM public.tb_contrato WHERE cd_cliente = %s
-                    )
-                """, (cd_cliente, cd_cliente)).fetchone()[0]
-
-                if (cliente[0] == 1) != confirmar or (confirmar and not pendente):
-                    raise ValueError("Volte à ficha do cliente para conferir o pré-cadastro ou iniciar outro contrato.")
-
             else:
                 atual = db.execute_sql("""
                     SELECT cd_cliente, cd_plano, nm_plano, ds_plano
