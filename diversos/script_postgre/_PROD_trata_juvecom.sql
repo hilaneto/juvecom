@@ -3,6 +3,7 @@
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public';
 
+
 -- Table ---------------------------------------
 select * from tb_pessoa;
 select * from tb_cliente;
@@ -26,6 +27,12 @@ select * from tb_cliente_link;
 select * from tb_logusuario;
 select * from tb_evento_log;
 
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'tb_parcelas'
+ORDER BY ordinal_position;
+
 -- Views ---------------------------------------
 select * from vw_cobranca_proximos;
 select * from vw_usuario;
@@ -34,17 +41,43 @@ select * from vw_dash_fin;
 select * from vw_cliente_contrato;
 select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
+select * from vw_contatos_pendentes;
 
- 
+
+
+SELECT * FROM public.vw_dash_fin;
+
+
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'tb_encargo_atraso'
+  AND column_name = 'juros_diario';
+
 -- CONTATOS -----------------------------------
 select * from tb_contato;
-select * from tb_contato_conversa;
 
+COMMIT;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.vw_cobranca_inadimplentes TO app_juvecom;
+
+GRANT SELECT
+ON public.vw_dash_fin TO app_juvecom;
 
 select * from tb_pessoa
 where cd_pessoa in (0, 1, 27)
 
-
+SELECT a.attname AS coluna, v.oid::regclass AS view_dependente
+FROM pg_depend d
+JOIN pg_rewrite r ON r.oid = d.objid
+JOIN pg_class v ON v.oid = r.ev_class
+JOIN pg_attribute a ON a.attrelid = d.refobjid
+                   AND a.attnum = d.refobjsubid
+WHERE d.refobjid = 'public.tb_encargo_atraso'::regclass
+  AND a.attname IN ('dias_painel', 'dias_suspensao')
+  AND v.relkind = 'v'
+ORDER BY a.attname, view_dependente;
 
 
 INSERT into tb_contato
@@ -175,31 +208,6 @@ ORDER BY s.cd_status;
 6	cancelado	0
 
 
-CREATE OR REPLACE VIEW public.vw_dashboard_admin AS
-SELECT
-    (SELECT COUNT(*) FROM public.tb_cliente WHERE fl_ativo = TRUE) AS clientes_ativos,
-
-    (SELECT COUNT(*) FROM public.tb_contrato c
-     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
-     WHERE LOWER(s.nm_status) = 'ativo') AS contratos_ativos,
-
-    (SELECT COALESCE(SUM(c.vl_bruto), 0)
-     FROM public.tb_contrato c
-     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
-     WHERE LOWER(s.nm_status) = 'ativo') AS valor_contratos_ativos,
-
-    (SELECT COUNT(*) FROM public.vw_contatos_pendentes) AS contatos_pendentes,
-
-    (SELECT COUNT(*) FROM public.vw_cobranca_proximos) AS parcelas_proximas,
-    (SELECT COUNT(*) FROM public.vw_cobranca_vencidos) AS parcelas_vencidas,
-    (SELECT COUNT(*) FROM public.vw_cobranca_inadimplentes) AS parcelas_inadimplentes,
-
-    (SELECT COALESCE(SUM(vl_a_pagar), 0) FROM public.vw_cobranca_proximos) AS valor_proximos,
-    (SELECT COALESCE(SUM(vl_original), 0) FROM public.vw_cobranca_vencidos) AS valor_vencidos,
-
-    (SELECT COALESCE(SUM(vl_original + vl_multa + vl_juros), 0)
-     FROM public.vw_cobranca_inadimplentes) AS valor_inadimplencia;
-
 select * from tb_usuario;
 
 select * from tb_cliente;
@@ -211,7 +219,6 @@ select * from tb_cliente_link;
 -- tb_contrato_documento --------
 SELECT cd_modelo, octet_length(arquivo_pdf) AS tamanho_bytes, dt_atualizacao
 FROM tb_contrato_modelo;
-
 
 select * from tb_contrato;
 

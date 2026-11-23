@@ -111,7 +111,6 @@ dt_cadastro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 dt_atualizacao TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 UNIQUE (cd_cliente, cd_loja));
 
-
 CREATE INDEX ix_loja_cliente ON tb_loja (cd_cliente);
 
 
@@ -421,7 +420,6 @@ ON public.tb_cliente_link (dt_validade)
 WHERE dt_utilizacao IS NULL;
 
 
-
 -- ============================================================
 -- tb_evento_log
 -- ============================================================
@@ -513,6 +511,7 @@ WHERE p.dt_pagamento IS NULL
 AND CURRENT_DATE - p.dt_vencimento > 3
 AND st.cd_status <> 5;
 
+
 -- ==========================================================================
 -- vw_contatos_pendentes: Contatos pendentes
 -- ==========================================================================
@@ -555,13 +554,35 @@ ORDER BY origem, cd_status;
 
 
 -- ==========================================================================
+-- vw_cliente_contrato: drop view vw_cliente_contrato - Usuarios
+-- ==========================================================================
+CREATE OR REPLACE VIEW public.vw_cliente_contrato
+AS SELECT c.cd_cliente,
+p.cd_pessoa,
+p.nm_pessoa,
+c.nm_responsavel,
+c.cd_status AS cd_status_cliente,
+sc.nm_status AS nm_status_cliente,
+ct.cd_contrato,
+ct.cd_status AS cd_status_contrato,
+st.nm_status AS nm_status_contrato,
+ct.cd_plano,
+ct.nm_plano AS nm_plano_contrato,
+ct.vigencia,
+ct.vl_contrato
+FROM tb_cliente c
+JOIN tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
+LEFT JOIN tb_cliente_status sc ON sc.cd_status = c.cd_status
+LEFT JOIN tb_contrato ct ON ct.cd_cliente = c.cd_cliente
+LEFT JOIN tb_contrato_status st ON st.cd_status = ct.cd_status;
+
+
+-- ==========================================================================
 -- vw_cobranca_proximos: drop view vw_cobranca_proximos - Usuarios
 -- ==========================================================================
 CREATE OR REPLACE VIEW public.vw_cobranca_proximos AS
-SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela,
-       pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
-       p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer,
-       p.vl_parcela AS vl_a_pagar
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer, p.vl_parcela AS vl_a_pagar
 FROM tb_parcelas p
 JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
 JOIN tb_contrato_status st ON st.cd_status = c.cd_status
@@ -572,14 +593,11 @@ AND p.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
 AND st.cd_status IN (2, 3);
 
 
-
 -- ==========================================================================
 -- vw_dashboard_fin: drop view vw_dashboard_fin - Usuarios
 -- ==========================================================================
 CREATE OR REPLACE VIEW public.vw_dash_fin AS
-SELECT a.parcelas_proximas, a.valor_proximos,
-       b.parcelas_vencidas, b.valor_vencidos,
-       c.parcelas_inadimplentes, c.valor_inadimplencia
+SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
 FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
 CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
 CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
@@ -598,7 +616,6 @@ LANGUAGE sql STABLE AS $$
     JOIN public.tb_pessoa p ON p.cd_pessoa = c.cd_pessoa
     WHERE p_cd_status IS NULL OR c.cd_status = p_cd_status;
 $$;
-
 CREATE OR REPLACE FUNCTION public.fn_listar_contratos(p_cd_status INTEGER DEFAULT NULL)
 RETURNS TABLE (cd_contrato BIGINT, nm_pessoa VARCHAR(150), nm_status VARCHAR(30))
 LANGUAGE sql STABLE AS $$
@@ -609,9 +626,7 @@ LANGUAGE sql STABLE AS $$
     JOIN public.tb_contrato_status s ON s.cd_status = c.cd_status
     WHERE p_cd_status IS NULL OR c.cd_status = p_cd_status;
 $$;
-
 COMMIT;
-
 
 
 -- ============================================================================
@@ -630,8 +645,9 @@ SELECT 'fn_listar_clientes' AS teste, count(*) AS linhas FROM public.fn_listar_c
 UNION ALL SELECT 'fn_listar_clientes(2)', count(*) FROM public.fn_listar_clientes(2)
 UNION ALL SELECT 'fn_listar_contratos', count(*) FROM public.fn_listar_contratos(NULL)
 UNION ALL SELECT 'fn_listar_contratos(2)', count(*) FROM public.fn_listar_contratos(2);
-
 SELECT 'views_financeiras' AS teste, count(*) AS quantidade
 FROM information_schema.views
 WHERE table_schema = 'public' AND table_name IN
 ('vw_cobranca_proximos', 'vw_cobranca_vencidos', 'vw_cobranca_inadimplentes', 'vw_dash_fin');
+
+

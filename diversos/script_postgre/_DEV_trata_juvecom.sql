@@ -31,9 +31,11 @@ select * from vw_cobranca_proximos;
 select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
 select * from vw_contatos_pendentes;
+select * from vw_cliente_contrato;
 select * from vw_usuario;
 select * from vw_dash_adm;
 select * from vw_dash_fin;
+
 
 -- Pessoa ------------------------------------
 INSERT INTO tb_pessoa
@@ -180,7 +182,16 @@ UPDATE tb_contrato
 SET cd_status = 2
 WHERE cd_status = 3;
 
-select * from tb_contrato
-WHERE cd_status = 2;
+select count(*) from tb_contrato
+WHERE cd_status = 3;
+
+SELECT c.cd_contrato, c.cd_status, MIN(p.dt_vencimento) AS vencimento_mais_antigo
+FROM tb_contrato c
+JOIN tb_parcelas p ON p.cd_contrato = c.cd_contrato
+WHERE c.cd_status = 3
+  AND p.dt_pagamento IS NULL
+  AND p.dt_vencimento < CURRENT_DATE - 3
+GROUP BY c.cd_contrato, c.cd_status
+ORDER BY c.cd_contrato;
 
 
