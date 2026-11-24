@@ -20,7 +20,7 @@ class DashboardAdmin:
     @staticmethod
     def financeiro():
         with conectar():
-            cursor = db.execute_sql("SELECT * FROM public.vw_dash_fin")
+            cursor = db.execute_sql("SELECT vl_parcelas_a_vencer, qt_parcelas_a_vencer, vl_parcelas_vencidas, qt_parcelas_vencidas, vl_contrato, qt_contratos_vencidos FROM public.vw_dash_fin")
             campos = [coluna[0] for coluna in cursor.description]
             registro = cursor.fetchone()
             return dict(zip(campos, registro)) if registro else {}

@@ -3,6 +3,11 @@
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public';
 
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.vw_cobranca_inadimplentes TO app_juvecom;
+
+GRANT SELECT
+ON public.vw_dash_fin TO app_juvecom;
 
 -- Table ---------------------------------------
 select * from tb_pessoa;
@@ -27,73 +32,44 @@ select * from tb_cliente_link;
 select * from tb_logusuario;
 select * from tb_evento_log;
 
-SELECT column_name
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name = 'tb_parcelas'
-ORDER BY ordinal_position;
-
 -- Views ---------------------------------------
-select * from vw_cobranca_proximos;
 select * from vw_usuario;
+select * from vw_cliente_contrato;
 select * from vw_dash_adm;
 select * from vw_dash_fin;
-select * from vw_cliente_contrato;
+select * from vw_cobranca_proximos;
 select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
-select * from vw_contatos_pendentes;
+
+
+20	16700.00	42	36000.00	36	30900.00
+20	16700.00	42	36000.00	36	30900.00
+20	16700.00	42	36000.00	36	31805.49
+
+
+SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
+FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
+CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
+CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_original), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
+
+SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
+FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
+CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
+CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
 
 
 
-
-
-SELECT * FROM public.vw_dash_fin;
-
-
-SELECT column_name, data_type, column_default
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name = 'tb_encargo_atraso'
-  AND column_name = 'juros_diario';
-
--- CONTRATOS -----------------------------------
-select * from tb_contrato;
-
-select sum(vl_contrato), count(*) from tb_contrato
-
-select cd_status, sum(vl_contrato), count(*) from tb_contrato
-group by cd_status
-
-select a.cd_status, a.nm_status, count(b.cd_status) as qtd
-from tb_cliente_status a left join tb_cliente b
-on a.cd_status = b.cd_status
-group by a.cd_status, a.nm_status
-order by a.cd_status;
-
-select * from tb_cliente;
-
-select * from tb_contrato;
-
-O que acha em substituir o modelo a pelo modelo b
-
-modelo a:
-CREATE OR REPLACE VIEW public.vw_dash_fin AS
-select * from (select COALESCE(SUM(a.vl_parcela),  0) as vl_parcela_vencidas,  count(*) as qt_parcelas_vencidas, 
-COALESCE(SUM(b.vl_contrato), 0) as vl_contrato_vencidos, count(distinct(b.cd_contrato)) as qt_contratos_vencidos
+-- Parcelas Vencidas Por Parcelas ----------------------------------------------------------------
+select b.cd_contrato, a.Nr_parcela, a.vl_parcela, b.vl_contrato, dt_vencimento
 from tb_parcelas a inner join tb_contrato b
 on a.cd_contrato = b.cd_contrato
 WHERE dt_pagamento IS NULL
 AND CURRENT_DATE - a.dt_vencimento > 1
-AND b.cd_status in(2,3)) a
-cross join
-(select COALESCE(SUM(vl_parcela),  0) as vl_parcela_a_vencer,  count(*) as qt_parcela_a_vencer
-from tb_parcelas a inner join tb_contrato b
-on a.cd_contrato = b.cd_contrato
-WHERE dt_pagamento IS NULL
-AND a.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
-AND cd_status IN (2, 3)) b;
+AND b.cd_status in(2,3)
 
--- cobranca_proximos
+
+
+-- Parcelas a Vencer Por Parcelas ----------------------------------------------------------------
 SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
 p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer, p.vl_parcela AS vl_a_pagar
 FROM tb_parcelas p
@@ -106,16 +82,6 @@ AND p.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
 AND st.cd_status IN (2, 3);
 
 
-select a.cd_status, a.nm_status, coalesce(sum(vl_contrato),0) as Valor, count(b.cd_status) as qtd
-from tb_contrato_status a left join tb_contrato b
-on a.cd_status = b.cd_status
-group by a.cd_status, a.nm_status
-order by a.cd_status;
-
-
-GRANT USAGE ON SCHEMA public TO app_juvecom;
-GRANT SELECT, INSERT ON TABLE public.tb_contato TO app_juvecom;
-
 select * from tb_contato;
 
 select cd_status, 
@@ -126,11 +92,6 @@ from tb_contato
 group by cd_status
 order by cd_status;
 
-select * from vw_cliente_contrato;
-
-select * from vw_dash_fin;
-
-select * from vw_dash_adm;
 
 GRANT USAGE ON SCHEMA public TO app_juvecom;
 
@@ -168,22 +129,6 @@ FROM pg_roles
 WHERE rolname ILIKE '%juve%';
 
 
-GRANT USAGE ON SCHEMA public TO app_juvecom;
-GRANT SELECT ON public.vw_dash_adm, public.vw_dash_fin TO app_juvecom;
-
-
-
-SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
-FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
-CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
-CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_original), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
-
-SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
-FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
-CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
-CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
-
-
 CREATE OR replace VIEW vw_cobranca_inadimplentes AS
 SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
 st.nm_status AS status_contrato, p.dt_vencimento,
@@ -206,9 +151,9 @@ THEN ROUND(p.vl_parcela * e.percentual_multa / 100, 2) ELSE 0::numeric END AS vl
 ROUND(p.vl_parcela * e.juros_mensal / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0) / 30, 2) AS vl_juros_mensal,
 ROUND(p.vl_parcela * e.juros_diario / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0), 2) AS vl_juros_diario
 ) enc
-WHERE p.dt_pagamento IS NULL
-AND CURRENT_DATE - p.dt_vencimento > 3
-AND st.cd_status in(2,3);
+WHERE p.dt_pagamento IS NULL AND CURRENT_DATE - p.dt_vencimento > 1 AND st.cd_status in(2,3);
+
+and p.dt_vencimento < CURRENT_DATE - 1
 
 SELECT cd_link, cd_cliente, dt_criacao, dt_utilizacao
 FROM public.tb_cliente_link
@@ -222,8 +167,9 @@ select * from tb_pessoa a inner join tb_cliente b
 on a.cd_pessoa = b.cd_pessoa
 where a.cd_pessoa  = 47
 
-select * from tb_contrato
-where cd_cliente  = 52
+select sum(vl_contrato) from tb_contrato
+where cd_contrato in (65,56,63,55,51,52,53,64,50,62,48,49,60,44,61,45,59,46,58,43,57,41)
+
 
 SELECT cd_cliente, cd_pessoa, cd_status
 FROM tb_cliente
@@ -237,14 +183,6 @@ SELECT cd_link, cd_cliente, dt_criacao, dt_utilizacao
 FROM tb_cliente_link
 WHERE cd_cliente = 52;
 
-
-
-
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.vw_cobranca_inadimplentes TO app_juvecom;
-
-GRANT SELECT
-ON public.vw_dash_fin TO app_juvecom;
 
 select * from tb_pessoa
 where cd_pessoa in (0, 1, 27)
@@ -285,12 +223,55 @@ select * from vw_cobranca_inadimplentes;
 SELECT * FROM vw_contatos_pendentes ORDER BY dt_contato;
 
 
+
 -- tb_pessoa ----------------------------------------------
+-- ==========================================================================
+-- vw_dashboard_fin: drop view vw_dash_fin cascade - Usuarios
+-- ==========================================================================
+CREATE OR REPLACE VIEW public.vw_dash_fin AS
+select vl_parcelas_a_vencer, qt_parcelas_a_vencer, vl_parcelas_vencidas, qt_parcelas_vencidas, vl_contrato, qt_contratos_vencidos from
+(select sum(vl_parcela) as vl_parcelas_vencidas, count(distinct a.cd_parcela) as qt_parcelas_vencidas from tb_parcelas a inner join tb_contrato b
+ on a.cd_contrato = b.cd_contrato
+ where CURRENT_DATE - dt_vencimento > 1
+ AND b.cd_status in(2,3))
+cross join
+(select sum(vl_contrato) as vl_contrato, sum(qt_contratos_vencidos) as qt_contratos_vencidos from
+(select max(b.vl_contrato) as vl_contrato, count(distinct a.cd_contrato) as qt_contratos_vencidos from tb_parcelas a inner join tb_contrato b
+ on a.cd_contrato = b.cd_contrato
+ where CURRENT_DATE - dt_vencimento > 1
+ AND b.cd_status in(2,3)
+ group by b.cd_contrato))
+cross join
+(select COALESCE(SUM(vl_parcela),  0) as vl_parcelas_a_vencer,  count(*) as qt_parcelas_a_vencer
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND a.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND cd_status IN (2, 3));
+
+
+
+ 36000.00	42	59400.00	22
+ 36000.00	42	120000.00	22	16700.00	20
+ 
+ select * from (select COALESCE(SUM(a.vl_parcela),  0) as vl_parcela_vencidas,  count(*) as qt_parcelas_vencidas, 
+COALESCE(SUM(b.vl_contrato), 0) as vl_contrato_vencidos, count(distinct(b.cd_contrato)) as qt_contratos_vencidos
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND CURRENT_DATE - a.dt_vencimento > 1
+AND b.cd_status in(2,3)) a
+cross join
+(select COALESCE(SUM(vl_parcela),  0) as vl_parcela_a_vencer,  count(*) as qt_parcela_a_vencer
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND a.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND cd_status IN (2, 3)) b;
 
 select * from tb_pessoa;
-
 select * from tb_cliente;
-
+select * from tb_contrato;
 select * from tb_loja;
 
 select * from tb_cliente a inner join tb_loja b

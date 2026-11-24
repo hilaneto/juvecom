@@ -469,6 +469,9 @@ AND p.dt_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + 3
 AND st.cd_status IN (2, 3);
 
 
+-- ==========================================================================
+-- vw_cobranca_vencidos: drop view vw_cobranca_vencidos
+-- ==========================================================================
 CREATE OR REPLACE VIEW public.vw_cobranca_vencidos AS
 SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela,
        pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
@@ -483,8 +486,11 @@ WHERE p.dt_pagamento IS NULL
   AND p.dt_vencimento < CURRENT_DATE
   AND c.cd_status in(2,3);
 
+-- ==============================================================================
+-- vw_cobranca_vencidos: drop view vw_cobranca_vencidos
 -- A view preserva vl_juros (soma dos dois tipos), alem de discriminar cada um.
 -- Politicas inexistentes para uma data de vencimento nao geram linha nesta view.
+-- ==============================================================================
 CREATE OR REPLACE VIEW vw_cobranca_inadimplentes AS
 SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
 st.nm_status AS status_contrato, p.dt_vencimento,

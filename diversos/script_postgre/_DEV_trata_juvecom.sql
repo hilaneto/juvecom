@@ -3,17 +3,23 @@
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public';
 
--- -----------------------------------------------
-select * from tb_contato;
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.vw_cobranca_inadimplentes TO app_juvecom;
+
+GRANT SELECT
+ON public.vw_dash_fin TO app_juvecom;
+
+-- Table ---------------------------------------
 select * from tb_pessoa;
 select * from tb_cliente;
 select * from tb_cliente_status;
+select * from tb_contato;
 select * from tb_loja;
 select * from tb_plano;
 select * from tb_plano_servico;
 select * from tb_servico;
-select * from tb_contrato;
 select * from tb_contrato_status;
+select * from tb_contrato;
 select * from tb_contrato_documento;
 select * from tb_contrato_modelo;
 select * from tb_parcelas;
@@ -26,15 +32,155 @@ select * from tb_cliente_link;
 select * from tb_logusuario;
 select * from tb_evento_log;
 
--- Views -------------------------------
+-- Views ---------------------------------------
+select * from vw_usuario;
+select * from vw_cliente_contrato;
+select * from vw_dash_adm;
+select * from vw_dash_fin;
 select * from vw_cobranca_proximos;
 select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
-select * from vw_contatos_pendentes;
-select * from vw_cliente_contrato;
-select * from vw_usuario;
+
+
+-- ==========================================================================
+-- vw_dash_adm: drop view vw_dash_adm cascade
+-- ==========================================================================
+CREATE OR REPLACE VIEW public.vw_dash_adm AS
+select 'Cliente' as origem, a.cd_status, a.nm_status, 0 as valor, count(b.cd_status) as qtd
+from tb_cliente_status a left join tb_cliente b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+union all -------------------------------------
+select 'Contrato' as origem, a.cd_status, a.nm_status, coalesce(sum(vl_contrato),0) as Valor, count(b.cd_status) as qtd
+from tb_contrato_status a left join tb_contrato b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+union all -------------------------------------
+select 'Contato' as origem, cd_status, 
+case when cd_status = 1 then 'Pendente' 
+     when cd_status = 2 then 'Atendido'
+     when cd_status = 3 then 'Perdido' end as nm_status,  0 as valor,  count(cd_status) as qtd
+from tb_contato
+group by cd_status;
+-- -----------------------
 select * from vw_dash_adm;
+
+
+-- ==========================================================================
+-- vw_dashboard_fin: drop view vw_dash_fin cascade - Usuarios
+-- ==========================================================================
+CREATE OR REPLACE VIEW public.vw_dash_fin AS
+select vl_parcelas_a_vencer, qt_parcelas_a_vencer, vl_parcelas_vencidas, qt_parcelas_vencidas, vl_contrato, qt_contratos_vencidos from
+(select sum(vl_parcela) as vl_parcelas_vencidas, count(distinct a.cd_parcela) as qt_parcelas_vencidas from tb_parcelas a inner join tb_contrato b
+ on a.cd_contrato = b.cd_contrato
+ where CURRENT_DATE - dt_vencimento > 1
+ AND b.cd_status in(2,3))
+cross join
+(select sum(vl_contrato) as vl_contrato, sum(qt_contratos_vencidos) as qt_contratos_vencidos from
+(select max(b.vl_contrato) as vl_contrato, count(distinct a.cd_contrato) as qt_contratos_vencidos from tb_parcelas a inner join tb_contrato b
+ on a.cd_contrato = b.cd_contrato
+ where CURRENT_DATE - dt_vencimento > 1
+ AND b.cd_status in(2,3)
+ group by b.cd_contrato))
+cross join
+(select COALESCE(SUM(vl_parcela),  0) as vl_parcelas_a_vencer,  count(*) as qt_parcelas_a_vencer
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND a.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND cd_status IN (2, 3));
+-- ----------------------- 
 select * from vw_dash_fin;
+
+
+select sum(a.vl_contrato) as vl_contrato, sum(qt_contratos_vencidos) as qt_contratos_vencidos from
+(select sum(a.vl_parcela) as vl_contrato, count(distinct a.cd_contrato) as qt_contratos_vencidos from tb_parcelas a inner join tb_contrato b
+ on a.cd_contrato = b.cd_contrato
+ where CURRENT_DATE - dt_vencimento > 1
+ AND b.cd_status in(2,3)) a
+ 
+
+select sum(a.vl_contrato) as vl_contrato, sum(qt_contratos_vencidos) as qt_contratos_vencidos from
+(select max(b.vl_contrato) as vl_contrato, count(distinct a.cd_contrato) as qt_contratos_vencidos from tb_parcelas a inner join tb_contrato b
+ on a.cd_contrato = b.cd_contrato
+ where CURRENT_DATE - dt_vencimento > 1
+ AND b.cd_status in(2,3)
+ group by b.cd_contrato) a
+
+
+
+-- ==========================================================================
+-- vw_cobranca_proximos: drop view vw_cobranca_proximos - Usuarios
+-- ==========================================================================
+CREATE OR REPLACE VIEW public.vw_cobranca_proximos AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer, p.vl_parcela AS vl_a_pagar
+FROM tb_parcelas p
+JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+WHERE p.dt_pagamento IS NULL
+AND p.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND st.cd_status IN (2,3);
+-- --------------------------------
+select * from vw_cobranca_proximos;
+
+
+-- ==========================================================================
+-- vw_cobranca_vencidos: drop view vw_cobranca_vencidos
+-- ==========================================================================
+CREATE OR replace VIEW public.vw_cobranca_vencidos AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela,
+       pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+       p.dt_vencimento, CURRENT_DATE - p.dt_vencimento AS dias_atraso,
+       p.vl_parcela AS vl_original
+FROM tb_parcelas p
+JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+WHERE p.dt_pagamento IS NULL
+AND p.dt_vencimento < CURRENT_DATE - 1
+AND c.cd_status in(2,3);
+-- ----------------------------------------------------------------------
+select * from vw_cobranca_vencidos;
+
+
+
+-- ==============================================================================
+-- vw_cobranca_inadimplentes: drop view vw_cobranca_inadimplentes
+-- A view preserva vl_juros (soma dos dois tipos), alem de discriminar cada um.
+-- Politicas inexistentes para uma data de vencimento nao geram linha nesta view.
+-- ==============================================================================
+CREATE OR REPLACE VIEW vw_cobranca_inadimplentes AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+st.nm_status AS status_contrato, p.dt_vencimento,
+CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela AS vl_original,
+enc.vl_multa, enc.vl_juros_mensal, enc.vl_juros_diario,
+(enc.vl_juros_mensal + enc.vl_juros_diario) AS vl_juros,
+p.pc_desconto,
+ROUND((p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario) * p.pc_desconto / 100, 2) AS vl_desconto_calculado,
+(p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario)
+- ROUND((p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario) * p.pc_desconto / 100, 2) AS vl_total_atualizado
+FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+JOIN tb_encargo_atraso e ON e.vigencia @> p.dt_vencimento
+CROSS JOIN LATERAL (
+SELECT
+CASE WHEN CURRENT_DATE - p.dt_vencimento > e.dias_carencia
+THEN ROUND(p.vl_parcela * e.percentual_multa / 100, 2) ELSE 0::numeric END AS vl_multa,
+ROUND(p.vl_parcela * e.juros_mensal / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0) / 30, 2) AS vl_juros_mensal,
+ROUND(p.vl_parcela * e.juros_diario / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0), 2) AS vl_juros_diario
+) enc
+WHERE p.dt_pagamento IS NULL AND CURRENT_DATE - p.dt_vencimento > 1 AND st.cd_status in(2,3);
+
+-- ----------------------------------------------------------------------
+select * from vw_cobranca_inadimplentes;
+
+
 
 
 -- Pessoa ------------------------------------
@@ -52,6 +198,8 @@ values
 (2, 'F', 'Rosana Myazi', '07355905830', '11 981419541', 'rosanamyazi1966@gmail.com',
  '{"uf":"SP","cep":"02377000","bairro":"HORTO FLORESTAL","cidade":"São Paulo","numero":"802","endereco":"RUA DO HORTO","complemento":"CASA 20"}'::jsonb,
  true, '2026-10-23 13:24:05.779-03', '2026-10-30 11:39:04.569-03');
+
+
 
 
 -- Usuários -----------------------------------
