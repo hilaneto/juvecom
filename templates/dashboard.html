@@ -3,65 +3,117 @@
 {% block title %}Dashboard | Juvecom{% endblock %}
 
 {% block conteudo %}
-
-<div class="dashboard">
-
+<div class="dashboard dashboard--reformulado">
     <header class="dashboard__header">
         <h1>Dashboard Administrativo</h1>
         <p>Visão geral da operação Juvecom</p>
     </header>
 
-    <!-- INDICADORES ADMINISTRATIVOS -->
-
+    <!-- INDICADORES ADMINISTRATIVOS: dados existentes de DashboardAdmin.administrativo() -->
     {% for origem, registros in administrativo.items() %}
+        <section class="dash-bloco" aria-label="Indicadores de {{ origem }}">
+            <h2>{{ 'Clientes' if origem == 'Cliente' else 'Contratos' if origem == 'Contrato' else 'Contatos' if origem == 'Contato' else origem }}</h2>
 
-        <h2>{{ origem }}{% if origem != 'Contato' %}s{% endif %}</h2>
-
-        <div class="dashboard__cards">
-
-            {% for registro in registros %}
-                <div class="dashboard__card">
-                    <span>{{ registro.nm_status }}</span>
-                    <strong>{{ registro.qtd }}</strong>
-                </div>
-            {% endfor %}
-
-        </div>
-
+            <div class="dashboard__cards dash-status-grid {{ 'dash-status-grid--cinco' if origem in ('Cliente', 'Contrato') else 'dash-status-grid--tres' }}">
+                {% for registro in registros %}
+                    <div class="dashboard__card dash-status-card">
+                        <span class="dash-status-card__titulo">{{ registro.nm_status }}</span>
+                        <strong class="dash-status-card__quantidade">{{ registro.qtd }}</strong>
+                        {% if origem == 'Contrato' %}
+                            <small class="dash-status-card__valor">R$ {{ '{:,.2f}'.format(registro.valor or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
     {% endfor %}
 
-    <!-- INDICADORES FINANCEIROS -->
+    <!-- INDICADORES FINANCEIROS: preserva a leitura de DashboardAdmin.financeiro() -->
+    <section class="dash-bloco" aria-label="Indicadores financeiros">
+        <h2>Indicadores Financeiros</h2>
 
-    <h2>Indicadores Financeiros</h2>
+        <div class="dashboard__cards dashboard__cards--financeiro dash-financeiro-grid">
+            <div class="dashboard__card dash-status-card">
+                <span class="dash-status-card__titulo">Vencimentos Próximos 30 dias</span>
+                <strong class="dash-status-card__quantidade">{{ financeiro.parcelas_proximas }}</strong>
+                <small class="dash-status-card__valor">R$ {{ '{:,.2f}'.format(financeiro.valor_proximos or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</small>
+            </div>
 
-    <div class="dashboard__cards dashboard__cards--financeiro">
+            <div class="dashboard__card dash-status-card">
+                <span class="dash-status-card__titulo">Parcelas Vencidas (Inadimplentes)</span>
+                <strong class="dash-status-card__quantidade">{{ financeiro.parcelas_vencidas }}</strong>
+                <small class="dash-status-card__valor">R$ {{ '{:,.2f}'.format(financeiro.valor_vencidos or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</small>
+            </div>
 
-        <div class="dashboard__card">
-            <span>Vencimentos Próximos 30 dias</span>
-            <strong>{{ financeiro.parcelas_proximas }}</strong>
-            <small>
-                R$ {{ "{:,.2f}".format(financeiro.valor_proximos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
-            </small>
+            <div class="dashboard__card dash-status-card">
+                <span class="dash-status-card__titulo">Inadimplência</span>
+                <strong class="dash-status-card__quantidade">{{ financeiro.parcelas_inadimplentes }}</strong>
+                <small class="dash-status-card__valor">R$ {{ '{:,.2f}'.format(financeiro.valor_inadimplencia or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</small>
+            </div>
         </div>
-
-        <div class="dashboard__card">
-            <span>Parcelas Vencidas (Inadimplentes)</span>
-            <strong>{{ financeiro.parcelas_vencidas }}</strong>
-            <small>
-                R$ {{ "{:,.2f}".format(financeiro.valor_vencidos or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
-            </small>
-        </div>
-
-        <div class="dashboard__card">
-            <span>Inadimplência</span>
-            <strong>{{ financeiro.parcelas_inadimplentes }}</strong>
-            <small>
-                R$ {{ "{:,.2f}".format(financeiro.valor_inadimplencia or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
-            </small>
-        </div>
-
-    </div>
-
+    </section>
 </div>
 
+<style>
+/* Estilos restritos ao Dashboard, sem alterar os demais módulos administrativos. */
+.dashboard--reformulado .dash-bloco { margin-top: 28px; }
+.dashboard--reformulado .dash-bloco > h2 { margin-bottom: 14px; }
+
+.dashboard--reformulado .dashboard__cards.dash-status-grid,
+.dashboard--reformulado .dashboard__cards.dash-financeiro-grid {
+    display: grid;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.dashboard--reformulado .dash-status-grid--cinco { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.dashboard--reformulado .dash-status-grid--tres,
+.dashboard--reformulado .dash-financeiro-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.dashboard--reformulado .dash-status-grid--cinco > .dash-status-card { grid-column: span 2; }
+.dashboard--reformulado .dash-status-grid--cinco > .dash-status-card:nth-child(-n + 2) { grid-column: span 3; }
+
+.dashboard--reformulado .dashboard__card.dash-status-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 0;
+    min-height: 130px;
+    padding: 20px 12px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.dashboard--reformulado .dash-status-card__titulo,
+.dashboard--reformulado .dash-status-card__quantidade,
+.dashboard--reformulado .dash-status-card__valor {
+    display: block;
+    width: 100%;
+    margin: 0;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.dashboard--reformulado .dash-status-card__titulo { font-size: 0.95rem; line-height: 1.35; }
+.dashboard--reformulado .dash-status-card__quantidade { font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.1; }
+.dashboard--reformulado .dash-status-card__valor { font-size: 0.95rem; line-height: 1.35; }
+
+@media (max-width: 900px) {
+    .dashboard--reformulado .dash-status-grid--cinco,
+    .dashboard--reformulado .dash-status-grid--tres,
+    .dashboard--reformulado .dash-financeiro-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dashboard--reformulado .dash-status-grid--cinco > .dash-status-card,
+    .dashboard--reformulado .dash-status-grid--cinco > .dash-status-card:nth-child(-n + 2) { grid-column: auto; }
+}
+
+@media (max-width: 540px) {
+    .dashboard--reformulado .dash-status-grid--cinco,
+    .dashboard--reformulado .dash-status-grid--tres,
+    .dashboard--reformulado .dash-financeiro-grid { grid-template-columns: 1fr; }
+    .dashboard--reformulado .dashboard__card.dash-status-card { min-height: 105px; }
+}
+</style>
 {% endblock %}

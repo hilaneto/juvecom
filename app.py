@@ -16,6 +16,7 @@ from models.minhas_lojas import MinhasLojas
 from models.cliente_link import ClienteLink
 from models.cadastro_contrato import CadastroContrato
 from models.dashboard_admin import DashboardAdmin
+from models.parcelas import Parcelas
 from io import BytesIO
 from zoneinfo import ZoneInfo
 
@@ -923,6 +924,47 @@ def adm_contrato(cd_cliente=None):
         motivo=request.form.get("motivo", "")
     )
 
+
+
+@app.route("/adm/parcelas", methods=["GET", "POST"])
+@login_obrigatorio
+@acesso_administrativo
+def adm_parcelas():
+    if session["cd_nivel"] not in (0, 1):
+        abort(403)
+
+    erro = None
+    sucesso = request.args.get("sucesso") == "1"
+    cd_parcela = request.args.get("cd_parcela", type=int)
+
+    if request.method == "POST":
+        validar_csrf()
+
+        if request.form.get("acao") != "confirmar_pagamento":
+            abort(400)
+
+        try:
+            cd_parcela = int(request.form.get("cd_parcela", ""))
+        except (ValueError, TypeError):
+            abort(400)
+
+        resultado = Parcelas.confirmar_pagamento(
+            cd_parcela, request.form.to_dict()
+        )
+
+        if resultado["sucesso"]:
+            return redirect(url_for("adm_parcelas", cd_parcela=cd_parcela, sucesso=1))
+
+        erro = resultado["erro"]
+
+    tela = Parcelas.tela(cd_parcela=cd_parcela)
+
+    return render_template(
+        "negocio/parcelas.html",
+        **tela,
+        erro=erro,
+        sucesso=sucesso
+    )
 
 @app.route("/adm/contratos/<int:cd_contrato>/download", methods=["GET"])
 @login_obrigatorio

@@ -45,6 +45,8 @@ select * from vw_contatos_pendentes;
 
 
 
+
+
 SELECT * FROM public.vw_dash_fin;
 
 
@@ -54,10 +56,178 @@ WHERE table_schema = 'public'
   AND table_name = 'tb_encargo_atraso'
   AND column_name = 'juros_diario';
 
--- CONTATOS -----------------------------------
+-- CONTRATOS -----------------------------------
+select * from tb_contrato;
+
+select sum(vl_contrato), count(*) from tb_contrato
+
+select cd_status, sum(vl_contrato), count(*) from tb_contrato
+group by cd_status
+
+select a.cd_status, a.nm_status, count(b.cd_status) as qtd
+from tb_cliente_status a left join tb_cliente b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+order by a.cd_status;
+
+select * from tb_cliente;
+
+select * from tb_contrato;
+
+select * from tb_parcelas;
+
+select a.cd_status, a.nm_status, coalesce(sum(vl_contrato),0) as Valor, count(b.cd_status) as qtd
+from tb_contrato_status a left join tb_contrato b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+order by a.cd_status;
+
+
+GRANT USAGE ON SCHEMA public TO app_juvecom;
+GRANT SELECT, INSERT ON TABLE public.tb_contato TO app_juvecom;
+
 select * from tb_contato;
 
-COMMIT;
+select cd_status, 
+case when cd_status = 1 then 'Pendente' 
+     when cd_status = 2 then 'Atendido'
+     when cd_status = 3 then 'Perdido' end as nm_status,  count(cd_status) as qtd
+from tb_contato
+group by cd_status
+order by cd_status;
+
+select * from vw_cliente_contrato;
+
+select * from vw_dash_fin;
+
+select * from vw_dash_adm;
+
+-- Junção views
+
+select 'Cliente' as origem, a.cd_status, a.nm_status, 0::numeric AS valor, count(b.cd_status) as qtd
+from tb_cliente_status a left join tb_cliente b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+union all -------------------------------------
+select 'Contrato' as origem, a.cd_status, a.nm_status, coalesce(sum(vl_contrato),0) as Valor, count(b.cd_status) as qtd
+from tb_contrato_status a left join tb_contrato b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+union all -------------------------------------
+select 'Contato' as origem, cd_status, 
+case when cd_status = 1 then 'Pendente' 
+     when cd_status = 2 then 'Atendido'
+     when cd_status = 3 then 'Perdido' end as nm_status, 0::numeric AS valor,  count(cd_status) as qtd
+from tb_contato
+group by cd_status;
+
+
+
+GRANT USAGE ON SCHEMA public TO app_juvecom;
+
+GRANT SELECT, INSERT, UPDATE
+ON TABLE public.tb_contato
+TO app_juvecom;
+
+
+select cd_status, count(*) from tb_contrato
+group by cd_status
+
+select cd_status, sum(vl_contrato), count(*) from tb_contrato
+group by cd_status
+
+select TO_CHAR(dt_vencimento, 'MM-YYYY'), sum(vl_parcela), count(*)
+from tb_parcelas
+group by TO_CHAR(dt_vencimento, 'MM-YYYY')
+
+select * from vw_cobranca_inadimplentes;
+
+select * from vw_cobranca_vencidos;
+
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_juvecom;
+
+SELECT * FROM pg_catalog.pg_user;
+
+SELECT rolname, rolcanlogin, rolsuper, rolcreatedb
+FROM pg_catalog.pg_roles
+ORDER BY rolname;
+
+SELECT rolname, rolcanlogin, rolsuper
+FROM pg_roles
+WHERE rolname ILIKE '%juve%';
+
+
+GRANT USAGE ON SCHEMA public TO app_juvecom;
+GRANT SELECT ON public.vw_dash_adm, public.vw_dash_fin TO app_juvecom;
+
+
+
+SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
+FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
+CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
+CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_original), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
+
+SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
+FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
+CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
+CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
+
+
+CREATE OR replace VIEW vw_cobranca_inadimplentes AS
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+st.nm_status AS status_contrato, p.dt_vencimento,
+CURRENT_DATE - p.dt_vencimento AS dias_atraso, p.vl_parcela AS vl_original,
+enc.vl_multa, enc.vl_juros_mensal, enc.vl_juros_diario,
+(enc.vl_juros_mensal + enc.vl_juros_diario) AS vl_juros,
+p.pc_desconto,
+ROUND((p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario) * p.pc_desconto / 100, 2) AS vl_desconto_calculado,
+(p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario)
+- ROUND((p.vl_parcela + enc.vl_multa + enc.vl_juros_mensal + enc.vl_juros_diario) * p.pc_desconto / 100, 2) AS vl_total_atualizado
+FROM tb_parcelas p JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+JOIN tb_encargo_atraso e ON e.vigencia @> p.dt_vencimento
+CROSS JOIN LATERAL (
+SELECT
+CASE WHEN CURRENT_DATE - p.dt_vencimento > e.dias_carencia
+THEN ROUND(p.vl_parcela * e.percentual_multa / 100, 2) ELSE 0::numeric END AS vl_multa,
+ROUND(p.vl_parcela * e.juros_mensal / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0) / 30, 2) AS vl_juros_mensal,
+ROUND(p.vl_parcela * e.juros_diario / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0), 2) AS vl_juros_diario
+) enc
+WHERE p.dt_pagamento IS NULL
+AND CURRENT_DATE - p.dt_vencimento > 3
+AND st.cd_status in(2,3);
+
+SELECT cd_link, cd_cliente, dt_criacao, dt_utilizacao
+FROM public.tb_cliente_link
+WHERE cd_cliente = 52;
+
+
+select * from tb_pessoa
+where nm_pessoa  = 'Marcos Sumiyoshi Missawa'
+
+select * from tb_pessoa a inner join tb_cliente b
+on a.cd_pessoa = b.cd_pessoa
+where a.cd_pessoa  = 47
+
+select * from tb_contrato
+where cd_cliente  = 52
+
+SELECT cd_cliente, cd_pessoa, cd_status
+FROM tb_cliente
+WHERE cd_cliente = 52;
+
+SELECT cd_contrato, cd_cliente, cd_status
+FROM tb_contrato
+WHERE cd_cliente = 52;
+
+SELECT cd_link, cd_cliente, dt_criacao, dt_utilizacao
+FROM tb_cliente_link
+WHERE cd_cliente = 52;
+
+
+
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON public.vw_cobranca_inadimplentes TO app_juvecom;

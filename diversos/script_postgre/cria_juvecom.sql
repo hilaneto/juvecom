@@ -509,7 +509,7 @@ ROUND(p.vl_parcela * e.juros_diario / 100 * GREATEST(CURRENT_DATE - p.dt_vencime
 ) enc
 WHERE p.dt_pagamento IS NULL
 AND CURRENT_DATE - p.dt_vencimento > 3
-AND st.cd_status <> 5;
+AND st.cd_status in(2,3);
 
 
 -- ==========================================================================
@@ -536,21 +536,23 @@ on a.cd_nivel  = c.cd_nivel;
 -- vw_dash_adm: drop view vw_dash_adm - Usuarios
 -- ==========================================================================
 CREATE OR REPLACE VIEW public.vw_dash_adm AS
-SELECT 'Cliente' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_cliente) AS qtd
-FROM tb_cliente_status b
-LEFT JOIN tb_cliente a ON a.cd_status = b.cd_status
-GROUP BY b.cd_status, b.nm_status
-UNION ALL
-SELECT 'Contrato' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_contrato) AS qtd
-FROM tb_contrato_status b
-LEFT JOIN tb_contrato a ON a.cd_status = b.cd_status
-GROUP BY b.cd_status, b.nm_status
-UNION ALL
-SELECT 'Contato' AS origem, b.cd_status, b.nm_status, COUNT(a.cd_contato) AS qtd
-FROM (VALUES (1, 'Pendente'), (2, 'Atendido'), (3, 'Perdido')) AS b(cd_status, nm_status)
-LEFT JOIN tb_contato a ON a.cd_status = b.cd_status
-GROUP BY b.cd_status, b.nm_status
-ORDER BY origem, cd_status;
+select 'Cliente' as origem, a.cd_status, a.nm_status, 0 as valor, count(b.cd_status) as qtd
+from tb_cliente_status a left join tb_cliente b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+union all -------------------------------------
+select 'Contrato' as origem, a.cd_status, a.nm_status, coalesce(sum(vl_contrato),0) as Valor, count(b.cd_status) as qtd
+from tb_contrato_status a left join tb_contrato b
+on a.cd_status = b.cd_status
+group by a.cd_status, a.nm_status
+union all -------------------------------------
+select 'Contato' as origem, cd_status, 
+case when cd_status = 1 then 'Pendente' 
+     when cd_status = 2 then 'Atendido'
+     when cd_status = 3 then 'Perdido' end as nm_status,  0 as valor,  count(cd_status) as qtd
+from tb_contato
+group by cd_status;
+
 
 
 -- ==========================================================================

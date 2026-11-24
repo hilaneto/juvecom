@@ -2504,3 +2504,123 @@ body:has(.precadastro) {
         grid-template-columns: 1fr;
     }
 }
+
+.parcelas-dados-cliente {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.parcelas-dados-cliente > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.parcelas-dados-cliente label {
+    display: block;
+    margin-bottom: 7px;
+}
+
+@media (max-width: 1000px) {
+    .parcelas-dados-cliente {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .parcelas-dados-cliente {
+        grid-template-columns: 1fr;
+    }
+}
+
+.parcelas-dados-contrato {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px 20px;
+}
+
+.parcelas-dados-contrato > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.parcelas-dados-contrato label {
+    display: block;
+    margin-bottom: 7px;
+}
+
+@media (max-width: 1000px) {
+    .parcelas-dados-contrato {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .parcelas-dados-contrato {
+        grid-template-columns: 1fr;
+    }
+}
+
+.parcelas-grade {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px 20px;
+}
+
+.parcelas-grade > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.parcelas-campo-largo {
+    grid-column: span 2;
+}
+
+@media (max-width: 1000px) {
+    .parcelas-grade {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .parcelas-grade {
+        grid-template-columns: 1fr;
+    }
+
+    .parcelas-campo-largo {
+        grid-column: auto;
+    }
+}
+
+
+/* Quatro colunas exclusivamente no bloco Contrato e parcela */
+.parcelas-grade.parcelas-grade--contrato {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px 20px;
+}
+
+.parcelas-grade--contrato > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.parcelas-grade--contrato .parcelas-campo-largo {
+    grid-column: span 2;
+}
+
+@media (max-width: 1100px) {
+    .parcelas-grade.parcelas-grade--contrato {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .parcelas-grade.parcelas-grade--contrato {
+        grid-template-columns: 1fr;
+    }
+
+    .parcelas-grade--contrato .parcelas-campo-largo {
+        grid-column: auto;
+    }
+}

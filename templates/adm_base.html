@@ -80,6 +80,11 @@
                                {% if request.endpoint in ('adm_contrato', 'adm_contrato_novo') %}class="ativo" aria-current="page"{% endif %}>Contratos</a>
                         {% endif %}
 
+                        <a href="{{ url_for('adm_parcelas') }}"
+                        class="{% if request.endpoint == 'adm_parcelas' %}ativo{% endif %}">
+                            Parcelas
+                        </a>                        
+
                         <a href="{{ url_for('adm_contato') }}"
                            {% if request.endpoint == 'adm_contato' %}class="ativo" aria-current="page"{% endif %}>Contatos pendentes</a>
 
