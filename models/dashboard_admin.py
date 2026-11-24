@@ -7,9 +7,7 @@ class DashboardAdmin:
     def administrativo():
         with conectar():
             cursor = db.execute_sql("""
-                SELECT origem, cd_status, nm_status, qtd
-                FROM public.vw_dash_adm
-                ORDER BY origem, cd_status
+                SELECT origem, cd_status, nm_status, qtd, valor FROM public.vw_dash_adm ORDER BY origem, cd_status
             """)
             campos = [coluna[0] for coluna in cursor.description]
             registros = [dict(zip(campos, linha)) for linha in cursor.fetchall()]
