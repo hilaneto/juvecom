@@ -616,13 +616,13 @@ AND st.cd_status IN (2, 3);
 -- vw_dashboard_fin: drop view vw_dash_fin cascade - Usuarios
 -- ==========================================================================
 CREATE OR REPLACE VIEW public.vw_dash_fin AS
-select vl_parcelas_a_vencer, qt_parcelas_a_vencer, vl_parcelas_vencidas, qt_parcelas_vencidas, vl_contrato, qt_contratos_vencidos from
+select vl_parcelas_a_vencer, qt_parcelas_a_vencer, vl_parcelas_vencidas, qt_parcelas_vencidas, vl_contratos_vencidos, qt_contratos_vencidos from
 (select sum(vl_parcela) as vl_parcelas_vencidas, count(distinct a.cd_parcela) as qt_parcelas_vencidas from tb_parcelas a inner join tb_contrato b
  on a.cd_contrato = b.cd_contrato
  where CURRENT_DATE - dt_vencimento > 1
  AND b.cd_status in(2,3))
 cross join
-(select sum(vl_contrato) as vl_contrato, sum(qt_contratos_vencidos) as qt_contratos_vencidos from
+(select sum(vl_contrato) as vl_contratos_vencidos, sum(qt_contratos_vencidos) as qt_contratos_vencidos from
 (select max(b.vl_contrato) as vl_contrato, count(distinct a.cd_contrato) as qt_contratos_vencidos from tb_parcelas a inner join tb_contrato b
  on a.cd_contrato = b.cd_contrato
  where CURRENT_DATE - dt_vencimento > 1
@@ -635,8 +635,6 @@ on a.cd_contrato = b.cd_contrato
 WHERE dt_pagamento IS NULL
 AND a.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
 AND cd_status IN (2, 3));
--- ----------------------- 
-select * from vw_dash_fin;
 
 
 --CREATE OR REPLACE VIEW public.vw_dash_fin AS

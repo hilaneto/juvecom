@@ -42,9 +42,6 @@ select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
 
 
-
-
-
 select * from tb_encargo_atraso;
 
 SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia

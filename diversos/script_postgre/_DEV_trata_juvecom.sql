@@ -147,7 +147,6 @@ AND c.cd_status in(2,3);
 select * from vw_cobranca_vencidos;
 
 
-
 -- ==============================================================================
 -- vw_cobranca_inadimplentes: drop view vw_cobranca_inadimplentes
 -- A view preserva vl_juros (soma dos dois tipos), alem de discriminar cada um.
