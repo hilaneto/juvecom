@@ -35,7 +35,7 @@
             {% for titulo, quantidade, valor in [
                 ('Parcelas a Vencer > 30 dias', financeiro.qt_parcelas_a_vencer, financeiro.vl_parcelas_a_vencer),
                 ('Parcelas Vencidas', financeiro.qt_parcelas_vencidas, financeiro.vl_parcelas_vencidas),
-                ('Contratos Vencidos', financeiro.qt_contratos_vencidos, financeiro.vl_contratos_vencidos)
+                ('Contratos Vencidos', financeiro.qt_contratos_vencidos, financeiro.vl_contrato)
             ] %}
                 <div class="dashboard__card">
                     <span>{{ titulo }}</span>
