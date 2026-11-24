@@ -175,8 +175,7 @@ THEN ROUND(p.vl_parcela * e.percentual_multa / 100, 2) ELSE 0::numeric END AS vl
 ROUND(p.vl_parcela * e.juros_mensal / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0) / 30, 2) AS vl_juros_mensal,
 ROUND(p.vl_parcela * e.juros_diario / 100 * GREATEST(CURRENT_DATE - p.dt_vencimento - e.dias_carencia, 0), 2) AS vl_juros_diario
 ) enc
-WHERE p.dt_pagamento IS NULL AND CURRENT_DATE - p.dt_vencimento > 1 AND st.cd_status in(2,3);
-
+WHERE p.dt_pagamento IS NULL AND p.dt_vencimento < CURRENT_DATE - 1 AND st.cd_status in(2,3);
 -- ----------------------------------------------------------------------
 select * from vw_cobranca_inadimplentes;
 

@@ -42,10 +42,10 @@ select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
 
 
-20	16700.00	42	36000.00	36	30900.00
-20	16700.00	42	36000.00	36	30900.00
-20	16700.00	42	36000.00	36	31805.49
 
+
+
+select * from tb_encargo_atraso;
 
 SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
 FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
@@ -58,6 +58,7 @@ CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) 
 CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
 
 
+SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes
 
 -- Parcelas Vencidas Por Parcelas ----------------------------------------------------------------
 select b.cd_contrato, a.Nr_parcela, a.vl_parcela, b.vl_contrato, dt_vencimento
@@ -280,6 +281,7 @@ on a.cd_cliente = b.cd_cliente
 SELECT * FROM public.vw_cobranca_vencidos;
 SELECT * FROM public.fn_listar_contratos();  -- Todos
 select * from vw_cliente_contrato;
+
 
 
 select * from tb_pessoa a inner join tb_cliente b

@@ -127,5 +127,11 @@
         <main class="adm-principal"> {% block conteudo %}{% endblock %} </main>
 
     </div>
+
+{% if request.endpoint == 'adm' %}
+<script src="{{ url_for('static', filename='js/dashboard_icons.js') }}" defer></script>
+{% endif %}
+
 </body>
 </html>
+

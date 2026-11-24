@@ -1,0 +1,101 @@
+{% extends "adm_base.html" %}
+
+{% block title %}Dashboard | Juvecom{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard dashboard--novo">
+    <header class="dashboard__header">
+        <h1>Dashboard Administrativo</h1>
+        <p>Visão geral da operação Juvecom</p>
+    </header>
+
+    <!-- INDICADORES ADMINISTRATIVOS -->
+    {% for origem in ('Cliente', 'Contrato', 'Contato') %}
+        {% set registros = administrativo.get(origem, []) | sort(attribute='cd_status') %}
+        <section class="dashboard__grupo" aria-label="{{ origem }}{% if origem != 'Contato' %}s{% endif %}">
+            <h2>{{ origem }}{% if origem != 'Contato' %}s{% endif %}</h2>
+            <div class="dashboard__cards dashboard__cards--status{% if origem == 'Contato' %} dashboard__cards--contato{% endif %}">
+                {% for registro in registros %}
+                    <div class="dashboard__card">
+                        <span>{{ registro.nm_status }}</span>
+                        <strong>{{ registro.qtd }}</strong>
+                        {% if origem == 'Contrato' %}
+                            <small>R$ {{ "{:,.2f}".format(registro.valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    {% endfor %}
+
+    <!-- INDICADORES FINANCEIROS: NOVA vw_dash_fin -->
+    <section class="dashboard__grupo" aria-label="Indicadores Financeiros">
+        <h2>Indicadores Financeiros</h2>
+        <div class="dashboard__cards dashboard__cards--financeiro">
+            {% for titulo, quantidade, valor in [
+                ('Parcelas a Vencer até 30 dias', financeiro.qt_parcelas_a_vencer, financeiro.vl_parcelas_a_vencer),
+                ('Parcelas Vencidas', financeiro.qt_parcelas_vencidas, financeiro.vl_parcelas_vencidas),
+                ('Contratos Vencidos', financeiro.qt_contratos_vencidos, financeiro.vl_contrato)
+            ] %}
+                <div class="dashboard__card">
+                    <span>{{ titulo }}</span>
+                    <strong>{{ quantidade or 0 }}</strong>
+                    <small>R$ {{ "{:,.2f}".format(valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}</small>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<style>
+    /* CSS exclusivo do dashboard: não altera os demais templates administrativos. */
+    .dashboard--novo { width: 100%; max-width: none; }
+    .dashboard--novo .dashboard__header { margin-bottom: 20px; }
+    .dashboard--novo .dashboard__grupo { margin-bottom: 20px; }
+    .dashboard--novo .dashboard__grupo > h2 { margin-bottom: 12px; }
+
+    .dashboard--novo .dashboard__cards {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .dashboard--novo .dashboard__card {
+        grid-column: span 2;
+        box-sizing: border-box;
+        min-width: 0;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 16px 12px;
+        text-align: center;
+    }
+    /* Clientes/contratos: dois cards na primeira linha, três na segunda. */
+    .dashboard--novo .dashboard__cards--status:not(.dashboard__cards--contato) > .dashboard__card:nth-child(-n+2) {
+        grid-column: span 3;
+    }
+    /* Contatos e financeiro: três cards na mesma linha. */
+    .dashboard--novo .dashboard__cards--contato > .dashboard__card,
+    .dashboard--novo .dashboard__cards--financeiro > .dashboard__card {
+        grid-column: span 2;
+    }
+    .dashboard--novo .dashboard__card > span,
+    .dashboard--novo .dashboard__card > strong,
+    .dashboard--novo .dashboard__card > small { text-align: center; }
+
+    @media (max-width: 740px) {
+        .dashboard--novo .dashboard__cards--status:not(.dashboard__cards--contato) > .dashboard__card,
+        .dashboard--novo .dashboard__cards--status:not(.dashboard__cards--contato) > .dashboard__card:nth-child(-n+2),
+        .dashboard--novo .dashboard__cards--contato > .dashboard__card,
+        .dashboard--novo .dashboard__cards--financeiro > .dashboard__card { grid-column: span 3; }
+    }
+    @media (max-width: 460px) {
+        .dashboard--novo .dashboard__cards > .dashboard__card,
+        .dashboard--novo .dashboard__cards--status:not(.dashboard__cards--contato) > .dashboard__card:nth-child(-n+2) {
+            grid-column: span 6;
+        }
+    }
+</style>
+{% endblock %}

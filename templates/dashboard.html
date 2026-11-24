@@ -15,15 +15,26 @@
         <section class="dashboard__grupo" aria-label="{{ origem }}{% if origem != 'Contato' %}s{% endif %}">
             <h2>{{ origem }}{% if origem != 'Contato' %}s{% endif %}</h2>
             <div class="dashboard__cards dashboard__cards--status{% if origem == 'Contato' %} dashboard__cards--contato{% endif %}">
-                {% for registro in registros %}
-                    <div class="dashboard__card">
-                        <span>{{ registro.nm_status }}</span>
-                        <strong>{{ registro.qtd }}</strong>
-                        {% if origem == 'Contrato' %}
-                            <small>R$ {{ "{:,.2f}".format(registro.valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}</small>
-                        {% endif %}
-                    </div>
-                {% endfor %}
+                {% if origem == 'Contato' %}
+                    {# Exibir sempre os três status, mesmo se a view não retornar algum deles. #}
+                    {% for codigo, nome in ((1, 'Pendente'), (2, 'Atendido'), (3, 'Perdido')) %}
+                        {% set registro = (registros | selectattr('cd_status', 'equalto', codigo) | list | first | default(none)) %}
+                        <div class="dashboard__card">
+                            <span>{{ nome }}</span>
+                            <strong>{{ registro.qtd if registro else 0 }}</strong>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    {% for registro in registros %}
+                        <div class="dashboard__card">
+                            <span>{{ registro.nm_status }}</span>
+                            <strong>{{ registro.qtd }}</strong>
+                            {% if origem == 'Contrato' %}
+                                <small>R$ {{ "{:,.2f}".format(registro.valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}</small>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
             </div>
         </section>
     {% endfor %}
@@ -33,9 +44,9 @@
         <h2>Indicadores Financeiros</h2>
         <div class="dashboard__cards dashboard__cards--financeiro">
             {% for titulo, quantidade, valor in [
-                ('Parcelas a Vencer até 30 dias', financeiro.qt_parcelas_a_vencer, financeiro.vl_parcelas_a_vencer),
-                ('Parcelas Vencidas', financeiro.qt_parcelas_vencidas, financeiro.vl_parcelas_vencidas),
-                ('Contratos Vencidos', financeiro.qt_contratos_vencidos, financeiro.vl_contrato)
+                ('Vencimentos Próximos 30 dias', financeiro.qt_parcela_a_vencer, financeiro.vl_parcela_a_vencer),
+                ('Contratos Vencidos', financeiro.qt_contratos_vencidos, financeiro.vl_contrato_vencidos),
+                ('Parcelas Vencidas', financeiro.qt_parcelas_vencidas, financeiro.vl_parcela_vencidas)
             ] %}
                 <div class="dashboard__card">
                     <span>{{ titulo }}</span>
@@ -59,6 +70,12 @@
         grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 10px;
     }
+    /* Sobrescreve regras antigas de grid específicas do CSS global. */
+    .dashboard--novo .dashboard__cards--financeiro,
+    .dashboard--novo .dashboard__cards--contato {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
     .dashboard--novo .dashboard__card {
         grid-column: span 2;
         box-sizing: border-box;
@@ -79,19 +96,23 @@
     /* Contatos e financeiro: três cards na mesma linha. */
     .dashboard--novo .dashboard__cards--contato > .dashboard__card,
     .dashboard--novo .dashboard__cards--financeiro > .dashboard__card {
-        grid-column: span 2;
+        grid-column: auto;
     }
     .dashboard--novo .dashboard__card > span,
     .dashboard--novo .dashboard__card > strong,
     .dashboard--novo .dashboard__card > small { text-align: center; }
 
     @media (max-width: 740px) {
+        .dashboard--novo .dashboard__cards--financeiro,
+        .dashboard--novo .dashboard__cards--contato { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .dashboard--novo .dashboard__cards--status:not(.dashboard__cards--contato) > .dashboard__card,
         .dashboard--novo .dashboard__cards--status:not(.dashboard__cards--contato) > .dashboard__card:nth-child(-n+2),
         .dashboard--novo .dashboard__cards--contato > .dashboard__card,
-        .dashboard--novo .dashboard__cards--financeiro > .dashboard__card { grid-column: span 3; }
+        .dashboard--novo .dashboard__cards--financeiro > .dashboard__card { grid-column: auto; }
     }
     @media (max-width: 460px) {
+        .dashboard--novo .dashboard__cards--financeiro,
+        .dashboard--novo .dashboard__cards--contato { grid-template-columns: minmax(0, 1fr); }
         .dashboard--novo .dashboard__cards > .dashboard__card,
         .dashboard--novo .dashboard__cards--status:not(.dashboard__cards--contato) > .dashboard__card:nth-child(-n+2) {
             grid-column: span 6;
