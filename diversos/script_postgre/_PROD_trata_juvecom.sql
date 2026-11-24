@@ -74,7 +74,37 @@ select * from tb_cliente;
 
 select * from tb_contrato;
 
-select * from tb_parcelas;
+O que acha em substituir o modelo a pelo modelo b
+
+modelo a:
+CREATE OR REPLACE VIEW public.vw_dash_fin AS
+select * from (select COALESCE(SUM(a.vl_parcela),  0) as vl_parcela_vencidas,  count(*) as qt_parcelas_vencidas, 
+COALESCE(SUM(b.vl_contrato), 0) as vl_contrato_vencidos, count(distinct(b.cd_contrato)) as qt_contratos_vencidos
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND CURRENT_DATE - a.dt_vencimento > 1
+AND b.cd_status in(2,3)) a
+cross join
+(select COALESCE(SUM(vl_parcela),  0) as vl_parcela_a_vencer,  count(*) as qt_parcela_a_vencer
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND a.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND cd_status IN (2, 3)) b;
+
+-- cobranca_proximos
+SELECT p.cd_parcela, p.cd_contrato, p.nr_parcela, pe.nm_pessoa, pe.telefone, pe.email, c.nm_plano,
+p.dt_vencimento, p.dt_vencimento - CURRENT_DATE AS dias_para_vencer, p.vl_parcela AS vl_a_pagar
+FROM tb_parcelas p
+JOIN tb_contrato c ON c.cd_contrato = p.cd_contrato
+JOIN tb_contrato_status st ON st.cd_status = c.cd_status
+JOIN tb_cliente cl ON cl.cd_cliente = c.cd_cliente
+JOIN tb_pessoa pe ON pe.cd_pessoa = cl.cd_pessoa
+WHERE p.dt_pagamento IS NULL
+AND p.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND st.cd_status IN (2, 3);
+
 
 select a.cd_status, a.nm_status, coalesce(sum(vl_contrato),0) as Valor, count(b.cd_status) as qtd
 from tb_contrato_status a left join tb_contrato b
@@ -102,33 +132,14 @@ select * from vw_dash_fin;
 
 select * from vw_dash_adm;
 
--- Junção views
-
-select 'Cliente' as origem, a.cd_status, a.nm_status, 0::numeric AS valor, count(b.cd_status) as qtd
-from tb_cliente_status a left join tb_cliente b
-on a.cd_status = b.cd_status
-group by a.cd_status, a.nm_status
-union all -------------------------------------
-select 'Contrato' as origem, a.cd_status, a.nm_status, coalesce(sum(vl_contrato),0) as Valor, count(b.cd_status) as qtd
-from tb_contrato_status a left join tb_contrato b
-on a.cd_status = b.cd_status
-group by a.cd_status, a.nm_status
-union all -------------------------------------
-select 'Contato' as origem, cd_status, 
-case when cd_status = 1 then 'Pendente' 
-     when cd_status = 2 then 'Atendido'
-     when cd_status = 3 then 'Perdido' end as nm_status, 0::numeric AS valor,  count(cd_status) as qtd
-from tb_contato
-group by cd_status;
-
-
-
 GRANT USAGE ON SCHEMA public TO app_juvecom;
 
 GRANT SELECT, INSERT, UPDATE
-ON TABLE public.tb_contato
+ON TABLE public.vw_dash_fin
 TO app_juvecom;
 
+SELECT origem, cd_status, nm_status, qtd, valor
+FROM public.vw_dash_adm
 
 select cd_status, count(*) from tb_contrato
 group by cd_status

@@ -599,10 +599,26 @@ AND st.cd_status IN (2, 3);
 -- vw_dashboard_fin: drop view vw_dashboard_fin - Usuarios
 -- ==========================================================================
 CREATE OR REPLACE VIEW public.vw_dash_fin AS
-SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
-FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
-CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
-CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
+select * from (select COALESCE(SUM(a.vl_parcela),  0) as vl_parcela_vencidas,  count(*) as qt_parcelas_vencidas, 
+COALESCE(SUM(b.vl_contrato), 0) as vl_contrato_vencidos, count(distinct(b.cd_contrato)) as qt_contratos_vencidos
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND CURRENT_DATE - a.dt_vencimento > 1
+AND b.cd_status in(2,3)) a
+cross join
+(select COALESCE(SUM(vl_parcela),  0) as vl_parcela_a_vencer,  count(*) as qt_parcela_a_vencer
+from tb_parcelas a inner join tb_contrato b
+on a.cd_contrato = b.cd_contrato
+WHERE dt_pagamento IS NULL
+AND a.dt_vencimento BETWEEN CURRENT_DATE + 1 AND CURRENT_DATE + 30
+AND cd_status IN (2, 3)) b;
+
+--CREATE OR REPLACE VIEW public.vw_dash_fin AS
+--SELECT a.parcelas_proximas, a.valor_proximos, b.parcelas_vencidas, b.valor_vencidos, c.parcelas_inadimplentes, c.valor_inadimplencia
+--FROM (SELECT COUNT(*) AS parcelas_proximas, COALESCE(SUM(vl_a_pagar), 0) AS valor_proximos FROM public.vw_cobranca_proximos) a
+--CROSS JOIN (SELECT COUNT(*) AS parcelas_vencidas, COALESCE(SUM(vl_original), 0) AS valor_vencidos FROM public.vw_cobranca_vencidos) b
+--CROSS JOIN (SELECT COUNT(*) AS parcelas_inadimplentes, COALESCE(SUM(vl_total_atualizado), 0) AS valor_inadimplencia FROM public.vw_cobranca_inadimplentes) c;
 
 
 -- ============================================================================
