@@ -30,7 +30,6 @@ select * from vw_cliente_contrato;
 select * from vw_dash_adm;
 select * from vw_dash_fin;
 select * from vw_cobranca_proximos;
-select * from vw_cobranca_vencidos;
 select * from vw_cobranca_inadimplentes;
 
 
@@ -538,6 +537,7 @@ CREATE OR REPLACE VIEW public.vw_cliente_contrato
 AS SELECT c.cd_cliente,
 p.cd_pessoa,
 p.nm_pessoa,
+p.cpf_cnpj,
 c.nm_responsavel,
 c.cd_status AS cd_status_cliente,
 sc.nm_status AS nm_status_cliente,
@@ -640,16 +640,5 @@ UNION ALL
 SELECT 'views', count(*) FROM information_schema.views WHERE table_schema = 'public';
 
 
--- ==========================================================================
--- SMOKE TESTS (somente leitura; banco pode estar vazio)
--- ==========================================================================
-SELECT 'fn_listar_clientes' AS teste, count(*) AS linhas FROM public.fn_listar_clientes(NULL)
-UNION ALL SELECT 'fn_listar_clientes(2)', count(*) FROM public.fn_listar_clientes(2)
-UNION ALL SELECT 'fn_listar_contratos', count(*) FROM public.fn_listar_contratos(NULL)
-UNION ALL SELECT 'fn_listar_contratos(2)', count(*) FROM public.fn_listar_contratos(2);
-SELECT 'views_financeiras' AS teste, count(*) AS quantidade
-FROM information_schema.views
-WHERE table_schema = 'public' AND table_name IN
-('vw_cobranca_proximos', 'vw_cobranca_vencidos', 'vw_cobranca_inadimplentes', 'vw_dash_fin');
 
 

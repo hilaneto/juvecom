@@ -934,53 +934,44 @@ def adm_parcelas():
         abort(403)
 
     erro = None
-    demonstrativo = None
+    previa = None
+    desconto_formulario = None
+    data_formulario = None
     sucesso = request.args.get("sucesso") == "1"
     cd_parcela = request.args.get("cd_parcela", type=int)
 
     if request.method == "POST":
         validar_csrf()
-
-        acao = request.form.get("acao")
         cd_parcela = request.form.get("cd_parcela", type=int)
+        acao = request.form.get("acao")
+        desconto_formulario = request.form.get("pc_desconto")
+        data_formulario = request.form.get("dt_pagamento")
 
         if cd_parcela is None or cd_parcela <= 0:
             abort(400)
 
         if acao == "recalcular":
-            resultado = Parcelas.previa_pagamento(
-                cd_parcela, request.form.to_dict()
-            )
-
+            resultado = Parcelas.previa_pagamento(cd_parcela, request.form.to_dict())
             if resultado["sucesso"]:
-                demonstrativo = resultado["dados"]
+                previa = resultado["dados"]
             else:
                 erro = resultado["erro"]
 
         elif acao == "confirmar_pagamento":
-            resultado = Parcelas.confirmar_pagamento(
-                cd_parcela, request.form.to_dict()
-            )
-
+            resultado = Parcelas.confirmar_pagamento(cd_parcela, request.form.to_dict())
             if resultado["sucesso"]:
-                return redirect(
-                    url_for("adm_parcelas", cd_parcela=cd_parcela, sucesso=1)
-                )
-
+                return redirect(url_for("adm_parcelas", cd_parcela=cd_parcela, sucesso=1))
             erro = resultado["erro"]
-
         else:
             abort(400)
 
     tela = Parcelas.tela(cd_parcela=cd_parcela)
-
     return render_template(
-        "negocio/parcelas.html",
-        **tela,
-        erro=erro,
-        sucesso=sucesso,
-        demonstrativo=demonstrativo
+        "negocio/parcelas.html", **tela, erro=erro, sucesso=sucesso,
+        previa=previa, desconto_formulario=desconto_formulario,
+        data_formulario=data_formulario
     )
+
 
 
 

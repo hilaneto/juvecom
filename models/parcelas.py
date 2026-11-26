@@ -8,7 +8,9 @@ IMPORTANTE: Para este modulo, somente contratos com cd_status IN (2, 3)
 permitem cobranca e baixa. Status 1 (Sem assinatura), 4 (Liquidado) e
 5 (Cancelado) nao permitem nova baixa. A view deve preservar (2, 3).
 
-Não há cálculo monetário em JavaScript nem valor pago informado pelo operador.
+O operador informa valor recebido (extrato) e data. O PostgreSQL calcula os encargos
+para conferência; a baixa é permitida se o valor recebido for ao menos o
+valor original da parcela. Descontos não são oferecidos neste fluxo.
 """
 
 from datetime import date, datetime
@@ -54,13 +56,13 @@ class Parcelas:
 
     @staticmethod
     def _validar_entrada(dados):
-        desconto = Parcelas._decimal(dados.get("pc_desconto", ""), "desconto")
+        pago = Parcelas._decimal(dados.get("vl_pago", ""), "valor pago")
         pagamento = Parcelas._data(dados.get("dt_pagamento", ""))
-        if desconto < 0 or desconto > 100 or desconto.as_tuple().exponent < -2:
-            raise ValueError("O desconto deve estar entre 0 e 100%, com até duas casas decimais.")
+        if pago <= 0 or pago.as_tuple().exponent < -2:
+            raise ValueError("Informe um valor pago positivo, com até duas casas decimais.")
         if pagamento > Parcelas._hoje():
             raise ValueError("A data de pagamento não pode ser futura.")
-        return desconto, pagamento
+        return pago, pagamento
 
     @staticmethod
     def tela(cd_parcela=None):
@@ -82,14 +84,14 @@ class Parcelas:
                             ELSE GREATEST(CURRENT_DATE - p.dt_vencimento, 0) END AS dias_atraso,
                        fin.vl_multa, fin.vl_juros_mensal,
                        fin.vl_juros_diario, fin.vl_juros,
-                       fin.vl_desconto_calculado,
+                       0::numeric AS vl_desconto_calculado,
                        CASE WHEN fin.cd_parcela IS NOT NULL
                             THEN p.vl_parcela + fin.vl_multa + fin.vl_juros
                             WHEN p.dt_vencimento >= CURRENT_DATE AND p.dt_pagamento IS NULL
                             THEN p.vl_parcela ELSE NULL END AS vl_total_sem_desconto,
                        CASE WHEN p.dt_pagamento IS NOT NULL THEN p.vl_pago
-                            WHEN fin.cd_parcela IS NOT NULL THEN fin.vl_total_atualizado
-                            WHEN p.dt_vencimento >= CURRENT_DATE AND p.pc_desconto = 0 THEN p.vl_parcela
+                            WHEN fin.cd_parcela IS NOT NULL THEN p.vl_parcela + fin.vl_multa + fin.vl_juros
+                            WHEN p.dt_vencimento >= CURRENT_DATE THEN p.vl_parcela
                             ELSE NULL END AS vl_total_atualizado,
                        (fin.cd_parcela IS NOT NULL) AS tem_demonstrativo_view
                 FROM public.tb_parcelas p
@@ -107,13 +109,13 @@ class Parcelas:
         for p in registros:
             # A view apenas cobre inadimplentes; valores ausentes NÃO são
             # convertidos em zero para parcelas antigas, evitando falsa quitação.
-            if p["dt_pagamento"] is None and p["dt_vencimento"] >= hoje and p["pc_desconto"] == 0:
+            if p["dt_pagamento"] is None and p["dt_vencimento"] >= hoje:
                 for campo in ("vl_multa", "vl_juros_mensal", "vl_juros_diario", "vl_juros", "vl_desconto_calculado"):
                     if p[campo] is None:
                         p[campo] = Decimal("0.00")
             p["demonstrativo_disponivel"] = bool(
                 p["tem_demonstrativo_view"] or
-                (p["dt_pagamento"] is None and p["dt_vencimento"] >= hoje and p["pc_desconto"] == 0)
+                (p["dt_pagamento"] is None and p["dt_vencimento"] >= hoje)
             )
 
         pendentes = [p for p in registros if p["dt_pagamento"] is None
@@ -130,7 +132,7 @@ class Parcelas:
         }
 
     @staticmethod
-    def _calcular_no_banco(parcela, pagamento, desconto):
+    def _calcular_no_banco(parcela, pagamento):
         """SQL com as mesmas fórmulas da view, mas data parametrizada.
 
         Deve ser chamado dentro de uma conexão aberta. Não grava no banco.
@@ -138,7 +140,7 @@ class Parcelas:
         cursor = db.execute_sql("""
             WITH entrada AS (
                 SELECT %s::numeric AS vl_parcela, %s::date AS dt_vencimento,
-                       %s::date AS dt_referencia, %s::numeric AS pc_desconto
+                       %s::date AS dt_referencia
             ), encargos AS (
                 SELECT x.vl_parcela,
                        GREATEST(x.dt_referencia - x.dt_vencimento, 0) AS dias_atraso,
@@ -150,8 +152,7 @@ class Parcelas:
                              AS vl_juros_mensal,
                        ROUND(x.vl_parcela * e.juros_diario / 100 *
                              GREATEST(x.dt_referencia - x.dt_vencimento - e.dias_carencia, 0), 2)
-                             AS vl_juros_diario,
-                       x.pc_desconto
+                             AS vl_juros_diario
                 FROM entrada x
                 JOIN public.tb_encargo_atraso e ON e.vigencia @> x.dt_vencimento
             ), subtotal AS (
@@ -163,12 +164,10 @@ class Parcelas:
                    vl_juros_mensal, vl_juros_diario,
                    (vl_juros_mensal + vl_juros_diario) AS vl_juros,
                    vl_total_sem_desconto,
-                   ROUND(vl_total_sem_desconto * pc_desconto / 100, 2)
-                       AS vl_desconto_calculado,
-                   vl_total_sem_desconto - ROUND(vl_total_sem_desconto * pc_desconto / 100, 2)
-                       AS vl_pago
+                   0::numeric AS vl_desconto_calculado,
+                   vl_total_sem_desconto AS vl_total_atualizado
             FROM subtotal
-        """, (parcela["vl_parcela"], parcela["dt_vencimento"], pagamento, desconto))
+        """, (parcela["vl_parcela"], parcela["dt_vencimento"], pagamento))
         linhas = Parcelas._linhas(cursor)
         if not linhas:
             raise ValueError("Não existe política de encargos para o vencimento desta parcela.")
@@ -217,51 +216,67 @@ class Parcelas:
 
     @staticmethod
     def previa_pagamento(cd_parcela, dados):
-        """Compatibilidade para uma eventual rota de consulta; não grava."""
+        """Consulta a diferença entre extrato e total calculado; nunca grava."""
         try:
             if not isinstance(cd_parcela, int) or isinstance(cd_parcela, bool) or cd_parcela <= 0:
                 raise ValueError("Código da parcela inválido.")
-            desconto, pagamento = Parcelas._validar_entrada(dados)
+            pago, pagamento = Parcelas._validar_entrada(dados)
             with conectar():
                 parcela, _, _ = Parcelas._buscar_parcela_para_pagamento(cd_parcela)
-                valores = Parcelas._calcular_no_banco(parcela, pagamento, desconto)
-            valores["pc_desconto"] = desconto
-            valores["vl_total_atualizado"] = valores["vl_total_sem_desconto"]
-            valores["vl_total_pagar"] = valores["vl_pago"]
+                valores = Parcelas._calcular_no_banco(parcela, pagamento)
+
+            minimo = parcela["vl_parcela"]
+            esperado = valores["vl_total_atualizado"]
+            valores.update({
+                "vl_recebido": pago,
+                "vl_pago": pago,  # valor declarado no extrato, não o valor esperado
+                "vl_minimo": minimo,
+                "vl_diferenca": pago - esperado,
+                "vl_total_pagar": esperado,  # compatibilidade com o demonstrativo HTML
+                "pode_baixar": pago >= minimo,
+                "conciliado": pago == esperado,
+                "pc_desconto": Decimal("0.00"),
+            })
             return {"sucesso": True, "dados": valores}
         except ValueError as exc:
             return {"sucesso": False, "erro": str(exc)}
 
     @staticmethod
     def confirmar_pagamento(cd_parcela, dados):
-        """Baixa sem valor digitado; recalcula e persiste atomicamente."""
+        """Registra exatamente o valor bancário, desde que >= valor contratual."""
         try:
             if not isinstance(cd_parcela, int) or isinstance(cd_parcela, bool) or cd_parcela <= 0:
                 raise ValueError("Código da parcela inválido.")
-            desconto, pagamento = Parcelas._validar_entrada(dados)
-            # A confirmação exige uma prévia exibida e valores não modificados.
-            if dados.get("previa_desconto") != str(desconto) or dados.get("previa_pagamento") != pagamento.isoformat():
-                raise ValueError("Recalcule o demonstrativo antes de confirmar o pagamento.")
+            pago, pagamento = Parcelas._validar_entrada(dados)
+
+            # Exige recálculo prévio para os MESMOS dados do extrato.
+            # Os campos ocultos são apenas conferência; a regra é revalidada no banco.
             try:
-                total_previa = Parcelas._decimal(dados.get("previa_total", ""), "total previsto")
+                data_previa = Parcelas._data(dados.get("previa_pagamento", ""))
+                valor_previa = Parcelas._decimal(dados.get("previa_valor_recebido", ""), "valor da prévia")
             except ValueError:
                 raise ValueError("Recalcule o demonstrativo antes de confirmar o pagamento.") from None
+            if data_previa != pagamento or valor_previa != pago:
+                raise ValueError("Data ou valor alterado. Recalcule antes de confirmar.")
+
             with conectar():
                 with db.atomic():
                     parcela, cd_contrato, status = Parcelas._buscar_parcela_para_pagamento(cd_parcela, bloquear=True)
-                    demonstrativo = Parcelas._calcular_no_banco(parcela, pagamento, desconto)
-                    pago = demonstrativo["vl_pago"]
-                    if pago != total_previa:
-                        raise ValueError("O valor mudou desde a prévia. Recalcule antes de confirmar.")
-                    if pago <= 0:
-                        raise ValueError("O valor calculado para pagamento deve ser positivo.")
+                    # Usa a regra do contrato, nunca um valor mínimo vindo do navegador.
+                    if pago < parcela["vl_parcela"]:
+                        raise ValueError("O valor recebido não pode ser inferior ao valor original da parcela.")
+                    # Recalcula os encargos no PostgreSQL para validar a política
+                    # e manter a mesma referência utilizada pela prévia.
+                    Parcelas._calcular_no_banco(parcela, pagamento)
+                    # O recebimento pode ser inferior/superior ao esperado,
+                    # desde que não inferior ao valor contratual.
                     cursor = db.execute_sql("""
                         UPDATE public.tb_parcelas
-                        SET pc_desconto = %s, vl_pago = %s, dt_pagamento = %s,
+                        SET pc_desconto = 0, vl_pago = %s, dt_pagamento = %s,
                             dt_atualizacao = CURRENT_TIMESTAMP
                         WHERE cd_parcela = %s AND dt_pagamento IS NULL
                         RETURNING cd_parcela
-                    """, (desconto, pago, pagamento, cd_parcela))
+                    """, (pago, pagamento, cd_parcela))
                     if cursor.fetchone() is None:
                         raise ValueError("Pagamento já confirmado por outra operação.")
                     if status == Parcelas.INADIMPLENTE:

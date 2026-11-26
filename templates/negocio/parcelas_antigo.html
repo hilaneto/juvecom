@@ -1,0 +1,194 @@
+{% extends "adm_base.html" %}
+{% block title %}Parcelas | Juvecom{% endblock %}
+{% block conteudo %}
+<p class="home__categoria">Negócio | Parcelas</p>
+<div class="pessoa-layout cadastro-compacto parcelas-layout">
+  <section class="pessoa-card parcelas-detalhes">
+    <h2 class="pessoa-form__titulo">{{ selecionada.nm_pessoa if selecionada else 'Gestão de parcelas' }}</h2>
+    {% if erro %}<div class="contato-aviso contato-aviso--erro" role="alert">{{ erro }}</div>{% endif %}
+    {% if sucesso %}<div class="parcelas-aviso-sucesso" role="status">Pagamento confirmado com sucesso.</div>{% endif %}
+    {% if selecionada %}
+    <section class="contrato-grupo parcelas-secao">
+      <h3>Dados do cliente</h3>
+      <div class="parcelas-dados-cliente">
+        <div><label>CPF / CNPJ</label><div>{{ selecionada.cpf_cnpj or '—' }}</div></div>
+        <div><label>Responsável</label><div>{{ selecionada.nm_responsavel or '—' }}</div></div>
+        <div><label>Telefone</label><div>{{ selecionada.telefone or '—' }}</div></div>
+        <div><label>E-mail</label><div>{{ selecionada.email or '—' }}</div></div>
+      </div>
+    </section>
+    <section class="contrato-grupo parcelas-secao">
+      <h3>Contrato e parcela</h3>
+      <div class="parcelas-grade parcelas-grade--contrato">
+        <div><label>Contrato</label><div><a href="{{ url_for('adm_contrato', cd_contrato=selecionada.cd_contrato) }}">#{{ selecionada.cd_contrato }}</a></div></div>
+        <div><label>Plano</label><div>{{ selecionada.nm_plano or '—' }}</div></div>
+        <div><label>Status do contrato</label><div>{{ selecionada.status_contrato or '—' }}</div></div>
+        <div><label>Parcela</label><div>{{ selecionada.nr_parcela }}</div></div>
+        <div><label>Vencimento</label><div>{{ selecionada.dt_vencimento.strftime('%d/%m/%Y') }}</div></div>
+        <div><label>Valor original</label><div>R$ {{ '%.2f'|format(selecionada.vl_parcela)|replace('.', ',') }}</div></div>
+        <div class="parcelas-campo-largo"><label>Vigência</label><div>{% if selecionada.dt_inicio_vigencia %}{{ selecionada.dt_inicio_vigencia.strftime('%d/%m/%Y') }} a {{ selecionada.dt_fim_vigencia.strftime('%d/%m/%Y') if selecionada.dt_fim_vigencia else 'prazo indeterminado' }}{% else %}—{% endif %}</div></div>
+      </div>
+    </section>
+    <section class="contrato-grupo parcelas-secao">
+      <h3>Pagamento</h3>
+      {% set pode_confirmar = selecionada.dt_pagamento is none and selecionada.cd_status_contrato in (2, 3) %}
+      {% set d = previa if previa else selecionada %}
+      {% set mostrar = previa is not none or selecionada.demonstrativo_disponivel %}
+      <form id="parcela-formulario" class="pessoa-form parcelas-pagamento" method="post" action="{{ url_for('adm_parcelas') }}">
+        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+        <input type="hidden" name="cd_parcela" value="{{ selecionada.cd_parcela }}">
+
+        {% if previa %}
+            <input type="hidden" name="previa_desconto" value="{{ previa.pc_desconto }}">
+            <input type="hidden" name="previa_pagamento" value="{{ data_formulario }}">
+            <input type="hidden" name="previa_total" value="{{ previa.vl_pago }}">
+        {% endif %}
+
+        <div class="parcelas-grade parcelas-grade--pagamento">
+          <div class="parcelas-demonstrativo">
+            <h3>Demonstrativo financeiro</h3>
+            {% if mostrar %}
+              <div><span>Valor original</span><strong>R$ {{ '%.2f'|format(selecionada.vl_parcela)|replace('.', ',') }}</strong></div>
+              <div><span>Dias em atraso</span><strong>{{ d.dias_atraso }}</strong></div>
+              <div><span>Multa</span><strong>R$ {{ '%.2f'|format(d.vl_multa)|replace('.', ',') }}</strong></div>
+              <div><span>Juros mensais</span><strong>R$ {{ '%.2f'|format(d.vl_juros_mensal)|replace('.', ',') }}</strong></div>
+              <div><span>Juros diários</span><strong>R$ {{ '%.2f'|format(d.vl_juros_diario)|replace('.', ',') }}</strong></div>
+              <div><span>Total dos juros</span><strong>R$ {{ '%.2f'|format(d.vl_juros)|replace('.', ',') }}</strong></div>
+              <div><span>Subtotal (sem desconto)</span><strong>R$ {{ '%.2f'|format(d.vl_total_sem_desconto)|replace('.', ',') }}</strong></div>
+              <div><span>Desconto</span><strong>R$ {{ '%.2f'|format(d.vl_desconto_calculado)|replace('.', ',') }}</strong></div>
+              <div class="parcelas-total"><span>Valor a pagar</span><strong>R$ {{ '%.2f'|format(d.vl_total_pagar if previa else d.vl_total_atualizado)|replace('.', ',') }}</strong></div>
+              {% if previa %}<p class="parcelas-nota">Prévia para {{ data_formulario }}; não houve gravação.</p>
+              {% elif pode_confirmar %}<p class="parcelas-nota">Valores da view, com referência em {{ hoje.strftime('%d/%m/%Y') }}. Recalcule antes de confirmar.</p>{% endif %}
+            {% elif selecionada.dt_pagamento %}
+              <p>Parcela paga em {{ selecionada.dt_pagamento.strftime('%d/%m/%Y') }}. Valor recebido: R$ {{ '%.2f'|format(selecionada.vl_pago)|replace('.', ',') }}.</p>
+            {% else %}
+              <p>Sem valores na view para esta parcela. Utilize Recalcular para obter os encargos da data escolhida.</p>
+            {% endif %}
+          </div>
+          <div class="parcelas-pagamento-campos">
+            <div><label for="pc_desconto">Desconto (%)</label>
+              <input id="pc_desconto" name="pc_desconto" type="number" min="0" max="100" step="0.01" value="{{ desconto_formulario if desconto_formulario is defined and desconto_formulario is not none else selecionada.pc_desconto }}" {% if not pode_confirmar %}disabled{% else %}required{% endif %}>
+            </div>
+            <div><label for="dt_pagamento">Data do pagamento</label>
+              <input id="dt_pagamento" name="dt_pagamento" type="date" value="{{ data_formulario if data_formulario is defined and data_formulario else (selecionada.dt_pagamento.isoformat() if selecionada.dt_pagamento else hoje.isoformat()) }}" {% if not pode_confirmar %}disabled{% else %}required{% endif %}>
+            </div>
+            <div><label>Situação</label><div>{{ 'Pago' if selecionada.dt_pagamento else 'Pendente' }}</div></div>
+
+            {% if pode_confirmar %}
+                <div class="pessoa-botoes parcelas-acoes">
+
+                    <button class="pessoa-botao"
+                            type="submit" name="acao" value="recalcular">
+                        Recalcular
+                    </button>
+
+                    <button class="pessoa-botao pessoa-botao--confirmar"
+                            type="submit" name="acao" value="confirmar_pagamento"
+                            {% if not previa %}disabled{% endif %}>
+                        Confirmar pagamento
+                    </button>
+
+                </div>
+            {% endif %}            
+
+          </div>
+        </div>
+      </form>
+    </section>
+    {% else %}<p>Nenhuma parcela encontrada.</p>{% endif %}
+  </section>
+  <aside class="pessoa-lista cadastro-lista parcelas-listas">
+    <h2 class="pessoa-form__titulo">Parcelas pendentes</h2>
+    {% for titulo, itens, cor in (('Vencidas', vencidas, 'vermelha'), ('Vencem hoje', vencem_hoje, 'amarela'), ('Futuras', futuras, 'verde')) %}
+      <section class="parcelas-grupo parcelas-grupo--{{ cor }}" aria-label="{{ titulo }}">
+        <h3>{{ titulo }} <span>({{ itens|length }})</span></h3>
+        {% if itens %}<ul class="parcelas-itens">
+          {% for parcela in itens %}
+            <li><a href="{{ url_for('adm_parcelas', cd_parcela=parcela.cd_parcela) }}" {% if selecionada and selecionada.cd_parcela == parcela.cd_parcela %}aria-current="page"{% endif %}>
+              <strong>{{ parcela.nm_pessoa }}</strong>
+              <span>#{{ parcela.cd_contrato }} · Parcela {{ parcela.nr_parcela }} · {{ parcela.dt_vencimento.strftime('%d/%m/%Y') }}</span>
+              <span>R$ {{ '%.2f'|format(parcela.vl_parcela)|replace('.', ',') }}</span>
+            </a></li>
+          {% endfor %}
+        </ul>{% else %}<p class="parcelas-vazio">Nenhuma parcela nesta categoria.</p>{% endif %}
+      </section>
+    {% endfor %}
+  </aside>
+</div>
+<style>
+
+
+/\* Reforça as duas colunas mesmo com estilos gerais de cadastro. \*/
+
+.parcelas-layout { display:grid; grid-template-columns:minmax(0, 1fr) 270px; gap:16px; align-items:start; }
+
+.parcelas-layout > .parcelas-detalhes, .parcelas-layout > .parcelas-listas { min-width:0; width:auto; max-width:none; box-sizing:border-box; }
+
+.parcelas-secao { margin-top:18px; }
+
+.parcelas-secao h3 { margin:0 0 12px; }
+
+.parcelas-dados-cliente { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+
+.parcelas-dados-cliente > div, .parcelas-grade > div { min-width:0; overflow-wrap:anywhere; }
+
+.parcelas-dados-cliente label, .parcelas-grade label { display:block; margin-bottom:6px; }
+
+.parcelas-grade { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px 20px; }
+
+.parcelas-campo-largo { grid-column:1/-1; }
+
+.parcelas-pagamento { margin-top:8px; }
+
+.parcelas-acoes { margin-top:18px; }
+
+.parcelas-nota { font-size:12px; opacity:.8; margin-top:10px; }
+
+.parcelas-aviso-sucesso { border:1px solid #35845a; padding:12px; border-radius:7px; margin-bottom:15px; }
+
+.parcelas-listas { display:grid; grid-template-rows:auto repeat(3,minmax(0,1fr)); gap:12px; height:75vh; min-height:500px; max-height:800px; overflow:hidden; }
+
+.parcelas-listas > h2 { min-height:0; }
+
+.parcelas-grupo { display:flex; flex-direction:column; border:1px solid; border-radius:8px; padding:10px; min-width:0; min-height:0; overflow:hidden; }
+
+.parcelas-grupo--vermelha { border-color:#cc5757; }
+
+.parcelas-grupo--amarela { border-color:#cda342; }
+
+.parcelas-grupo--verde { border-color:#4f9b68; }
+
+.parcelas-grupo h3 { margin:0 0 10px; font-size:1rem; }
+
+.parcelas-grupo h3 span { font-weight:normal; opacity:.8; }
+
+.parcelas-itens { list-style:none; padding:0; margin:0; flex:1; min-height:0; overflow-y:auto; }
+
+.parcelas-itens li + li { border-top:1px solid rgba(160,160,160,.2); }
+
+.parcelas-itens a { display:flex; flex-direction:column; gap:3px; padding:9px 7px; border-radius:5px; text-decoration:none; color:inherit; }
+
+.parcelas-itens a:hover, .parcelas-itens a:focus-visible { background:rgba(255,120,73,.12); outline:2px solid #ff7849; }
+
+.parcelas-itens a[aria-current="page"] { background:rgba(255,120,73,.18); }
+
+.parcelas-itens a span { font-size:12px; opacity:.85; }
+
+.parcelas-vazio { margin:0; opacity:.7; font-size:12px; }
+
+@media (max-width:1250px) { .parcelas-dados-cliente { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+@media (max-width:900px) { .parcelas-layout { grid-template-columns:minmax(0,1fr); } .parcelas-listas { height:680px; max-height:none; } .parcelas-dados-cliente { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+@media (max-width:580px) { .parcelas-dados-cliente, .parcelas-grade { grid-template-columns:minmax(0,1fr); } .parcelas-campo-largo { grid-column:auto; } }
+
+
+.parcelas-grade--pagamento { grid-template-columns: minmax(0, 1.5fr) minmax(220px, 1fr); align-items:start; }
+.parcelas-demonstrativo { padding:14px; border:1px solid #a1a1aa; border-radius:8px; }
+.parcelas-demonstrativo > div { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid #7773; }
+.parcelas-demonstrativo .parcelas-total { font-weight:700; border-top:2px solid #7777; margin-top:10px; font-size:1.1rem; }
+.parcelas-pagamento-campos { display:grid; gap:14px; }
+.parcelas-acoes { display:flex; gap:10px; flex-wrap:wrap; }
+@media(max-width:750px) { .parcelas-grade--pagamento {grid-template-columns: minmax(0,1fr);} }
+</style>
+{% endblock %}

@@ -14,6 +14,14 @@ GRANT SELECT ON TABLE
     public.vw_cobranca_inadimplentes
 TO app_juvecom;
 
+
+GRANT USAGE ON SCHEMA public TO app_juvecom;
+
+GRANT SELECT ON TABLE
+tb_cliente_link
+TO app_juvecom;
+
+
 -- Table ---------------------------------------
 select * from tb_pessoa;
 select * from tb_cliente;
@@ -60,6 +68,12 @@ order by b.nm_status, a.nm_pessoa, a.cd_status_contrato;
 
 select * from vw_cliente_contrato
 where cd_contrato in (39, 2)
+
+select * from vw_cliente_contrato
+where cpf_cnpj = '66442594000107'
+
+select * from tb_pessoa tp 
+where cpf_cnpj = '66442594000107'
 
 select * from tb_contrato
 where cd_status = 1;

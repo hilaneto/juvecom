@@ -15,28 +15,36 @@
         <div><label>Responsável</label><div>{{ selecionada.nm_responsavel or '—' }}</div></div>
         <div><label>Telefone</label><div>{{ selecionada.telefone or '—' }}</div></div>
         <div><label>E-mail</label><div>{{ selecionada.email or '—' }}</div></div>
+        <div> <label>Situação</label> <div>{{ 'Pago' if selecionada.dt_pagamento else 'Pendente' }}</div> </div>
       </div>
     </section>
     <section class="contrato-grupo parcelas-secao">
       <h3>Contrato e parcela</h3>
       <div class="parcelas-grade parcelas-grade--contrato">
         <div><label>Contrato</label><div><a href="{{ url_for('adm_contrato', cd_contrato=selecionada.cd_contrato) }}">#{{ selecionada.cd_contrato }}</a></div></div>
+        <div><label>Parcela</label><div>{{ selecionada.nr_parcela }}</div></div>
         <div><label>Plano</label><div>{{ selecionada.nm_plano or '—' }}</div></div>
         <div><label>Status do contrato</label><div>{{ selecionada.status_contrato or '—' }}</div></div>
-        <div><label>Parcela</label><div>{{ selecionada.nr_parcela }}</div></div>
         <div><label>Vencimento</label><div>{{ selecionada.dt_vencimento.strftime('%d/%m/%Y') }}</div></div>
-        <div><label>Valor original</label><div>R$ {{ '%.2f'|format(selecionada.vl_parcela)|replace('.', ',') }}</div></div>
         <div class="parcelas-campo-largo"><label>Vigência</label><div>{% if selecionada.dt_inicio_vigencia %}{{ selecionada.dt_inicio_vigencia.strftime('%d/%m/%Y') }} a {{ selecionada.dt_fim_vigencia.strftime('%d/%m/%Y') if selecionada.dt_fim_vigencia else 'prazo indeterminado' }}{% else %}—{% endif %}</div></div>
       </div>
     </section>
     <section class="contrato-grupo parcelas-secao">
-      <h3>Pagamento</h3>
+      <!-- <h3>Pagamento</h3> -->
       {% set pode_confirmar = selecionada.dt_pagamento is none and selecionada.cd_status_contrato in (2, 3) %}
+      {# Compatibilidade com as duas versões da rota: previa ou demonstrativo #}
+      {% set previa = previa if previa is defined and previa else (demonstrativo if demonstrativo is defined and demonstrativo else none) %}
       {% set d = previa if previa else selecionada %}
       {% set mostrar = previa is not none or selecionada.demonstrativo_disponivel %}
+      {% set valor_formulario = request.form.get('vl_pago', '') if request.method == 'POST' else '' %}
+      {% set data_formulario = request.form.get('dt_pagamento', hoje.isoformat()) if request.method == 'POST' else (selecionada.dt_pagamento.isoformat() if selecionada.dt_pagamento else hoje.isoformat()) %}
       <form id="parcela-formulario" class="pessoa-form parcelas-pagamento" method="post" action="{{ url_for('adm_parcelas') }}">
         <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
         <input type="hidden" name="cd_parcela" value="{{ selecionada.cd_parcela }}">
+        {% if previa %}
+          <input type="hidden" name="previa_pagamento" value="{{ data_formulario }}">
+          <input type="hidden" name="previa_valor_recebido" value="{{ previa.vl_recebido }}">
+        {% endif %}
         <div class="parcelas-grade parcelas-grade--pagamento">
           <div class="parcelas-demonstrativo">
             <h3>Demonstrativo financeiro</h3>
@@ -47,11 +55,18 @@
               <div><span>Juros mensais</span><strong>R$ {{ '%.2f'|format(d.vl_juros_mensal)|replace('.', ',') }}</strong></div>
               <div><span>Juros diários</span><strong>R$ {{ '%.2f'|format(d.vl_juros_diario)|replace('.', ',') }}</strong></div>
               <div><span>Total dos juros</span><strong>R$ {{ '%.2f'|format(d.vl_juros)|replace('.', ',') }}</strong></div>
-              <div><span>Subtotal (sem desconto)</span><strong>R$ {{ '%.2f'|format(d.vl_total_sem_desconto)|replace('.', ',') }}</strong></div>
-              <div><span>Desconto</span><strong>R$ {{ '%.2f'|format(d.vl_desconto_calculado)|replace('.', ',') }}</strong></div>
-              <div class="parcelas-total"><span>Valor a pagar</span><strong>R$ {{ '%.2f'|format(d.vl_total_pagar if previa else d.vl_total_atualizado)|replace('.', ',') }}</strong></div>
-              {% if previa %}<p class="parcelas-nota">Prévia para {{ data_formulario }}; não houve gravação.</p>
-              {% elif pode_confirmar %}<p class="parcelas-nota">Valores da view, com referência em {{ hoje.strftime('%d/%m/%Y') }}. Recalcule antes de confirmar.</p>{% endif %}
+              <div><span>Total atualizado (referência)</span><strong>R$ {{ '%.2f'|format(d.vl_total_atualizado)|replace('.', ',') }}</strong></div>
+              {% if previa %}
+                <div><span>Valor recebido (extrato)</span><strong>R$ {{ '%.2f'|format(previa.vl_recebido)|replace('.', ',') }}</strong></div>
+                <div class="parcelas-total"><span>Diferença (recebido − referência)</span><strong>R$ {{ '%+.2f'|format(previa.vl_diferenca)|replace('.', ',') }}</strong></div>
+                {% if previa.pode_baixar %}
+                  <p class="parcelas-nota">Prévia calculada para {{ data_formulario }}. Baixa permitida: valor recebido igual ou superior ao original. Nenhuma gravação realizada.</p>
+                {% else %}
+                  <p class="parcelas-aviso-diferenca" role="alert">Valor recebido inferior ao valor original da parcela (R$ {{ '%.2f'|format(selecionada.vl_parcela)|replace('.', ',') }}). A baixa não é permitida.</p>
+                {% endif %}
+              {% elif pode_confirmar %}
+                <p class="parcelas-nota">Posição da cobrança em {{ hoje.strftime('%d/%m/%Y') }}. Informe a data e o valor do extrato e clique em Recalcular.</p>
+              {% endif %}
             {% elif selecionada.dt_pagamento %}
               <p>Parcela paga em {{ selecionada.dt_pagamento.strftime('%d/%m/%Y') }}. Valor recebido: R$ {{ '%.2f'|format(selecionada.vl_pago)|replace('.', ',') }}.</p>
             {% else %}
@@ -59,31 +74,30 @@
             {% endif %}
           </div>
           <div class="parcelas-pagamento-campos">
-            <div><label for="pc_desconto">Desconto (%)</label>
-              <input id="pc_desconto" name="pc_desconto" type="number" min="0" max="100" step="0.01" value="{{ desconto_formulario if desconto_formulario is defined and desconto_formulario is not none else selecionada.pc_desconto }}" {% if not pode_confirmar %}disabled{% else %}required{% endif %}>
+            <div>
+              <label for="vl_pago">Valor pago (R$) — conforme extrato</label>
+              <input id="vl_pago" name="vl_pago" type="number" min="{{ '%.2f'|format(selecionada.vl_parcela) }}" step="0.01"
+                     value="{{ valor_formulario }}" placeholder="0.00"
+                     {% if not pode_confirmar %}disabled{% else %}required{% endif %}>
+              <p class="parcelas-nota">Mínimo para baixa: R$ {{ '%.2f'|format(selecionada.vl_parcela)|replace('.', ',') }}. Use ponto como separador decimal no campo.</p>
             </div>
             <div><label for="dt_pagamento">Data do pagamento</label>
-              <input id="dt_pagamento" name="dt_pagamento" type="date" value="{{ data_formulario if data_formulario is defined and data_formulario else (selecionada.dt_pagamento.isoformat() if selecionada.dt_pagamento else hoje.isoformat()) }}" {% if not pode_confirmar %}disabled{% else %}required{% endif %}>
+              <input id="dt_pagamento" name="dt_pagamento" type="date" value="{{ data_formulario }}" max="{{ hoje.isoformat() }}" {% if not pode_confirmar %}disabled{% else %}required{% endif %}>
             </div>
-            <div><label>Situação</label><div>{{ 'Pago' if selecionada.dt_pagamento else 'Pendente' }}</div></div>
-
             {% if pode_confirmar %}
-                <div class="pessoa-botoes parcelas-acoes">
-
-                    <button class="pessoa-botao"
-                            type="submit" name="acao" value="recalcular">
-                        Recalcular
-                    </button>
-
-                    <button class="pessoa-botao pessoa-botao--confirmar"
-                            type="submit" name="acao" value="confirmar_pagamento"
-                            {% if not previa %}disabled{% endif %}>
-                        Confirmar pagamento
-                    </button>
-
-                </div>
-            {% endif %}            
-
+              <div class="pessoa-botoes parcelas-acoes">
+                <button class="pessoa-botao" type="submit" name="acao" value="recalcular">Recalcular</button>
+                <button class="pessoa-botao pessoa-botao--confirmar" type="submit" name="acao" value="confirmar_pagamento"
+                        {% if not previa or not previa.pode_baixar %}disabled{% endif %}>
+                  Confirmar pagamento
+                </button>
+              </div>
+              <p class="parcelas-nota">Recalcule após qualquer alteração na data ou no valor pago. O servidor valida novamente os dados antes da baixa.</p>
+            {% elif selecionada.dt_pagamento %}
+              <p class="parcelas-nota">Pagamento já confirmado. Dados somente para consulta.</p>
+            {% else %}
+              <p class="parcelas-nota">Confirmação indisponível para o status atual do contrato.</p>
+            {% endif %}
           </div>
         </div>
       </form>
@@ -111,7 +125,7 @@
 <style>
 
 
-/\* Reforça as duas colunas mesmo com estilos gerais de cadastro. \*/
+/* Reforça as duas colunas mesmo com estilos gerais de cadastro. */
 
 .parcelas-layout { display:grid; grid-template-columns:minmax(0, 1fr) 270px; gap:16px; align-items:start; }
 
@@ -136,6 +150,7 @@
 .parcelas-acoes { margin-top:18px; }
 
 .parcelas-nota { font-size:12px; opacity:.8; margin-top:10px; }
+.parcelas-aviso-diferenca { font-size:12px; color:#ff9e9e; margin-top:12px; }
 
 .parcelas-aviso-sucesso { border:1px solid #35845a; padding:12px; border-radius:7px; margin-bottom:15px; }
 
