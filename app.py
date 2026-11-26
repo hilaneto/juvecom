@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, abort, redirect, render_template, request, session, url_for, current_app, send_file
+from flask import Flask, abort, redirect, render_template, request, session, url_for, current_app, send_file, jsonify
 from peewee import OperationalError
 import secrets
 from datetime import date, datetime, timedelta
@@ -934,28 +934,43 @@ def adm_parcelas():
         abort(403)
 
     erro = None
+    demonstrativo = None
     sucesso = request.args.get("sucesso") == "1"
     cd_parcela = request.args.get("cd_parcela", type=int)
 
     if request.method == "POST":
         validar_csrf()
 
-        if request.form.get("acao") != "confirmar_pagamento":
+        acao = request.form.get("acao")
+        cd_parcela = request.form.get("cd_parcela", type=int)
+
+        if cd_parcela is None or cd_parcela <= 0:
             abort(400)
 
-        try:
-            cd_parcela = int(request.form.get("cd_parcela", ""))
-        except (ValueError, TypeError):
+        if acao == "recalcular":
+            resultado = Parcelas.previa_pagamento(
+                cd_parcela, request.form.to_dict()
+            )
+
+            if resultado["sucesso"]:
+                demonstrativo = resultado["dados"]
+            else:
+                erro = resultado["erro"]
+
+        elif acao == "confirmar_pagamento":
+            resultado = Parcelas.confirmar_pagamento(
+                cd_parcela, request.form.to_dict()
+            )
+
+            if resultado["sucesso"]:
+                return redirect(
+                    url_for("adm_parcelas", cd_parcela=cd_parcela, sucesso=1)
+                )
+
+            erro = resultado["erro"]
+
+        else:
             abort(400)
-
-        resultado = Parcelas.confirmar_pagamento(
-            cd_parcela, request.form.to_dict()
-        )
-
-        if resultado["sucesso"]:
-            return redirect(url_for("adm_parcelas", cd_parcela=cd_parcela, sucesso=1))
-
-        erro = resultado["erro"]
 
     tela = Parcelas.tela(cd_parcela=cd_parcela)
 
@@ -963,8 +978,28 @@ def adm_parcelas():
         "negocio/parcelas.html",
         **tela,
         erro=erro,
-        sucesso=sucesso
+        sucesso=sucesso,
+        demonstrativo=demonstrativo
     )
+
+
+
+@app.route("/adm/parcelas/previa", methods=["POST"])
+@login_obrigatorio
+@acesso_administrativo
+def adm_parcelas_previa():
+    if session["cd_nivel"] not in (0, 1):
+        abort(403)
+
+    validar_csrf()
+
+    cd_parcela = request.form.get("cd_parcela", type=int)
+    resultado = Parcelas.previa_pagamento(
+        cd_parcela, request.form.to_dict()
+    )
+
+    return jsonify(resultado)
+
 
 @app.route("/adm/contratos/<int:cd_contrato>/download", methods=["GET"])
 @login_obrigatorio

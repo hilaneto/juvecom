@@ -2801,3 +2801,29 @@ body:has(.precadastro) {
 @media (prefers-reduced-motion: reduce) {
     .dashboard .dashboard__card { transition: none; }
 }
+
+.parcelas-demonstrativo {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.parcelas-demonstrativo > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 7px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.parcelas-demonstrativo .parcelas-total {
+    margin-top: 12px;
+    padding-top: 14px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    border-top: 2px solid #64748b;
+    border-bottom: none;
+}
+
+#df-erro { color: #b91c1c; }
